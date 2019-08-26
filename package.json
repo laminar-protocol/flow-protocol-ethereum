@@ -1,0 +1,13 @@
+{
+  "name": "flow-protocol",
+  "version": "0.0.1",
+  "author": "Bryan Chen <bryan@laminar.one>",
+  "private": true,
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.3.0"
+  },
+  "devDependencies": {
+    "dotenv": "^8.1.0",
+    "truffle-hdwallet-provider": "^1.0.17"
+  }
+}
