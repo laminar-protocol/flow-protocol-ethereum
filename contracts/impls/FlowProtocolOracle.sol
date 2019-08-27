@@ -1,12 +1,11 @@
 pragma solidity ^0.5.8;
 
-import "@openzeppelin/contracts/access/roles/WhitelistedRole.sol";
+import "../interfaces/PriceOracle.sol";
+import "../interfaces/FlowProtocolConfig.sol";
+import "../libs/Percentage.sol";
+import "../roles/PriceFeederRole.sol";
 
-import "./PriceOracle.sol";
-import "./FlowProtocolConfig.sol";
-import "./Percentage.sol";
-
-contract FlowProtocolOracle is WhitelistedRole, PriceOracle {
+contract FlowProtocolOracle is PriceFeederRole, PriceOracle {
     struct PriceData {
         uint price;
         uint timestamp;
@@ -26,7 +25,7 @@ contract FlowProtocolOracle is WhitelistedRole, PriceOracle {
         return prices[addr];
     }
 
-    function setPrice(address addr, uint price) public onlyWhitelisted {
+    function setPrice(address addr, uint price) public onlyPriceFeeder {
         require(price != 0, "Invalid price");
         uint lastPrice = prices[addr];
         PriceData storage snapshotPrice = priceSnapshots[addr];
