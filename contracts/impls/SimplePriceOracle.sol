@@ -1,24 +1,25 @@
 pragma solidity ^0.5.8;
 
 import "../interfaces/PriceOracle.sol";
-import "../interfaces/FlowProtocolConfig.sol";
+import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
 import "../roles/PriceFeederRole.sol";
 
-contract FlowProtocolOracle is PriceFeederRole, PriceOracle {
+contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracle {
     struct PriceData {
         uint price;
         uint timestamp;
     }
 
-    FlowProtocolConfig internal config;
     mapping(address => uint) private prices;
     mapping(address => PriceData) private priceSnapshots;
 
     bool public constant isPriceOracle = true;
 
-    constructor(FlowProtocolConfig config_) public {
-        config = config_;
+    constructor(address[] memory priceFeeders) public {
+        for (uint i = 0; i < priceFeeders.length; i++) {
+            addPriceFeeder(priceFeeders[i]);
+        }
     }
 
     function getPrice(address addr) external view returns (uint) {
@@ -29,9 +30,9 @@ contract FlowProtocolOracle is PriceFeederRole, PriceOracle {
         require(price != 0, "Invalid price");
         uint lastPrice = prices[addr];
         PriceData storage snapshotPrice = priceSnapshots[addr];
-        uint price2 = capPrice(price, lastPrice, config.oracleDeltaLastLimit());
-        uint price3 = capPrice(price2, snapshotPrice.price, config.oracleDeltaSnapshotLimit());
-        if (snapshotPrice.timestamp + config.oracleDeltaSnapshotTime() < now) {
+        uint price2 = capPrice(price, lastPrice, oracleDeltaLastLimit);
+        uint price3 = capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
+        if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < now) {
             snapshotPrice.price = price3;
             snapshotPrice.timestamp = now;
         }
@@ -39,12 +40,12 @@ contract FlowProtocolOracle is PriceFeederRole, PriceOracle {
         prices[addr] = price3;
     }
 
-    function capPrice(uint current, uint last, uint limit) pure internal returns (uint) {
+    function capPrice(uint current, uint last, Percentage.Percent storage limit) pure internal returns (uint) {
         if (last == 0) {
             return current;
         }
         uint price = current;
-        uint cap = Percentage.mulPercent(last, Percentage.Percent(limit));
+        uint cap = Percentage.mulPercent(last, limit);
         if (current > last) {
             uint diff = current - last;
             if (diff > cap) {

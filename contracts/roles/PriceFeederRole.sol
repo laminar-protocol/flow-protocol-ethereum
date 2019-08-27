@@ -1,9 +1,9 @@
 pragma solidity ^0.5.8;
 
+import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/access/Roles.sol";
-import "./ProtocolOwnable.sol";
 
-contract PriceFeederRole is ProtocolOwnable {
+contract PriceFeederRole is Ownable {
     using Roles for Roles.Role;
 
     event PriceFeederAdded(address indexed account);
@@ -20,11 +20,11 @@ contract PriceFeederRole is ProtocolOwnable {
         return _priceFeeders.has(account);
     }
 
-    function addPriceFeeder(address account) public onlyProtocol {
+    function addPriceFeeder(address account) public onlyOwner {
         _addPriceFeeder(account);
     }
 
-    function removePriceFeeder(address account) public onlyProtocol {
+    function removePriceFeeder(address account) public onlyOwner {
         _removePriceFeeder(account);
     }
 
