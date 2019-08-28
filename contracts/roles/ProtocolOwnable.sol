@@ -1,15 +1,15 @@
 pragma solidity ^0.5.8;
 
-import "../interfaces/FlowProtocol.sol";
+import "../interfaces/FlowProtocolInterface.sol";
 
 contract ProtocolOwnable {
-    FlowProtocol private _protocol;
+    FlowProtocolInterface private _protocol;
 
     constructor () internal {
-        _protocol = FlowProtocol(msg.sender);
+        _protocol = FlowProtocolInterface(msg.sender);
     }
 
-    function protocol() public view returns (FlowProtocol) {
+    function protocol() public view returns (FlowProtocolInterface) {
         return _protocol;
     }
 

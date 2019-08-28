@@ -4,11 +4,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 
 import "../libs/Percentage.sol";
-import "../interfaces/FlowProtocol.sol";
-import "../interfaces/PriceOracle.sol";
+import "../interfaces/FlowProtocolInterface.sol";
+import "../interfaces/PriceOracleInterface.sol";
 import "../roles/ProtocolOwnable.sol";
 
-contract FlowProtocolController is FlowProtocol, Ownable {
+contract FlowProtoco is FlowProtocolInterface, Ownable {
     PriceOracle public oracle;
     IERC20 public baseToken;
 

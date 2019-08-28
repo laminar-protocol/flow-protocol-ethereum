@@ -1,6 +1,6 @@
 pragma solidity ^0.5.8;
 
-import "../interfaces/PriceOracle.sol";
+import "../interfaces/PriceOracleInterface.sol";
 import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
 import "../roles/PriceFeederRole.sol";
