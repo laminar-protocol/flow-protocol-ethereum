@@ -35,4 +35,8 @@ library Percentage {
     function subPercent(Percent memory a, Percent memory b) internal pure returns (Percent memory) {
         return Percent(a.value.sub(b.value));
     }
+
+    function oneHundredPercent() internal pure returns (Percent memory) {
+        return Percent(one);
+    }
 }
