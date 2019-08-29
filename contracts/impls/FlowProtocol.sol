@@ -13,7 +13,7 @@ import "../interfaces/PriceOracleInterface.sol";
 import "../roles/ProtocolOwnable.sol";
 import "./FlowToken.sol";
 
-contract FlowProtoco is FlowProtocolInterface, Ownable {
+contract FlowProtocol is FlowProtocolInterface, Ownable {
     using SafeMath for uint256;
     using Percentage for uint256;
     using SafeERC20 for IERC20;
@@ -37,7 +37,7 @@ contract FlowProtoco is FlowProtocolInterface, Ownable {
     function createFlowToken(string memory name, string memory symbol) public onlyOwner {
         require(address(tokens[name]) == address(0), "already exists");
         FlowToken token = new FlowToken(name, symbol, baseToken);
-        tokens[name] = token;
+        tokens[symbol] = token;
     }
 
     function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) public {
