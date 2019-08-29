@@ -87,7 +87,7 @@ contract FlowProtoco is FlowProtocolInterface, Ownable {
     }
 
     function getCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
-        uint ratio = pool.collateralRatio(address(token));
+        uint ratio = pool.getCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }
 
