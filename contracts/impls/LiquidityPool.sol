@@ -18,7 +18,11 @@ contract LiquidityPool is Ownable {
         baseToken.safeApprove(msg.sender, MAX_UINT);
         spread = spread_;
         collateralRatio = 0; // use fToken default
+
+        for (uint i = 0; i < fTokens.length; i++) {
+            allowedTokens[fTokens[i]] = true;
         }
+    }
 
     function getSpread(address fToken) external view returns (uint) {
         if (allowedTokens[fToken]) {
