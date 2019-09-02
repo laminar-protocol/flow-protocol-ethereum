@@ -13,7 +13,9 @@ exports.createTestToken = async (...args) => {
 
 exports.fromPip = val => web3.utils.toWei(new BN(val)).div(new BN(10000));
 exports.fromPercent = val => web3.utils.toWei(new BN(val)).div(new BN(100));
+exports.bn = val => new BN(val);
 
 exports.messages = {
-    onlyOwner: 'Ownable: caller is not the owner'
+    onlyOwner: 'Ownable: caller is not the owner',
+    onlyPriceFeeder: 'PriceFeederRole: caller does not have the PriceFeeder role'
 };

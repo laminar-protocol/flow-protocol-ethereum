@@ -70,6 +70,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
+        // ensure pool have enough minted token to remove
         position.minted = position.minted.sub(flowTokenAmount);
 
         uint mintedValue = position.minted.mul(price).div(1 ether);

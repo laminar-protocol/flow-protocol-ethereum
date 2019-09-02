@@ -3,6 +3,7 @@ pragma solidity ^0.5.8;
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/access/Roles.sol";
 
+// TODO: change Ownable to Admin to ensure always must be a valid admin
 contract PriceFeederRole is Ownable {
     using Roles for Roles.Role;
 
