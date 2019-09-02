@@ -41,6 +41,30 @@ contract('SimplePriceOracle', accounts => {
         });
     });
 
+    describe('oracle config', () => {
+        it('should be able to set config', async () => {
+            await oracle.setOracleDeltaLastLimit(123);
+            expect(await oracle.oracleDeltaLastLimit()).bignumber.equal(helper.bn(123));
+
+            await oracle.setOracleDeltaSnapshotLimit(456);
+            expect(await oracle.oracleDeltaSnapshotLimit()).bignumber.equal(helper.bn(456));
+
+            await oracle.setOracleDeltaSnapshotTime(789);
+            expect(await oracle.oracleDeltaSnapshotTime()).bignumber.equal(helper.bn(789));
+        });
+
+        it('requires owner to set config', async () => {
+            await expectRevert(oracle.setOracleDeltaLastLimit(123, { from: badAddress }), helper.messages.onlyOwner);
+            await expectRevert(oracle.setOracleDeltaLastLimit(123, { from: priceFeeder }), helper.messages.onlyOwner);
+
+            await expectRevert(oracle.setOracleDeltaSnapshotLimit(456, { from: badAddress }), helper.messages.onlyOwner);
+            await expectRevert(oracle.setOracleDeltaSnapshotLimit(456, { from: priceFeeder }), helper.messages.onlyOwner);
+
+            await expectRevert(oracle.setOracleDeltaSnapshotTime(789, { from: badAddress }), helper.messages.onlyOwner);
+            await expectRevert(oracle.setOracleDeltaSnapshotTime(789, { from: priceFeeder }), helper.messages.onlyOwner);
+        });
+    });
+
     describe('price feeder', () => {
         it('should be able to query price feeder', async () => {
             expect(await oracle.isPriceFeeder(owner)).to.be.false;
