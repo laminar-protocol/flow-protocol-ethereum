@@ -1,14 +1,14 @@
 module.exports = {
     "env": {
-        "browser": true,
         "commonjs": true,
-        "es6": true
+        "es6": true,
+        "mocha": true
     },
     "extends": "eslint:recommended",
     "globals": {
-        "Atomics": "readonly",
-        "SharedArrayBuffer": "readonly",
         "artifacts": "readonly",
+        "contract": "readonly",
+        "assert": "readonly",
         "web3": "readonly"
     },
     "parserOptions": {

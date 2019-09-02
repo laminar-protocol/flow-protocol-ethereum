@@ -12,7 +12,7 @@ contract LiquidityPool is Ownable {
     uint private spread;
     uint private collateralRatio;
 
-    mapping (address => bool) allowedTokens;
+    mapping (address => bool) private allowedTokens;
 
     constructor(IERC20 baseToken, uint spread_, address[] memory fTokens) public {
         baseToken.safeApprove(msg.sender, MAX_UINT);
