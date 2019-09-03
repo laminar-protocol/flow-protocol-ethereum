@@ -19,7 +19,7 @@ module.exports = async deployer => {
   await protocol.createFlowToken("EU Dollar", "EUR");
   const fEURAddress = await protocol.tokens("EUR");
 
-  await deployer.deploy(LiquidityPool, baseToken.address, web3.utils.toWei('0.01'), [fEURAddress]);
+  await deployer.deploy(LiquidityPool, protocol.address, baseToken.address, web3.utils.toWei('0.01'), [fEURAddress]);
   const pool = await LiquidityPool.deployed();
 
   await baseToken.transfer(pool.address, web3.utils.toWei('1000'));

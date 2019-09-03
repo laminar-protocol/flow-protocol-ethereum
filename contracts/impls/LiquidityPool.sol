@@ -14,7 +14,8 @@ contract LiquidityPool is Ownable {
 
     mapping (address => bool) private allowedTokens;
 
-    constructor(IERC20 baseToken, uint spread_, address[] memory fTokens) public {
+    constructor(address protocol, IERC20 baseToken, uint spread_, address[] memory fTokens) public {
+        baseToken.safeApprove(protocol, MAX_UINT);
         baseToken.safeApprove(msg.sender, MAX_UINT);
         spread = spread_;
         collateralRatio = 0; // use fToken default

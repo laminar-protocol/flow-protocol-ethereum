@@ -76,13 +76,16 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint mintedValue = position.minted.mul(price).div(1 ether);
         uint requiredCollaterals = mintedValue.mulPercent(getCollateralRatio(token, pool));
         if (requiredCollaterals <= position.collaterals) {
-            uint refund = position.collaterals.sub(requiredCollaterals);
+            // TODO: need to guarantee this never underflow
+            uint refund = position.collaterals.sub(requiredCollaterals).sub(baseTokenAmount);
             position.collaterals = requiredCollaterals;
-            baseToken.safeTransfer(poolAddr, refund);
+            baseToken.safeTransferFrom(tokenAddr, poolAddr, refund);
         } else {
-            // position is unsafe, what to do?
+            // TODO: position is unsafe, what to do?
+            // TODO: need to guarantee this never underflow
+            position.collaterals = position.collaterals.sub(baseTokenAmount);
         }
-        baseToken.safeTransfer(msg.sender, baseTokenAmount);
+        baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount);
 
         token.burn(msg.sender, flowTokenAmount);
     }

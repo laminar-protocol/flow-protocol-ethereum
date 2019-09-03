@@ -7,15 +7,16 @@ const LiquidityPool = artifacts.require("LiquidityPool");
 
 contract('LiquidityPool', accounts => {
   const liquidityProvider = accounts[0];
-  const fToken = accounts[1];
-  const fTokenTwo = accounts[2];
-  const badAddress = accounts[3];
+  const protocol = accounts[1];
+  const fToken = accounts[2];
+  const fTokenTwo = accounts[3];
+  const badAddress = accounts[4];
   let liquidityPool;
   let usd;
 
   beforeEach(async () => {
     usd = await helper.createTestToken([liquidityProvider, 10000]);
-    liquidityPool = await LiquidityPool.new(usd.address, helper.fromPip(10), [fToken]);
+    liquidityPool = await LiquidityPool.new(protocol, usd.address, helper.fromPip(10), [fToken]);
   });
 
   describe('spread', () => {
