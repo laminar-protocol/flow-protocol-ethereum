@@ -111,4 +111,54 @@ contract('FlowProtocol', accounts => {
       await act();
     }
   });
+
+  it('support multiple users', async () => {
+    const actions = [
+      buy(alice, 1000),
+      buy(bob, 1000),
+      balance(fToken, alice, 999),
+      balance(fToken, bob, 999),
+      balance(usd, alice, 9000),
+      balance(usd, bob, 9000),
+      balance(usd, fToken.address, 2200),
+      balance(usd, liquidityPool.address, 9800),
+
+      setPrice(98),
+
+      buy(alice, 980),
+      sell(bob, 499),
+      balance(fToken, alice, 1997),
+      balance(fToken, bob, 500),
+      balance(usd, alice, 8020),
+      balance(usd, bob, 9488),
+      balance(usd, fToken.address, 2691),
+      balance(usd, liquidityPool.address, 9801),
+
+      setPrice(100),
+
+      sell(alice, 997),
+      buy(bob, 1020),
+      balance(fToken, alice, 1000),
+      balance(fToken, bob, 1518),
+      balance(usd, alice, 9016),
+      balance(usd, bob, 8468),
+      balance(usd, fToken.address, 2772),
+      balance(usd, liquidityPool.address, 9744),
+
+      setPrice(101),
+
+      sell(alice, 1000),
+      sell(bob, 1518),
+      balance(fToken, alice, 0),
+      balance(fToken, bob, 0),
+      balance(usd, alice, 10025),
+      balance(usd, bob, 9999),
+      balance(usd, fToken.address, 0),
+      balance(usd, liquidityPool.address, 9976),
+    ];
+
+    for (const act of actions) {
+      await act();
+    }
+  });
 })

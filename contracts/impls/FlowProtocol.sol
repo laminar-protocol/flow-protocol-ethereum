@@ -49,7 +49,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint askPrice = price.add(spread);
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         // TODO: maybe should be: flowTokenAmount * price * collateralRatio? use mid price instead of ask price
-        uint additionalCollateralAmount = baseTokenAmount.mulPercent(getCollateralRatio(token, pool));
+        uint additionalCollateralAmount = baseTokenAmount.mulPercent(getCollateralRatio(token, pool)).sub(baseTokenAmount);
 
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
         position.collaterals = position.collaterals.add(baseTokenAmount).add(additionalCollateralAmount);
@@ -99,5 +99,11 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint price = oracle.getPrice(address(token));
         require(price > 0, "no oracle price");
         return price;
+    }
+
+    function getLiquidityPoolPositions(address poolAddr) external view returns (uint collaterals, uint minted) {
+        LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
+        collaterals = position.collaterals;
+        minted = position.minted;
     }
 }

@@ -24,8 +24,8 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         baseToken.safeApprove(msg.sender, MAX_UINT);
 
         // TODO: from constructor parameter
-        minCollateralRatio = Percentage.fromFraction(5, 100);
-        defaultCollateralRatio = Percentage.fromFraction(10, 100);
+        minCollateralRatio = Percentage.fromFraction(105, 100);
+        defaultCollateralRatio = Percentage.fromFraction(110, 100);
     }
 
     function setMinCollateralRatio(uint percent) public onlyProtocol {
