@@ -1,4 +1,4 @@
-const { expectRevert } = require('openzeppelin-test-helpers');
+const { expectRevert, time } = require('openzeppelin-test-helpers');
 const { expect } = require('chai');
 
 const helper = require('./helpers');
@@ -62,6 +62,112 @@ contract('SimplePriceOracle', accounts => {
 
             await expectRevert(oracle.setOracleDeltaSnapshotTime(789, { from: badAddress }), helper.messages.onlyOwner);
             await expectRevert(oracle.setOracleDeltaSnapshotTime(789, { from: priceFeeder }), helper.messages.onlyOwner);
+        });
+    });
+
+    describe('price cap', () => {
+        describe('last price', () => {
+            beforeEach(async () => {
+                await oracle.setOracleDeltaLastLimit(helper.fromPercent(10));
+                await oracle.setOracleDeltaSnapshotLimit(helper.fromPercent(1000));
+                await oracle.addPriceFeeder(owner);
+                await oracle.setPrice(fToken, 1000);
+            });
+
+            it('should allow increase less than cap', async () => {
+                await oracle.setPrice(fToken, 1099);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1099));
+
+                await oracle.setPrice(fToken, 1207);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1207));
+            });
+
+            it('should allow decrease less than cap', async () => {
+                await oracle.setPrice(fToken, 901);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(901));
+
+                await oracle.setPrice(fToken, 811);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(811));
+            });
+
+            it('should cap increase', async () => {
+                await oracle.setPrice(fToken, 1101);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1100));
+
+                await oracle.setPrice(fToken, 1211);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1210));
+            });
+    
+            it('should cap decrease', async () => {
+                await oracle.setPrice(fToken, 899);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(900));
+
+                await oracle.setPrice(fToken, 798);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(810));
+            });
+        });
+
+        describe('snapshot price price', () => {
+            beforeEach(async () => {
+                await oracle.setOracleDeltaLastLimit(helper.fromPercent(1000));
+                await oracle.setOracleDeltaSnapshotLimit(helper.fromPercent(10));
+                await oracle.setOracleDeltaSnapshotTime(30);
+                await oracle.addPriceFeeder(owner);
+                await oracle.setPrice(fToken, 1000);
+            });
+
+            it('should allow increase less than cap', async () => {
+                await oracle.setPrice(fToken, 950);
+
+                await oracle.setPrice(fToken, 1099);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1099));
+            });
+
+            it('should allow decrease less than cap', async () => {
+                await oracle.setPrice(fToken, 1050);
+
+                await oracle.setPrice(fToken, 901);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(901));
+            });
+
+            it('should cap increase', async () => {
+                await oracle.setPrice(fToken, 1050);
+
+                await oracle.setPrice(fToken, 1101);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1100));
+
+                await oracle.setPrice(fToken, 1102);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1100));
+            });
+    
+            it('should cap decrease', async () => {
+                await oracle.setPrice(fToken, 950);
+
+                await oracle.setPrice(fToken, 899);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(900));
+
+                await oracle.setPrice(fToken, 898);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(900));
+            });
+
+            it('should take new snapshot', async () => {
+                await time.increase(29);
+                await oracle.setPrice(fToken, 1100); // this is not new snapshot
+
+                await time.increase(2);
+                await oracle.setPrice(fToken, 900); // this is the new snapshot
+
+                await oracle.setPrice(fToken, 1000);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(990));
+
+                await time.increase(31);
+
+                await oracle.setPrice(fToken, 1001);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(990)); // new snapshot
+
+                await oracle.setPrice(fToken, 1100);
+                expect(await oracle.getPrice(fToken)).bignumber.equal(helper.bn(1089));
+            });
         });
     });
 
