@@ -73,6 +73,30 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         token.burn(msg.sender, flowTokenAmount);
     }
 
+    function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) public {
+        address poolAddr = address(pool);
+        address tokenAddr = address(token);
+        uint price = getPrice(tokenAddr);
+
+        uint spread = pool.getSpread(tokenAddr);
+        uint bidPrice = price.sub(spread);
+        uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
+
+        uint collateralsToRemove;
+        uint refundToPool;
+        uint incentive;
+        (collateralsToRemove, refundToPool, incentive) = _calculateRemovePositionAndIncentive(token, pool, price, flowTokenAmount, baseTokenAmount);
+
+        token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+
+        if (refundToPool > 0) {
+            baseToken.safeTransferFrom(tokenAddr, poolAddr, refundToPool);
+        }
+        baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount.add(incentive));
+
+        token.burn(msg.sender, flowTokenAmount);
+    }
+
     function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {
         uint collaterals;
         uint minted;
@@ -89,8 +113,38 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         if (requiredCollaterals <= collaterals) {
             collateralsToRemove = collaterals.sub(requiredCollaterals);
             refundToPool = collateralsToRemove.sub(baseTokenAmount);
+        }
+    }
+
+    function _calculateRemovePositionAndIncentive(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool, uint incentive) {
+            uint collaterals;
+        uint minted;
+        (collaterals, minted) = token.getPosition(address(pool));
+
+        require(minted >= flowTokenAmount, "Liquidity pool does not have enough position");
+
+        uint mintedValue = minted.mul(price).div(1 ether);
+
+        uint mintedAfter = minted.sub(flowTokenAmount);
+        uint mintedAfterValue = mintedAfter.mul(price).div(1 ether);
+
+        uint requiredCollaterals = mintedAfterValue.mulPercent(getCollateralRatio(token, pool));
+
+        collateralsToRemove = baseTokenAmount;
+        refundToPool = 0;
+        incentive = 0;
+        if (requiredCollaterals <= collaterals) { // in safe position, no incentive
+            collateralsToRemove = collaterals.sub(requiredCollaterals);
+            refundToPool = collateralsToRemove.sub(baseTokenAmount);
         } else {
-            // TODO: position is unsafe, do we want to do anything?
+            uint newCollaterals = collaterals.sub(collateralsToRemove);
+            Percentage.Percent memory currentRatio = Percentage.fromFraction(collaterals, mintedValue);
+            uint baseValue = mintedAfterValue.mulPercent(currentRatio);
+            if (newCollaterals > baseValue) {
+                uint availableForIncentive = newCollaterals.sub(baseValue);
+                incentive = availableForIncentive / 2; // TODO: maybe need a better formula
+                collateralsToRemove = collateralsToRemove.add(incentive);
+            } // else no more incentive can be given
         }
     }
 
