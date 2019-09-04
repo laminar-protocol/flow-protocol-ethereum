@@ -28,12 +28,13 @@ contract('FlowProtocol', accounts => {
   });
 
   beforeEach(async () => {
-    usd = await helper.createTestToken([liquidityProvider, 10000], [alice, 10000], [bob, 10000]);
+    usd = await helper.createTestToken([liquidityProvider, 20000], [alice, 10000], [bob, 10000]);
     protocol = await FlowProtocol.new(oracle.address, usd.address);
     await protocol.createFlowToken('Euro', 'EUR');
     fToken = new FlowToken(await protocol.tokens('EUR'));
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
+    await usd.approve(protocol.address, constants.MAX_UINT256, { from: liquidityProvider });
     
     liquidityPool = await LiquidityPool.new(protocol.address, usd.address, helper.fromPip(10), [fToken.address]);
     await usd.transfer(liquidityPool.address, 10000, { from: liquidityProvider });
@@ -49,6 +50,9 @@ contract('FlowProtocol', accounts => {
   const sell = (addr, amount) => () => protocol.withdraw(fToken.address, liquidityPool.address, amount, { from: addr });
   const balance = (token, addr, amount) => async () => expect(await token.balanceOf(addr)).bignumber.equal(helper.bn(amount));
   const setPrice = price => () => oracle.setPrice(fToken.address, helper.fromPercent(price));
+  const liquidate = (addr, amount) => () => protocol.liquidate(fToken.address, liquidityPool.address, amount, { from: addr });
+  const addCollateral = (from, token, pool, amount) => () => protocol.addCollateral(token, pool, amount, { from });
+  const revert = (fn, msg) => () => expectRevert(fn(), msg);
 
   it('able to buy and sell', async () => {
     const actions = [
@@ -161,4 +165,66 @@ contract('FlowProtocol', accounts => {
       await act();
     }
   });
-})
+
+  describe('liquidate', () => {
+    it('allow people to liquidate position', async () => {
+      const actions = [
+        buy(alice, 1000),
+        setPrice(107),
+        liquidate(alice, 999),
+
+        balance(fToken, alice, 0),
+        balance(usd, alice, 10083),
+        balance(usd, fToken.address, 0),
+        balance(usd, liquidityPool.address, 9917),
+      ];
+      for (const act of actions) {
+        await act();
+      }
+    });
+
+    it('allow liqudity provider to topup collaterals', async () => {
+      const actions = [
+        buy(alice, 1000),
+        setPrice(107),
+        addCollateral(liquidityProvider, fToken.address, liquidityPool.address, 100),
+        revert(liquidate(alice, 999), helper.messages.stillSafe),
+      ];
+      for (const act of actions) {
+        await act();
+      }
+    });
+
+    it('not allow people to liquidate with safe position', async () => {
+      const actions = [
+        buy(alice, 1000),
+        revert(liquidate(alice, 999), helper.messages.stillSafe),
+      ];
+      for (const act of actions) {
+        await act();
+      }
+    });
+
+    it('allow to liquidate partially', async () => {
+      const actions = [
+        buy(alice, 1000),
+        setPrice(107),
+        liquidate(alice, 500),
+
+        balance(fToken, alice, 499),
+        balance(usd, alice, 9543),
+        balance(usd, fToken.address, 548),
+        balance(usd, liquidityPool.address, 9909),
+
+        liquidate(alice, 499),
+        balance(fToken, alice, 0),
+        balance(usd, alice, 10083),
+        balance(usd, fToken.address, 0),
+        balance(usd, liquidityPool.address, 9917),
+      ];
+      for (const act of actions) {
+        await act();
+      }
+    });
+  });
+});

@@ -34,6 +34,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external {
+        require(baseToken.balanceOf(msg.sender) >= baseTokenAmount, "Not enough balance");
+
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
@@ -53,6 +55,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
+        require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
+
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
@@ -74,6 +78,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
+        require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
+
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
@@ -122,35 +128,36 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function _calculateRemovePositionAndIncentive(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool, uint incentive) {
-            uint collaterals;
+        uint collaterals;
         uint minted;
         (collaterals, minted) = token.getPosition(address(pool));
 
         require(minted >= flowTokenAmount, "Liquidity pool does not have enough position");
 
-        uint mintedValue = minted.mul(price).div(1 ether);
+        Percentage.Percent memory currentRatio = getCurrentCollateralRatio(collaterals, minted, price);
+
+        require(currentRatio.value < token.minCollateralRatio(), "Still in a safe position");
 
         uint mintedAfter = minted.sub(flowTokenAmount);
         uint mintedAfterValue = mintedAfter.mul(price).div(1 ether);
 
-        uint requiredCollaterals = mintedAfterValue.mulPercent(getCollateralRatio(token, pool));
-
         collateralsToRemove = baseTokenAmount;
         refundToPool = 0;
         incentive = 0;
-        if (requiredCollaterals <= collaterals) { // in safe position, no incentive
-            collateralsToRemove = collaterals.sub(requiredCollaterals);
-            refundToPool = collateralsToRemove.sub(baseTokenAmount);
-        } else {
-            uint newCollaterals = collaterals.sub(collateralsToRemove);
-            Percentage.Percent memory currentRatio = Percentage.fromFraction(collaterals, mintedValue);
-            uint baseValue = mintedAfterValue.mulPercent(currentRatio);
-            if (newCollaterals > baseValue) {
-                uint availableForIncentive = newCollaterals.sub(baseValue);
-                incentive = availableForIncentive / 2; // TODO: maybe need a better formula
-                collateralsToRemove = collateralsToRemove.add(incentive);
-            } // else no more incentive can be given
-        }
+        uint newCollaterals = collaterals.sub(collateralsToRemove);
+        uint withCurrentRatio = mintedAfterValue.mulPercent(currentRatio);
+        
+        if (newCollaterals > withCurrentRatio) {
+            uint availableForIncentive = newCollaterals.sub(withCurrentRatio);
+            incentive = availableForIncentive / 2; // TODO: maybe need a better formula
+            refundToPool = availableForIncentive.sub(incentive);
+            collateralsToRemove = collateralsToRemove.add(incentive).add(refundToPool);
+        } // else no more incentive can be given
+    }
+
+    function getCurrentCollateralRatio(uint collaterals, uint minted, uint price) internal pure returns (Percentage.Percent memory) {
+        uint mintedValue = minted.mul(price).div(1 ether);
+        return Percentage.fromFraction(collaterals, mintedValue);
     }
 
     function getCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {

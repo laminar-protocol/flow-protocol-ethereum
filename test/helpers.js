@@ -17,5 +17,6 @@ exports.bn = val => new BN(val);
 
 exports.messages = {
     onlyOwner: 'Ownable: caller is not the owner',
-    onlyPriceFeeder: 'PriceFeederRole: caller does not have the PriceFeeder role'
+    onlyPriceFeeder: 'PriceFeederRole: caller does not have the PriceFeeder role',
+    stillSafe: 'Still in a safe position'
 };
