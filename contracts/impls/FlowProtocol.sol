@@ -22,13 +22,6 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     IERC20 public baseToken;
     mapping (string => FlowToken) public tokens;
 
-    struct LiquidityPoolPosition {
-        uint collaterals;
-        uint minted;
-    }
-
-    mapping (address => LiquidityPoolPosition) public liquidityPoolPositions;
-
     constructor(PriceOracle oracle_, IERC20 baseToken_) public {
         oracle = oracle_;
         baseToken = baseToken_;
@@ -43,7 +36,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) public {
         address poolAddr = address(pool);
         address tokenAddr = address(token);
-        uint price = getPrice(token);
+        uint price = getPrice(tokenAddr);
 
         uint spread = pool.getSpread(tokenAddr);
         uint askPrice = price.add(spread);
@@ -51,9 +44,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         // TODO: maybe should be: flowTokenAmount * price * collateralRatio? use mid price instead of ask price
         uint additionalCollateralAmount = baseTokenAmount.mulPercent(getCollateralRatio(token, pool)).sub(baseTokenAmount);
 
-        LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
-        position.collaterals = position.collaterals.add(baseTokenAmount).add(additionalCollateralAmount);
-        position.minted = position.minted.add(flowTokenAmount);
+        uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
+        token.addPosition(poolAddr, totalCollateralAmount, flowTokenAmount);
 
         baseToken.safeTransferFrom(msg.sender, tokenAddr, baseTokenAmount);
         baseToken.safeTransferFrom(poolAddr, tokenAddr, additionalCollateralAmount);
@@ -63,31 +55,43 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) public {
         address poolAddr = address(pool);
         address tokenAddr = address(token);
-        uint price = getPrice(token);
+        uint price = getPrice(tokenAddr);
 
         uint spread = pool.getSpread(tokenAddr);
         uint bidPrice = price.sub(spread);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
-        LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
-        // ensure pool have enough minted token to remove
-        position.minted = position.minted.sub(flowTokenAmount);
+        uint collateralsToRemove;
+        uint refundToPool;
+        (collateralsToRemove, refundToPool) = _calculateRemovePosition(token, pool, price, flowTokenAmount, baseTokenAmount);
 
-        uint mintedValue = position.minted.mul(price).div(1 ether);
-        uint requiredCollaterals = mintedValue.mulPercent(getCollateralRatio(token, pool));
-        if (requiredCollaterals <= position.collaterals) {
-            // TODO: need to guarantee this never underflow
-            uint refund = position.collaterals.sub(requiredCollaterals).sub(baseTokenAmount);
-            position.collaterals = requiredCollaterals;
-            baseToken.safeTransferFrom(tokenAddr, poolAddr, refund);
-        } else {
-            // TODO: position is unsafe, what to do?
-            // TODO: need to guarantee this never underflow
-            position.collaterals = position.collaterals.sub(baseTokenAmount);
-        }
+        token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+
+        baseToken.safeTransferFrom(tokenAddr, poolAddr, refundToPool);
         baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount);
 
         token.burn(msg.sender, flowTokenAmount);
+    }
+
+    function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {
+        uint collaterals;
+        uint minted;
+        (collaterals, minted) = token.getPosition(address(pool));
+
+        require(minted >= flowTokenAmount, "Liquidity pool does not have enough position");
+
+        uint mintedAfter = minted.sub(flowTokenAmount);
+
+        uint mintedValue = mintedAfter.mul(price).div(1 ether);
+        uint requiredCollaterals = mintedValue.mulPercent(getCollateralRatio(token, pool));
+        collateralsToRemove = baseTokenAmount;
+        refundToPool = 0;
+        if (requiredCollaterals <= collaterals) {
+            collateralsToRemove = collaterals.sub(requiredCollaterals);
+            refundToPool = collateralsToRemove.sub(baseTokenAmount);
+        } else {
+            // TODO: position is unsafe, do we want to do anything?
+        }
     }
 
     function getCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
@@ -95,15 +99,9 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }
 
-    function getPrice(FlowToken token) internal view returns (uint) {
-        uint price = oracle.getPrice(address(token));
+    function getPrice(address tokenAddr) internal view returns (uint) {
+        uint price = oracle.getPrice(tokenAddr);
         require(price > 0, "no oracle price");
         return price;
-    }
-
-    function getLiquidityPoolPositions(address poolAddr) external view returns (uint collaterals, uint minted) {
-        LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
-        collaterals = position.collaterals;
-        minted = position.minted;
     }
 }
