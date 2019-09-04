@@ -27,13 +27,13 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         baseToken = baseToken_;
     }
 
-    function createFlowToken(string memory name, string memory symbol) public onlyOwner {
+    function createFlowToken(string calldata name, string calldata symbol) external onlyOwner {
         require(address(tokens[name]) == address(0), "already exists");
         FlowToken token = new FlowToken(name, symbol, baseToken);
         tokens[symbol] = token;
     }
 
-    function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) public {
+    function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external {
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
@@ -52,7 +52,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         token.mint(msg.sender, flowTokenAmount);
     }
 
-    function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) public {
+    function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
@@ -73,7 +73,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         token.burn(msg.sender, flowTokenAmount);
     }
 
-    function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) public {
+    function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
@@ -95,6 +95,11 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount.add(incentive));
 
         token.burn(msg.sender, flowTokenAmount);
+    }
+
+    function addCollateral(FlowToken token, address poolAddr, uint amount) external {
+        baseToken.safeTransferFrom(msg.sender, address(token), amount);
+        token.addPosition(poolAddr, amount, 0);
     }
 
     function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {
