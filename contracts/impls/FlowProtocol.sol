@@ -18,11 +18,11 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     using Percentage for uint256;
     using SafeERC20 for IERC20;
 
-    PriceOracle public oracle;
+    PriceOracleInterface public oracle;
     IERC20 public baseToken;
     mapping (string => FlowToken) public tokens;
 
-    constructor(PriceOracle oracle_, IERC20 baseToken_) public {
+    constructor(PriceOracleInterface oracle_, IERC20 baseToken_) public {
         oracle = oracle_;
         baseToken = baseToken_;
     }

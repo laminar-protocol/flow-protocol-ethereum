@@ -5,7 +5,7 @@ import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
 import "../roles/PriceFeederRole.sol";
 
-contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracle {
+contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInterface {
     struct PriceData {
         uint price;
         uint timestamp;
