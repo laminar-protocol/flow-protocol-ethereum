@@ -12,6 +12,7 @@ import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/PriceOracleInterface.sol";
 import "../roles/ProtocolOwnable.sol";
 import "./FlowToken.sol";
+import "./MoneyMarket.sol";
 
 contract FlowProtocol is FlowProtocolInterface, Ownable {
     using SafeMath for uint256;
@@ -20,11 +21,14 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
 
     PriceOracleInterface public oracle;
     IERC20 public baseToken;
+    MoneyMarket public moneyMarket;
+
     mapping (string => FlowToken) public tokens;
 
-    constructor(PriceOracleInterface oracle_, IERC20 baseToken_) public {
+    constructor(PriceOracleInterface oracle_, IERC20 baseToken_, MoneyMarket moneyMarket_) public {
         oracle = oracle_;
         baseToken = baseToken_;
+        moneyMarket = moneyMarket_;
     }
 
     function createFlowToken(string calldata name, string calldata symbol) external onlyOwner {
