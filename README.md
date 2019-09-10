@@ -39,13 +39,12 @@ Liquidity pool is set up by liquidity providers for a particular fToken, where a
 #### Deposit/Mint
 Deposit USD stable-coin and mint EUR stable-coin Flow token fEUR. The number of flow tokens minted is the amount of underlying asset being provided divided by the ask price of the current exchange rate in the selected liquidity pool.
 
-For liquidity provider, the additional collateral required for a mint action is the flow token minted timmultiplied by the exchange rate (mid price), then multiplied by the collateral ratio.
+For liquidity provider, the additional collateral required for a mint action is the flow token minted multiplied by the exchange rate (mid price), then multiplied by the collateral ratio.
 
 pseudo formula:
 ```
 flowTokenAmount = baseTokenAmount / askPrice
 additionalCollateralFromPool = flowTokenAmount * midPrice * collateralRatio
-
 ```
 
 #### Withdraw
@@ -82,5 +81,14 @@ askPrice = price + spread;
 ## Implementation 
 
 ### Smart Contracts on Ethereum
+
+| Contracts (Koven)   | Address                                      | 
+| ------------------- | -------------------------------------------- | 
+| fEUR                | ['0x492D4a6EDf35Ad778cCC16007709DCe72522e98E'](https://kovan.etherscan.io/address/0x492D4a6EDf35Ad778cCC16007709DCe72522e98E) | 
+| USD (DAI equivalent)| ['0x04aECEd61E92BE42e326e5Fd34e5D611cF71f5E2'](https://kovan.etherscan.io/address/0x04aECEd61E92BE42e326e5Fd34e5D611cF71f5E2) | 
+| Factory             | ['0x67e2C2F010086CA7e202e7cA319391eb52358582'](https://kovan.etherscan.io/address/0x67e2C2F010086CA7e202e7cA319391eb52358582) |
+| Liquidity Pool      | ['0x11cC6E95ba25aDfDF3549e6D70e8dA42718A82bC'](https://kovan.etherscan.io/address/0x11cC6E95ba25aDfDF3549e6D70e8dA42718A82bC) |
+| Price Oracle        | ['0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B'](https://kovan.etherscan.io/address/0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B) |
+
 
 ### Parachian on Polkadot 
