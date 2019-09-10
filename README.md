@@ -28,16 +28,13 @@ The position is always over-collateralized for risk management purposes. The `co
 
 ### Liquidation Incentive
 The current collateral ratio is re-calculated at every deposit/withdraw action with exchange rate at time for the liquidity pool in trade. If the current collateral ratio is below the `minimum collateral ratio` which is defined per Flow token, then liquidity pool is open for liquidation incentivized by a monetary reward. The incentive formula will optimize for risk to the pool and profit for the liquidator.
+
 [TODO] optimal liquidation reward point for best profit
 
 ### Liquidity Pool
 Liquidity pool is set up by liquidity providers for a particular fToken, where a certain amount of funds e.g. USD stable-coins are locked in to serve as collateral, and the spread (bid and ask price for a given Forex symbol e.g. EURUSD) is set up as fees to the liquidity provider. An efficient market with multiple liquidity provider will trend towards competitive spread.
 
-### Money Market
-[TODO]
-
 ### fToken via Flow Protocol
-
 
 #### Deposit/Mint
 Deposit USD stable-coin and mint EUR stable-coin Flow token fEUR. The number of flow tokens minted is the amount of underlying asset being provided divided by the ask price of the current exchange rate in the selected liquidity pool.
@@ -65,9 +62,16 @@ if (requiredCollaterals <= collaterals) {
 
 ```
 
-#### Liquidate
+#### Liquidation
+If a liquidity pool has negative liquidity i.e. below required minimum collateral ratio, then it is subject to liquidation by others to bring the liquidity back to required level. When a liquidation happens, a liquidator deposits some or all minted Flow token on behalf of the liquidity provider, and in return receive a reward from the outstanding collateral. 
 
 #### Exchange Rate
+The exchange rate for a Forex pair is provided by a price oracle from reputable sources like Bloomberg. Each liquidity provider has freedom to apply a spread on top of this price for its own liquidity pool to provide traders/users a bid and ask price for each Forex pair. 
+
+```
+bidPrice = price - spread;
+askPrice = price + spread;
+```
 
 ### Money Market
 
