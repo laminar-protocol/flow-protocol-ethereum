@@ -72,12 +72,6 @@ bidPrice = price - spread;
 askPrice = price + spread;
 ```
 
-### Money Market
-
-## Collateralized Margin Trading Protocol
-
-## Price Oracle
-
 ## Implementation 
 
 ### Smart Contracts on Ethereum
