@@ -25,14 +25,21 @@ contract LiquidityPool is Ownable {
         }
     }
 
-    function getSpread(address fToken) external view returns (uint) {
+    function getBidSpread(address fToken) external view returns (uint) {
         if (allowedTokens[fToken]) {
             return spread;
         }
         return 0;
     }
 
-    function getCollateralRatio(address fToken) external view returns (uint) {
+    function getAskSpread(address fToken) external view returns (uint) {
+        if (allowedTokens[fToken]) {
+            return spread;
+        }
+        return 0;
+    }
+
+    function getAdditoinalCollateralRatio(address fToken) external view returns (uint) {
         if (allowedTokens[fToken]) {
             return collateralRatio;
         }

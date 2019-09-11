@@ -45,11 +45,11 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
 
-        uint spread = pool.getSpread(tokenAddr);
+        uint spread = pool.getAskSpread(tokenAddr);
         uint askPrice = price.add(spread);
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
-        // TODO: maybe should be: flowTokenAmount * price * collateralRatio? use mid price instead of ask price
-        uint additionalCollateralAmount = baseTokenAmount.mulPercent(getCollateralRatio(token, pool)).sub(baseTokenAmount);
+        uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
+        uint additionalCollateralAmount = flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).sub(baseTokenAmount);
 
         uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
         token.addPosition(poolAddr, totalCollateralAmount, flowTokenAmount);
@@ -68,7 +68,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
 
-        uint spread = pool.getSpread(tokenAddr);
+        uint spread = pool.getBidSpread(tokenAddr);
         uint bidPrice = price.sub(spread);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
@@ -94,7 +94,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
 
-        uint spread = pool.getSpread(tokenAddr);
+        uint spread = pool.getBidSpread(tokenAddr);
         uint bidPrice = price.sub(spread);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
@@ -129,7 +129,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint mintedAfter = minted.sub(flowTokenAmount);
 
         uint mintedValue = mintedAfter.mul(price).div(1 ether);
-        uint requiredCollaterals = mintedValue.mulPercent(getCollateralRatio(token, pool));
+        uint requiredCollaterals = mintedValue.mulPercent(getAdditoinalCollateralRatio(token, pool));
         collateralsToRemove = baseTokenAmount;
         refundToPool = 0;
         if (requiredCollaterals <= collaterals) {
@@ -145,7 +145,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
 
         require(minted >= flowTokenAmount, "Liquidity pool does not have enough position");
 
-        Percentage.Percent memory currentRatio = getCurrentCollateralRatio(collaterals, minted, price);
+        Percentage.Percent memory currentRatio = getCurrentTotalCollateralRatio(collaterals, minted, price);
 
         require(currentRatio.value < token.minCollateralRatio(), "Still in a safe position");
 
@@ -166,13 +166,13 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         } // else no more incentive can be given
     }
 
-    function getCurrentCollateralRatio(uint collaterals, uint minted, uint price) internal pure returns (Percentage.Percent memory) {
+    function getCurrentTotalCollateralRatio(uint collaterals, uint minted, uint price) internal pure returns (Percentage.Percent memory) {
         uint mintedValue = minted.mul(price).div(1 ether);
         return Percentage.fromFraction(collaterals, mintedValue);
     }
 
-    function getCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
-        uint ratio = pool.getCollateralRatio(address(token));
+    function getAdditoinalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
+        uint ratio = pool.getAdditoinalCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }
 
