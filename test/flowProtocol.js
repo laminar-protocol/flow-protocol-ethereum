@@ -116,7 +116,7 @@ contract('FlowProtocol', accounts => {
     }
   });
 
-  it.only('support multiple users', async () => {
+  it('support multiple users', async () => {
     const actions = [
       buy(alice, 1001),
       buy(bob, 1001),
