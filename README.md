@@ -57,11 +57,20 @@ collateralFromPool = totalCollateral - baseTokenAmount;
 ```
 
 ### Liquidation Incentive
-The current collateral ratio is re-calculated at every deposit/withdraw action with exchange rate at the time. If the current collateral ratio is below the `liquidation ratio` which is defined per fToken, then the liquidity pool is open for public liquidation incentivized by a monetary reward. The incentive formula will optimize for minimizing risks to the pool and profit for the liquidator.
+The current collateral ratio is re-calculated at every deposit/withdraw action with exchange rate at the time. If the current collateral ratio is below the `liquidation ratio` which is defined per fToken, then the liquidity pool is open for public liquidation incentivized by a monetary reward. A liquidator would deposit fToken back to liquidity pool hence free up partial or full collateral depending on the deposited amount therefore increase collateral ratio. Anyone can be a liquidator at this point.
 
-[TODO] optimal liquidation reward point for best profit
+This reward consists of the spread earned from the trade plus a portion of the liquidity's collateral. The incentive formula aims to reward liquidator proportionally to the risks of the pool hence minimizing probability of discounting fToken redeemable value.
 
-There's also a `extreme liquidation ratio` below which all available collateral from liquidity provider plus the spread earned from the trade will will be rewarded to the liquidator as extra layer of protection.
+There's also an `extreme liquidation ratio` below which all available collateral from liquidity provider plus the spread earned from the trade will will be rewarded to the liquidator as extra layer of protection.
+
+[TODO] provide an example
+
+Pseudo formula when collateral ratio is between `liquidation ratio` and `extreme liquidation ratio`.
+```
+reward = (liquidationRatio - currentLiquidityProviderCollateralRatio) / (liquidationRatio - extremeLiquidationRatio) * collateralFreed
+```
+[TODO] optimal liquidation point for best profit
+
 
 ### fToken
 fToken (Flow Token) is non-USD stable-coin backed by selected trusted USD stable-coin.
@@ -92,7 +101,7 @@ function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAm
 ```
 
 #### Liquidation
-If a liquidity pool has negative liquidity i.e. below `liquidation threshold`, then it is subject to liquidation by anyone to bring the collateral back to required level. When a liquidation happens, a liquidator deposits some or all minted fToken on behalf of the liquidity provider, and in return receive a reward from the outstanding collateral. 
+If a liquidity pool has negative liquidity i.e. current collateral is below `liquidation threshold`, then it is subject to liquidation by anyone to bring the collateral back to required level. When a liquidation happens, a liquidator deposits some or all minted fToken on behalf of the liquidity provider, and in return receive a reward from the outstanding collateral. If the collateral is below the `extreme liquidation threshold`, then additional reward is given to liquidator. For more details refer to the [Liquidation Incentive Section](link).
 
 Pseudo Liquidation function:
 ```
@@ -139,6 +148,7 @@ Pseudo cap function, for last price cap, `priceCap` is the `delta last limit`, a
 ### Smart Contracts on Ethereum
 
 Proof of Concept Flow Synthetic Asset Protocol on Koven
+
 | Contracts           | Address                                      | 
 | ------------------- | -------------------------------------------- | 
 | fEUR                | ['0x492D4a6EDf35Ad778cCC16007709DCe72522e98E'](https://kovan.etherscan.io/address/0x492D4a6EDf35Ad778cCC16007709DCe72522e98E) | 
