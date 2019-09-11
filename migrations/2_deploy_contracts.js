@@ -30,7 +30,7 @@ module.exports = async deployer => {
   await deployer.deploy(LiquidityPool, protocol.address, iBaseToken.address, web3.utils.toWei('0.01'), [fEURAddress]);
   const pool = await LiquidityPool.deployed();
 
-  await baseToken.approve(iBaseToken, web3.utils.toWei('1000000'));
+  await baseToken.approve(iBaseToken.address, web3.utils.toWei('1000000'));
   await iBaseToken.mint(web3.utils.toWei('1000'));
   await baseToken.transfer(iBaseToken.address, web3.utils.toWei('10'));
   await iBaseToken.transfer(pool.address, web3.utils.toWei('1000'));
