@@ -25,6 +25,8 @@ Below we will introduce the following protocols
 - Money Market Protocol (design is being finalized)
 - Collateralized Margin Trading Protocol (design is being finalized)
 
+For formal verfication on the synthetic asset design, please refer to the [Flow Synthetic Asset Whitepaper](https://github.com/laminar-protocol/flow-protocol-whitepaper)
+
 ## Collateralized Synthetic Asset Protocol
 The collateralized synthetic asset protocol allows user to mint non-USD stable-coin fToken e.g. fEUR or fJPY using USD stable-coin e.g. DAI or equivalent as collateral. There are a number of use cases for fToken
 - as the basis for Forex margin trading protocol
@@ -32,21 +34,26 @@ The collateralized synthetic asset protocol allows user to mint non-USD stable-c
 - as sore of value where holders can deposit it into money market to earn interest
 
 ### Liquidity Pool
-Liquidity pool is set up by a liquidity provider for a particular fToken, where a certain amount of funds e.g. USD stable-coins are locked in it to serve as collateral, the spreads (bid and ask spread for a given Forex symbol e.g. EURUSD) are set up which is essentially fees to the liquidity provider, and liquidity provider's own collateral ratio is set. Liquidity provider's own collateral ratio needs to be greater than the minimum collateral ratio of the particular fToken defined in the protocol. It gives liquidity provider another layer of safety protection on top of the protocol default. Anyone who implements the Liquidity Pool interface can become a liquidity provider. An efficient market with multiple liquidity provider will trend towards competitive spread.
+Liquidity pool is set up by a liquidity provider for a particular fToken, where a certain amount of funds e.g. USD stable-coins are locked in it to serve as collateral, the spreads (bid and ask spread for a given Forex symbol e.g. EURUSD) are set up which is essentially fees to the liquidity provider, and liquidity provider's own collateral ratio is set. 
+
+Liquidity provider's own collateral ratio needs to be greater than the collateral ratio of the particular fToken defined in the protocol. It gives liquidity provider another layer of safety protection on top of the protocol default. Anyone who implements the Liquidity Pool interface can become a liquidity provider. An efficient market with multiple liquidity provider will trend towards competitive spread.
 
 Liquidity Pool Pseudo Interface
 ```
-    function getSpread(address fToken) returns (unit bidSpread, unit askSpread);
+    function getBidSpread(address fToken) returns (unit bidSpread);
+    function getAskSpread(address fToken) returns (unit askSpread);
     function getCollateralRatio(address fToken) returns (unit ratio);
 ```
 
 ### Collateral
-A position is always over-collateralized for risk management purposes. The `over collateral ratio` is defined per fToken. A 10% `over collateral ratio` represents 110% collateral coverage ratio meaning 110% collateral is required for the position. To mint a new fToken (e.g. fUER), trader's deposit includes the USD amount required based on exchange rate, plus the spread paid to the liquidity provider. Both of these will be contributed to the collateral, and the remaining comes from the liquidity pool to make up a total of 110% collateral. The additional collateral is there to protect the position from exchange rate fluctuation hence stablizing the fToken.
+A position is always over-collateralized for risk management purposes. The **`over collateral ratio`** is defined per fToken. A 10% **`over collateral ratio`** represents 110% collateral coverage ratio meaning 110% collateral is required for the position. 
 
-For example, to mint USD$1001 worth of fEUR, with exchange rate of 1:1 for simplicity, ask spread at 0.001, `over collateral ratio` as 10%, the following would happen
-- user deposits USD$1001 to exchange 1000 fEUR where USD$1 is spread paid
-- total collateral required is USD$1100 ($1000 * 110%)
-- additional collateral from the liquidity pool would be USD$99 ($1100 - $1000 - $1)
+To mint a new fToken (e.g. fUER), trader's deposit includes the **USD amount required** based on exchange rate, plus the **spread paid** to the liquidity provider. Both of these will be contributed to the collateral, and the remaining comes from the liquidity pool to make up a total of 110% collateral. The additional collateral is there to protect the position from exchange rate fluctuation hence stablizing the fToken.
+
+For example, to mint USD$1,001 worth of fEUR, with exchange rate of 1:1 for simplicity, ask spread at 0.001, **`over collateral ratio`** as 10%, the following would happen
+- user deposits USD$1,001 to exchange 1,000 fEUR where USD$1 is spread paid
+- total collateral required is USD$1,100 ($1,000 * 110%)
+- additional collateral from the liquidity pool would be USD$99 ($1,100 - $1,000 - $1)
 
 Pseudo formula:
 ```
@@ -57,15 +64,17 @@ collateralFromPool = totalCollateral - baseTokenAmount;
 ```
 
 ### Liquidation Incentive
-The current collateral ratio is re-calculated at every deposit/withdraw action with exchange rate at the time. If the current collateral ratio is below the `liquidation ratio` which is defined per fToken, then the liquidity pool is open for public liquidation incentivized by a monetary reward. A liquidator would deposit fToken back to liquidity pool hence free up partial or full collateral depending on the deposited amount therefore increase collateral ratio. Anyone can be a liquidator at this point.
+The current collateral ratio is re-calculated at every deposit/withdraw action with exchange rate at the time. If the current collateral ratio is below the **`liquidation ratio`** which is defined per fToken, then the liquidity pool is open for public liquidation incentivized by a monetary reward. 
 
-This reward consists of the spread earned from the trade plus a portion of the liquidity's collateral. The incentive formula aims to reward liquidator proportionally to the risks of the pool hence minimizing probability of discounting fToken redeemable value.
+A liquidator would deposit fToken back to liquidity pool hence free up partial or full collateral depending on the deposited amount therefore increase collateral ratio. Anyone can be a liquidator at this point.
 
-There's also an `extreme liquidation ratio` below which all available collateral from liquidity provider plus the spread earned from the trade will will be rewarded to the liquidator as extra layer of protection.
+This reward consists of the **spread earned** from the trade plus **a portion of the liquidity's collateral**. The incentive formula aims to reward liquidator proportionally to the risks of the pool hence minimizing probability of discounting fToken redeemable value.
+
+There's also an **`extreme liquidation ratio`** below which all available collateral from liquidity provider plus the spread earned from the trade will will be rewarded to the liquidator as extra layer of protection.
 
 [TODO] provide an example
 
-Pseudo formula when collateral ratio is between `liquidation ratio` and `extreme liquidation ratio`.
+Pseudo formula when collateral ratio is between **`liquidation ratio`** and **`extreme liquidation ratio`**.
 ```
 reward = (liquidationRatio - currentLiquidityProviderCollateralRatio) / (liquidationRatio - extremeLiquidationRatio) * collateralFreed
 ```
@@ -76,7 +85,7 @@ reward = (liquidationRatio - currentLiquidityProviderCollateralRatio) / (liquida
 fToken (Flow Token) is non-USD stable-coin backed by selected trusted USD stable-coin.
 
 #### Deposit/Mint
-Deposit USD stable-coin will mint and return fToken e.g. fEUR. The number of flow tokens minted is the amount of underlying asset being provided divided by the ask price from selected liquidity pool. For liquidity provider, the additional collateral required for a mint action is total collateral required subtract what deposited amount. For more details see the [Collateral Section](link).
+Deposit USD stable-coin will mint and return fToken e.g. fEUR. The number of flow tokens minted is the amount of underlying asset being provided divided by the ask price from selected liquidity pool. For liquidity provider, the additional collateral required for a mint action is total collateral required subtract what deposited amount. For more details see the [Collateral Section](###collateral).
 
 Pseudo Deposit function:
 ```
@@ -84,7 +93,9 @@ function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmo
 ```
 
 #### Withdraw
-The amount of underlying asset withdrawn is the number of Flow tokens multiplied by the bid price from the current exchange rate. The amount withdrawn must be less than the user's account balance, and the liquidity pool available balance. The collateral required will be re-calculated after the withdrawn amount; if the collateral required is less than the current collateral, then the liquidity pool can be refunded after deducting the withdrawn amount from the difference between current and required collateral. 
+The amount of underlying asset withdrawn is the number of Flow tokens multiplied by the bid price from the current exchange rate. The amount withdrawn must be less than the user's account balance, and the liquidity pool available balance. 
+
+The collateral required will be re-calculated after the withdrawn amount; if the collateral required is less than the current collateral, then the liquidity pool can be refunded after deducting the withdrawn amount from the difference between current and required collateral. 
 
 Pseudo formula:
 ```
@@ -101,7 +112,7 @@ function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAm
 ```
 
 #### Liquidation
-If a liquidity pool has negative liquidity i.e. current collateral is below `liquidation threshold`, then it is subject to liquidation by anyone to bring the collateral back to required level. When a liquidation happens, a liquidator deposits some or all minted fToken on behalf of the liquidity provider, and in return receive a reward from the outstanding collateral. If the collateral is below the `extreme liquidation threshold`, then additional reward is given to liquidator. For more details refer to the [Liquidation Incentive Section](link).
+If a liquidity pool has negative liquidity i.e. current collateral is below **`liquidation threshold`**, then it is subject to liquidation by anyone to bring the collateral back to required level. When a liquidation happens, a liquidator deposits some or all minted fToken on behalf of the liquidity provider, and in return receive a reward from the outstanding collateral. If the collateral is below the **`extreme liquidation threshold`**, then additional reward is given to liquidator. For more details refer to the [Liquidation Incentive Section](###liquidation-incentive).
 
 Pseudo Liquidation function:
 ```
@@ -126,9 +137,9 @@ At this stage, we have a simple Oracle design to serve our purpose for proofing 
 
 The oracle price is set by price feed administrator. We will watch closely governance standards in the oracle space, and gradually improve this. Due to sensitivity to pricing in trading use cases, two price baselines are defined to protect sudden and dramatic (potentially malicious) price fluctuation. 
 
-The difference between the new price and the last price is capped by the `delta last limit`. We also take a snapshot of price over a certain period. The difference between the capped new price and the snapshot price is further capped by the `delta snapshot limit`.
+The difference between the new price and the last price is capped by the **`delta last limit`**. We also take a snapshot of price over a certain period. The difference between the capped new price and the snapshot price is further capped by the **`delta snapshot limit`**.
 
-Pseudo cap function, for last price cap, `priceCap` is the `delta last limit`, and `lastPrice` is the Oracle last price; for snapshot price cap, `priceCap` is the `delta snapshot limit`, and `lastPrice` is the snapshot price.
+Pseudo cap function, for last price cap, `priceCap` is the **`delta last limit`**, and `lastPrice` is the Oracle last price; for snapshot price cap, `priceCap` is the **`delta snapshot limit`**, and `lastPrice` is the snapshot price.
 ```
         if (newPrice > lastPrice) {
             priceDiff = newPrice - lastPrice;
@@ -144,10 +155,10 @@ Pseudo cap function, for last price cap, `priceCap` is the `delta last limit`, a
 ```
 
 ## Implementation 
+We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading, and there are existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers etc, a high throughput low cost specialized trading blockchain is required to deliver the intended on-and-off ramp trading experience with the scale and speed needed. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
 
 ### Smart Contracts on Ethereum
-
-Proof of Concept Flow Synthetic Asset Protocol on Koven
+Simple Proof of Concept Flow Synthetic Asset Protocol on Koven. The codes in the repo are the actual protocols and have not been deployed yet.
 
 | Contracts           | Address                                      |
 | ------------------- | -------------------------------------------- | 
@@ -158,4 +169,59 @@ Proof of Concept Flow Synthetic Asset Protocol on Koven
 | Price Oracle        | ['0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B'](https://kovan.etherscan.io/address/0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B) |
 
 
-### Parachian on Polkadot 
+### Parachain on Polkadot - Flowchain
+Assumptions:
+- ideally there is a stablecoin that we can use as building block for our protocol. We are exploring various stablecoin options with various parties, but stablecoin itself warrants as a separate project and is outside of the scope of Flow protocols.
+- ideally there is an Ethereum bridge that we can use to pipe value from our Ethereum contracts into the parachain for high speed trading. Again we are exploring options with various parties, but it in itself warrants as a separate project and is outside the scope of this project.
+
+High level module outline for Flowchain Synthetic Asset protocol as per below:  
+- FlowProtocol module
+```
+// Dispatachable methods
+fn reateFlowToken(string name, string symbol)
+fn deposit(FlowToken token, LiquidityPoolId pool, uint baseTokenAmount)
+fn withdraw(FlowToken token, LiquidityPoolId pool, uint flowTokenAmount)
+fn liquidate(FlowToken token, LiquidityPoolId pool, uint flowTokenAmount)
+fn addCollateral(FlowToken token, LiquidityPoolId pool, uint amount)
+```
+- GenericAsset module that supports FlowToken
+```
+// Dispatachable methods mostly related to FlowToken
+fn setLiquidationRatio(uint percent)
+fn setExtremeLiquidationRatio(uint percent)
+fn setDefaultCollateralRatio(uint percent)
+fn mint(address account, uint amount)
+fn burn(address account, uint amount)
+fn getPosition(address poolAddr)
+fn getPosition(address poolAddr)
+fn addPosition(address poolAddr, uint additonalCollaterals, uint additionaMinted)
+fn removePosition(address poolAddr, uint collateralsToRemove, uint mintedToRemove)
+
+fn total_balance(AccountId accountId)
+fn free_balance(AccountId accountId)
+fn total_issuance()
+fn transfer(AccountId sender, AccountId recipient, Balance: amount)
+```
+- LiquidityPool module
+```
+// Dispatachable methods
+fn getBidSpread(FlowTokenId fToken)
+fn getAskSpread(FlowTokenId fToken)
+fn getAdditoinalCollateralRatio(FlowTokenId fToken)
+fn setSpread(uint value) 
+fn setCollateralRatio(uint value) 
+fn enableToken(FlowTokenId token) 
+fn disableToken(FlowTokenId token) 
+```
+- PriceOracle module
+Draft dispatchable methods
+```
+fn getPrice(SymbolId symbol) 
+fn setPrice(SymbolId symbol, uint price)
+
+fn setOracleDeltaLastLimit(uint limit) // oracle configuration
+fn setOracleDeltaSnapshotLimit(uint limit) // oracle configuration
+fn setOracleDeltaSnapshotTime(uint limit) // oracle configuration
+```
+
+We will update type, storage, events and other details once we progress further.
