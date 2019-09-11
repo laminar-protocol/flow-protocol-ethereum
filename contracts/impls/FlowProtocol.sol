@@ -21,24 +21,25 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
 
     PriceOracleInterface public oracle;
     IERC20 public baseToken;
-    MoneyMarket public moneyMarket;
 
     mapping (string => FlowToken) public tokens;
+    mapping (address => bool) public tokenWhitelist;
 
-    constructor(PriceOracleInterface oracle_, IERC20 baseToken_, MoneyMarket moneyMarket_) public {
+    constructor(PriceOracleInterface oracle_, IERC20 baseToken_) public {
         oracle = oracle_;
         baseToken = baseToken_;
-        moneyMarket = moneyMarket_;
     }
 
     function createFlowToken(string calldata name, string calldata symbol) external onlyOwner {
         require(address(tokens[name]) == address(0), "already exists");
         FlowToken token = new FlowToken(name, symbol, baseToken);
         tokens[symbol] = token;
+        tokenWhitelist[address(token)] = true;
     }
 
-    function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external {
+    function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external returns (uint) {
         require(baseToken.balanceOf(msg.sender) >= baseTokenAmount, "Not enough balance");
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         address poolAddr = address(pool);
         address tokenAddr = address(token);
@@ -56,10 +57,12 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         baseToken.safeTransferFrom(msg.sender, tokenAddr, baseTokenAmount);
         baseToken.safeTransferFrom(poolAddr, tokenAddr, additionalCollateralAmount);
         token.mint(msg.sender, flowTokenAmount);
+        return flowTokenAmount;
     }
 
-    function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
+    function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external returns (uint) {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         address poolAddr = address(pool);
         address tokenAddr = address(token);
@@ -79,10 +82,13 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount);
 
         token.burn(msg.sender, flowTokenAmount);
+
+        return baseTokenAmount;
     }
 
     function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         address poolAddr = address(pool);
         address tokenAddr = address(token);
@@ -108,6 +114,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function addCollateral(FlowToken token, address poolAddr, uint amount) external {
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
         baseToken.safeTransferFrom(msg.sender, address(token), amount);
         token.addPosition(poolAddr, amount, 0);
     }

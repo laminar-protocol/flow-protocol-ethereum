@@ -15,8 +15,6 @@ contract MoneyMarket is Ownable {
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    uint constant MAX_UINT = 2**256 - 1;
-
     IERC20 public baseToken;
     CErc20Interface public cToken;
     MintableToken public mToken;
@@ -48,6 +46,10 @@ contract MoneyMarket is Ownable {
     }
 
     function redeem(uint amount) external {
+        redeemTo(msg.sender, amount);
+    }
+
+    function redeemTo(address recipient, uint amount) public {
         mToken.burn(msg.sender, amount);
 
         uint bal = baseToken.balanceOf(address(this));
@@ -55,7 +57,7 @@ contract MoneyMarket is Ownable {
             uint withdrawAmount = amount - bal;
             require(cToken.redeemUnderlying(withdrawAmount) == 0, "Failed to redeem cToken");
         }
-        baseToken.safeTransfer(msg.sender, amount);
+        baseToken.safeTransfer(recipient, amount);
         
         _rebalance();
     }
