@@ -139,7 +139,8 @@ Pseudo cap function, for last price cap, `priceCap` is the `delta last limit`, a
 ### Smart Contracts on Ethereum
 
 Proof of Concept Flow Synthetic Asset Protocol on Koven
-| Contracts           | Address                                      | 
+
+| Contracts           | Address                                      |
 | ------------------- | -------------------------------------------- | 
 | fEUR                | ['0x492D4a6EDf35Ad778cCC16007709DCe72522e98E'](https://kovan.etherscan.io/address/0x492D4a6EDf35Ad778cCC16007709DCe72522e98E) | 
 | USD (DAI equivalent)| ['0x04aECEd61E92BE42e326e5Fd34e5D611cF71f5E2'](https://kovan.etherscan.io/address/0x04aECEd61E92BE42e326e5Fd34e5D611cF71f5E2) | 
