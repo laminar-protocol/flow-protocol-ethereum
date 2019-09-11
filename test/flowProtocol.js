@@ -56,13 +56,13 @@ contract('FlowProtocol', accounts => {
 
   it('able to buy and sell', async () => {
     const actions = [
-      buy(alice, 1000),
-      balance(fToken, alice, 999),
-      balance(usd, alice, 9000),
+      buy(alice, 1001),
+      balance(fToken, alice, 1000),
+      balance(usd, alice, 8999),
       balance(usd, fToken.address, 1100),
-      balance(usd, liquidityPool.address, 9900),
+      balance(usd, liquidityPool.address, 9901),
 
-      sell(alice, 999),
+      sell(alice, 1000),
       balance(fToken, alice, 0),
       balance(usd, alice, 9998),
       balance(usd, fToken.address, 0),
@@ -76,18 +76,18 @@ contract('FlowProtocol', accounts => {
 
   it('can take profit', async () => {
     const actions = [
-      buy(alice, 1000),
-      balance(fToken, alice, 999),
-      balance(usd, alice, 9000),
+      buy(alice, 1001),
+      balance(fToken, alice, 1000),
+      balance(usd, alice, 8999),
       balance(usd, fToken.address, 1100),
-      balance(usd, liquidityPool.address, 9900),
+      balance(usd, liquidityPool.address, 9901),
       setPrice(105),
 
-      sell(alice, 999),
+      sell(alice, 1000),
       balance(fToken, alice, 0),
-      balance(usd, alice, 10047),
+      balance(usd, alice, 10048),
       balance(usd, fToken.address, 0),
-      balance(usd, liquidityPool.address, 9953),
+      balance(usd, liquidityPool.address, 9952),
     ];
 
     for (const act of actions) {
@@ -97,14 +97,14 @@ contract('FlowProtocol', accounts => {
 
   it('can stop lost', async () => {
     const actions = [
-      buy(alice, 1000),
-      balance(fToken, alice, 999),
-      balance(usd, alice, 9000),
+      buy(alice, 1001),
+      balance(fToken, alice, 1000),
+      balance(usd, alice, 8999),
       balance(usd, fToken.address, 1100),
-      balance(usd, liquidityPool.address, 9900),
+      balance(usd, liquidityPool.address, 9901),
       setPrice(95),
 
-      sell(alice, 999),
+      sell(alice, 1000),
       balance(fToken, alice, 0),
       balance(usd, alice, 9948),
       balance(usd, fToken.address, 0),
@@ -116,38 +116,38 @@ contract('FlowProtocol', accounts => {
     }
   });
 
-  it('support multiple users', async () => {
+  it.only('support multiple users', async () => {
     const actions = [
-      buy(alice, 1000),
-      buy(bob, 1000),
-      balance(fToken, alice, 999),
-      balance(fToken, bob, 999),
-      balance(usd, alice, 9000),
-      balance(usd, bob, 9000),
+      buy(alice, 1001),
+      buy(bob, 1001),
+      balance(fToken, alice, 1000),
+      balance(fToken, bob, 1000),
+      balance(usd, alice, 8999),
+      balance(usd, bob, 8999),
       balance(usd, fToken.address, 2200),
-      balance(usd, liquidityPool.address, 9800),
+      balance(usd, liquidityPool.address, 9802),
 
       setPrice(98),
 
       buy(alice, 980),
-      sell(bob, 499),
-      balance(fToken, alice, 1997),
+      sell(bob, 500),
+      balance(fToken, alice, 1998),
       balance(fToken, bob, 500),
-      balance(usd, alice, 8020),
+      balance(usd, alice, 8019),
       balance(usd, bob, 9488),
-      balance(usd, fToken.address, 2691),
+      balance(usd, fToken.address, 2692),
       balance(usd, liquidityPool.address, 9801),
 
       setPrice(100),
 
-      sell(alice, 997),
+      sell(alice, 998),
       buy(bob, 1020),
       balance(fToken, alice, 1000),
       balance(fToken, bob, 1518),
       balance(usd, alice, 9016),
       balance(usd, bob, 8468),
-      balance(usd, fToken.address, 2772),
-      balance(usd, liquidityPool.address, 9744),
+      balance(usd, fToken.address, 2769),
+      balance(usd, liquidityPool.address, 9747),
 
       setPrice(101),
 
@@ -169,9 +169,9 @@ contract('FlowProtocol', accounts => {
   describe('liquidate', () => {
     it('allow people to liquidate position', async () => {
       const actions = [
-        buy(alice, 1000),
+        buy(alice, 1001),
         setPrice(107),
-        liquidate(alice, 999),
+        liquidate(alice, 1000),
 
         balance(fToken, alice, 0),
         balance(usd, alice, 10083),
@@ -207,20 +207,20 @@ contract('FlowProtocol', accounts => {
 
     it('allow to liquidate partially', async () => {
       const actions = [
-        buy(alice, 1000),
+        buy(alice, 1001),
         setPrice(107),
         liquidate(alice, 500),
 
-        balance(fToken, alice, 499),
-        balance(usd, alice, 9543),
-        balance(usd, fToken.address, 548),
-        balance(usd, liquidityPool.address, 9909),
+        balance(fToken, alice, 500),
+        balance(usd, alice, 9541),
+        balance(usd, fToken.address, 549),
+        balance(usd, liquidityPool.address, 9910),
 
-        liquidate(alice, 499),
+        liquidate(alice, 500),
         balance(fToken, alice, 0),
-        balance(usd, alice, 10083),
+        balance(usd, alice, 10082),
         balance(usd, fToken.address, 0),
-        balance(usd, liquidityPool.address, 9917),
+        balance(usd, liquidityPool.address, 9918),
       ];
       for (const act of actions) {
         await act();
