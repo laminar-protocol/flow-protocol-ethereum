@@ -153,7 +153,7 @@ Assumptions:
 - ideally there is an Ethereum bridge that we can use to pipe value from our Ethereum contracts into the parachain for high speed trading. Again we are exploring options with various parties, but it in itself warrants as a separate project and is outside the scope of this project.
 
 High level module outline for Flowchain Synthetic Asset protocol as per below:  
-- FlowProtocol module
+- **`flow-protocol`** module
 ```
 // Dispatachable methods
 fn create_flow_token(string name, string symbol)
@@ -162,7 +162,7 @@ fn withdraw(FlowToken token, LiquidityPoolId pool, uint flowTokenAmount)
 fn liquidate(FlowToken token, LiquidityPoolId pool, uint flowTokenAmount)
 fn add_collateral(FlowToken token, LiquidityPoolId pool, uint amount)
 ```
-- GenericAsset module that supports FlowToken
+- **`generic-asset`** module that supports FlowToken
 ```
 // Dispatachable methods mostly related to FlowToken
 fn set_additional_collateral_Ratio(uint percent)
@@ -180,7 +180,7 @@ fn free_balance(AccountId accountId)
 fn total_issuance()
 fn transfer(AccountId sender, AccountId recipient, Balance: amount)
 ```
-- LiquidityPool module
+- **`liquidity_pool`** module
 ```
 // Dispatachable methods
 fn get_bid_spread(FlowTokenId fToken)
@@ -191,7 +191,7 @@ fn set_collateral_ratio(uint value)
 fn enable_token(FlowTokenId token) 
 fn disable_token(FlowTokenId token) 
 ```
-- PriceOracle module
+- **`price_oracle`** module
 ```
 //Draft dispatchable methods
 fn get_price(SymbolId symbol) 
