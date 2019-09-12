@@ -46,11 +46,11 @@ Liquidity Pool Pseudo Interface
 ```
 
 ### Collateral
-A position is always over-collateralized for risk management purposes. The **`over collateral ratio`** is defined per fToken. A 10% **`over collateral ratio`** represents 110% collateral coverage ratio meaning 110% collateral is required for the position. 
+A position is always over-collateralized for risk management purposes. The **`additional collateral ratio`** is defined per fToken. A 10% **`additional collateral ratio`** represents 110% collateral coverage ratio meaning 110% collateral is required for the position. 
 
 To mint a new fToken (e.g. fUER), trader's deposit includes the **USD amount required** based on exchange rate, plus the **spread paid** to the liquidity provider. Both of these will be contributed to the collateral, and the remaining comes from the liquidity pool to make up a total of 110% collateral. The additional collateral is there to protect the position from exchange rate fluctuation hence stablizing the fToken.
 
-For example, to mint USD$1,001 worth of fEUR, with exchange rate of 1:1 for simplicity, ask spread at 0.001, **`over collateral ratio`** as 10%, the following would happen
+For example, to mint USD$1,001 worth of fEUR, with exchange rate of 1:1 for simplicity, ask spread at 0.001, **`additional collateral ratio`** as 10%, the following would happen
 - user deposits USD$1,001 to exchange 1,000 fEUR where USD$1 is spread paid
 - total collateral required is USD$1,100 ($1,000 * 110%)
 - additional collateral from the liquidity pool would be USD$99 ($1,100 - $1,000 - $1)
@@ -132,32 +132,10 @@ We will provide more details once we have a draft design.
 ## Collateralized Margin Trading Protocol
 We will provide more details once we have a draft design.
 
-## Oracle
-At this stage, we have a simple Oracle design to serve our purpose for proofing the concept.
-
-The oracle price is set by price feed administrator. We will watch closely governance standards in the oracle space, and gradually improve this. Due to sensitivity to pricing in trading use cases, two price baselines are defined to protect sudden and dramatic (potentially malicious) price fluctuation. 
-
-The difference between the new price and the last price is capped by the **`delta last limit`**. We also take a snapshot of price over a certain period. The difference between the capped new price and the snapshot price is further capped by the **`delta snapshot limit`**.
-
-Pseudo cap function, for last price cap, `priceCap` is the **`delta last limit`**, and `lastPrice` is the Oracle last price; for snapshot price cap, `priceCap` is the **`delta snapshot limit`**, and `lastPrice` is the snapshot price.
-```
-        if (newPrice > lastPrice) {
-            priceDiff = newPrice - lastPrice;
-            if (priceDiff > priceCap) {
-                price = lastPrice + priceCap;
-            }
-        } else if (newPrice < lastPrice) {
-            priceDiff = lastPrice - newPrice;
-            if (priceDiff > priceCap) {
-                price = lastPrice - priceCap;
-            }
-        }
-```
-
 ## Implementation 
 We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading, and there are existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers etc, a high throughput low cost specialized trading blockchain is required to deliver the intended on-and-off ramp trading experience with the scale and speed needed. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
 
-### Smart Contracts on Ethereum
+### Flow Protocol Smart Contracts on Ethereum
 Simple Proof of Concept Flow Synthetic Asset Protocol on Koven. The codes in the repo are the actual protocols and have not been deployed yet.
 
 | Contracts           | Address                                      |
@@ -169,7 +147,7 @@ Simple Proof of Concept Flow Synthetic Asset Protocol on Koven. The codes in the
 | Price Oracle        | ['0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B'](https://kovan.etherscan.io/address/0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B) |
 
 
-### Parachain on Polkadot - Flowchain
+### Flowchain as parachain on Polkadot 
 Assumptions:
 - ideally there is a stablecoin that we can use as building block for our protocol. We are exploring various stablecoin options with various parties, but stablecoin itself warrants as a separate project and is outside of the scope of Flow protocols.
 - ideally there is an Ethereum bridge that we can use to pipe value from our Ethereum contracts into the parachain for high speed trading. Again we are exploring options with various parties, but it in itself warrants as a separate project and is outside the scope of this project.
@@ -178,24 +156,24 @@ High level module outline for Flowchain Synthetic Asset protocol as per below:
 - FlowProtocol module
 ```
 // Dispatachable methods
-fn reateFlowToken(string name, string symbol)
+fn create_flow_token(string name, string symbol)
 fn deposit(FlowToken token, LiquidityPoolId pool, uint baseTokenAmount)
 fn withdraw(FlowToken token, LiquidityPoolId pool, uint flowTokenAmount)
 fn liquidate(FlowToken token, LiquidityPoolId pool, uint flowTokenAmount)
-fn addCollateral(FlowToken token, LiquidityPoolId pool, uint amount)
+fn add_collateral(FlowToken token, LiquidityPoolId pool, uint amount)
 ```
 - GenericAsset module that supports FlowToken
 ```
 // Dispatachable methods mostly related to FlowToken
-fn setLiquidationRatio(uint percent)
-fn setExtremeLiquidationRatio(uint percent)
-fn setDefaultCollateralRatio(uint percent)
+fn set_additional_collateral_Ratio(uint percent)
+fn set_liquidation_ratio(uint percent)
+fn set_extreme_liquidation_ratio(uint percent)
 fn mint(address account, uint amount)
 fn burn(address account, uint amount)
-fn getPosition(address poolAddr)
-fn getPosition(address poolAddr)
-fn addPosition(address poolAddr, uint additonalCollaterals, uint additionaMinted)
-fn removePosition(address poolAddr, uint collateralsToRemove, uint mintedToRemove)
+fn get_position(address poolAddr)
+fn set_position(address poolAddr)
+fn add_position(address poolAddr, uint additonalCollaterals, uint additionaMinted)
+fn remove_position(address poolAddr, uint collateralsToRemove, uint mintedToRemove)
 
 fn total_balance(AccountId accountId)
 fn free_balance(AccountId accountId)
@@ -205,23 +183,35 @@ fn transfer(AccountId sender, AccountId recipient, Balance: amount)
 - LiquidityPool module
 ```
 // Dispatachable methods
-fn getBidSpread(FlowTokenId fToken)
-fn getAskSpread(FlowTokenId fToken)
-fn getAdditoinalCollateralRatio(FlowTokenId fToken)
-fn setSpread(uint value) 
-fn setCollateralRatio(uint value) 
-fn enableToken(FlowTokenId token) 
-fn disableToken(FlowTokenId token) 
+fn get_bid_spread(FlowTokenId fToken)
+fn get_ask_spread(FlowTokenId fToken)
+fn get_additoinal_collateral_ratio(FlowTokenId fToken)
+fn set_spread(uint value) 
+fn set_collateral_ratio(uint value) 
+fn enable_token(FlowTokenId token) 
+fn disable_token(FlowTokenId token) 
 ```
 - PriceOracle module
-Draft dispatchable methods
 ```
-fn getPrice(SymbolId symbol) 
-fn setPrice(SymbolId symbol, uint price)
-
-fn setOracleDeltaLastLimit(uint limit) // oracle configuration
-fn setOracleDeltaSnapshotLimit(uint limit) // oracle configuration
-fn setOracleDeltaSnapshotTime(uint limit) // oracle configuration
+//Draft dispatchable methods
+fn get_price(SymbolId symbol) 
+fn set_price(SymbolId symbol, uint price)
 ```
 
 We will update type, storage, events and other details once we progress further.
+
+### Oracle Reference Implementation
+We have defined the oracle interface and assume trusted oracles to provide price feed to the protocols.
+```
+// Pseudo Interface
+    function isPriceOracle() returns (bool);
+    function getPrice(SymbolId symbol) returns (uint);
+```
+
+At this stage, we have a simple Oracle design to serve our purpose for proofing the concept.
+
+The oracle price is set by price feed administrator. We will watch closely governance standards in the oracle space, and gradually improve this. Due to sensitivity to pricing in trading use cases, two price baselines are defined to protect sudden and dramatic (potentially malicious) price fluctuation. 
+
+The difference between the new price and the last price is capped by the **`delta last limit`**. We also take a snapshot of price over a certain period. The difference between the capped new price and the snapshot price is further capped by the **`delta snapshot limit`**.
+
+Pseudo cap function, for last price cap, `priceCap` is the **`delta last limit`**, and `lastPrice` is the Oracle last price; for snapshot price cap, `priceCap` is the **`delta snapshot limit`**, and `lastPrice` is the snapshot price.
