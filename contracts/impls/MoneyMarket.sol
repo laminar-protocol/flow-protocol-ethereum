@@ -40,9 +40,13 @@ contract MoneyMarket is Ownable {
     }
 
     function mint(uint baseTokenAmount) external {
+        mintTo(msg.sender, baseTokenAmount);
+    }
+
+    function mintTo(address recipient, uint baseTokenAmount) public {
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         uint iTokenAmount = baseTokenAmount.mul(exchangeRate()).div(1 ether);
-        iToken.mint(msg.sender, iTokenAmount);
+        iToken.mint(recipient, iTokenAmount);
 
         _rebalance(0);
     }
@@ -62,11 +66,15 @@ contract MoneyMarket is Ownable {
     }
 
     function mintWithCToken(uint cTokenAmount) external {
+        mintWithCTokenTo(msg.sender, cTokenAmount);
+    }
+
+    function mintWithCTokenTo(address recipient, uint cTokenAmount) public {
         require(cToken.transferFrom(msg.sender, address(this), cTokenAmount), "cToken transferFrom failed");
         // baseTokenAmount = cTokenAmount / cTokenExchangeRate
         // iTokenAmount = baseTokenAmount * exchangeRate
         uint iTokenAmount = cTokenAmount.mul(exchangeRate()).div(cToken.exchangeRateStored());
-        iToken.mint(msg.sender, iTokenAmount);
+        iToken.mint(recipient, iTokenAmount);
 
         _rebalance(0);
     }

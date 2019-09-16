@@ -59,11 +59,15 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint additionalCollateralCTokenAmount = additionalCollateralAmount.mul(cTokenExchangeRate).div(1 ether);
 
         uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
-        token.addPosition(poolAddr, totalCollateralAmount, flowTokenAmount);
 
-        baseToken.safeTransferFrom(msg.sender, tokenAddr, baseTokenAmount);
-        require(cToken.transferFrom(poolAddr, tokenAddr, additionalCollateralCTokenAmount), "cToken transferFrom failed");
+        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
+        moneyMarket.mintTo(tokenAddr, baseTokenAmount);
+        require(cToken.transferFrom(poolAddr, address(this), additionalCollateralCTokenAmount), "cToken transferFrom failed");
+        moneyMarket.mintWithCTokenTo(tokenAddr, additionalCollateralCTokenAmount);
         token.mint(msg.sender, flowTokenAmount);
+
+        token.addPosition(poolAddr, totalCollateralAmount, flowTokenAmount, additionalCollateralAmount);
+
         return flowTokenAmount;
     }
 
@@ -83,7 +87,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint refundToPool;
         (collateralsToRemove, refundToPool) = _calculateRemovePosition(token, pool, price, flowTokenAmount, baseTokenAmount);
 
-        token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+        uint interest = token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+        refundToPool = refundToPool.add(interest);
 
         baseToken.safeTransferFrom(tokenAddr, poolAddr, refundToPool);
         baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount);
@@ -123,7 +128,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     function addCollateral(FlowToken token, address poolAddr, uint amount) external {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
         baseToken.safeTransferFrom(msg.sender, address(token), amount);
-        token.addPosition(poolAddr, amount, 0);
+        token.addPosition(poolAddr, amount, 0, amount);
     }
 
     function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {

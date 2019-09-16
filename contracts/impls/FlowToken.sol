@@ -8,12 +8,16 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../roles/ProtocolOwnable.sol";
 import "../libs/Percentage.sol";
+import "./MoneyMarket.sol";
 
 contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
+    using Percentage for uint256;
 
     uint constant MAX_UINT = 2**256 - 1;
+
+    MoneyMarket moneyMarket;
 
     Percentage.Percent public minCollateralRatio;
     Percentage.Percent public defaultCollateralRatio;
@@ -24,13 +28,19 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     }
 
     mapping (address => LiquidityPoolPosition) public liquidityPoolPositions;
+    uint public totalPrincipalAmount; // collateral amount without interest
+    uint public totalInterestShares;
+    mapping (address => uint) public interestShares;
+    mapping (address => uint) public interestDebits;
 
     constructor(
         string memory name,
         string memory symbol,
-        IERC20 baseToken
+        MoneyMarket moneyMarket_
     ) ERC20Detailed(name, symbol, 18) public {
-        baseToken.safeApprove(msg.sender, MAX_UINT);
+        moneyMarket = moneyMarket_;
+
+        IERC20(moneyMarket.iToken()).safeApprove(msg.sender, MAX_UINT);
 
         // TODO: from constructor parameter
         minCollateralRatio = Percentage.fromFraction(105, 100);
@@ -61,15 +71,60 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         minted = position.minted;
     }
 
-    function addPosition(address poolAddr, uint additonalCollaterals, uint additionaMinted) external onlyProtocol {
+    function addPosition(address poolAddr, uint additonalCollaterals, uint additionaMinted, uint liquidityPoolShares) external onlyProtocol {
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
         position.collaterals = position.collaterals.add(additonalCollaterals);
         position.minted = position.minted.add(additionaMinted);
+
+        totalPrincipalAmount = totalPrincipalAmount.add(additonalCollaterals);
+        _mintInterestShares(poolAddr, liquidityPoolShares);
     }
 
-    function removePosition(address poolAddr, uint collateralsToRemove, uint mintedToRemove) external onlyProtocol {
+    function removePosition(address poolAddr, uint collateralsToRemove, uint mintedToRemove) external onlyProtocol returns (uint) {
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
+        uint prevMinted = position.minted;
+
         position.collaterals = position.collaterals.sub(collateralsToRemove);
         position.minted = position.minted.sub(mintedToRemove);
+
+        totalPrincipalAmount = totalPrincipalAmount.sub(collateralsToRemove);
+
+        uint interestBaseTokenAmount = _burnInterestShares(poolAddr, Percentage.fromFraction(mintedToRemove, prevMinted));
+
+        return interestBaseTokenAmount;
+    }
+
+    function _mintInterestShares(address recipient, uint shares) private {
+        totalInterestShares = totalInterestShares.add(shares);
+        interestShares[recipient] = interestShares[recipient].add(shares);
+
+        uint debits = shares.mul(interestShareExchangeRate()).div(1 ether);
+        interestDebits[recipient] = interestDebits[recipient].add(debits);
+    }
+
+    function _burnInterestShares(address recipient, Percentage.Percent memory percentShare) private returns (uint) {
+        uint prevShares = interestShares[recipient];
+
+        uint shares = prevShares.mulPercent(percentShare);
+        uint debitToBurn = interestDebits[recipient].mulPercent(percentShare);
+
+        uint currentValue = shares.mul(interestShareExchangeRate());
+        uint netValue = currentValue.sub(debitToBurn);
+
+        totalInterestShares = totalInterestShares.sub(shares);
+        interestShares[recipient] = interestShares[recipient].sub(shares);
+        interestDebits[recipient] = interestDebits[recipient].sub(debitToBurn);
+
+        return netValue;
+    }
+
+    function interestShareExchangeRate() public view returns (uint) {
+        // totalBaseTokenAmount = iTokenAmount * iTokenExcahngeRate
+        // totalInterest = totalBaseTokenAmount - totalPrincipalAmount
+        // interestShareExchangeRate = totalInterest / totalInterestShares
+        return moneyMarket.iToken().balanceOf(address(this))
+            .mul(moneyMarket.exchangeRate()).div(1 ether)
+            .sub(totalPrincipalAmount)
+            .div(totalInterestShares);
     }
 }
