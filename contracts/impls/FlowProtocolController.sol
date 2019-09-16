@@ -24,7 +24,7 @@ contract FlowProtocolController {
         baseToken.safeApprove(address(protocol_), MAX_UINT);
     }
 
-    function buy(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external {
+    function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external {
         // take base token
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
 
@@ -38,7 +38,7 @@ contract FlowProtocolController {
         IERC20(token).safeTransfer(msg.sender, flowTokenAmount);
     }
 
-    function sell(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
+    function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
         // take fToken
         IERC20(token).safeTransferFrom(msg.sender, address(this), flowTokenAmount);
 
@@ -50,6 +50,6 @@ contract FlowProtocolController {
     }
 
     function deposit() external {
-
+        
     }
 }

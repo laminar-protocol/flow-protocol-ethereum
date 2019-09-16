@@ -20,14 +20,19 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     using SafeERC20 for IERC20;
 
     PriceOracleInterface public oracle;
+    MoneyMarket public moneyMarket;
     IERC20 public baseToken;
+    CErc20Interface cToken;
 
     mapping (string => FlowToken) public tokens;
     mapping (address => bool) public tokenWhitelist;
 
-    constructor(PriceOracleInterface oracle_, IERC20 baseToken_) public {
+    constructor(PriceOracleInterface oracle_, MoneyMarket moneyMarket_) public {
         oracle = oracle_;
-        baseToken = baseToken_;
+        moneyMarket = moneyMarket_;
+
+        baseToken = moneyMarket.baseToken();
+        cToken = moneyMarket.cToken();
     }
 
     function createFlowToken(string calldata name, string calldata symbol) external onlyOwner {
@@ -37,30 +42,32 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         tokenWhitelist[address(token)] = true;
     }
 
-    function deposit(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external returns (uint) {
+    function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external returns (uint) {
         require(baseToken.balanceOf(msg.sender) >= baseTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
+        uint cTokenExchangeRate = cToken.exchangeRateStored();
 
         uint spread = pool.getAskSpread(tokenAddr);
         uint askPrice = price.add(spread);
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
         uint additionalCollateralAmount = flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).sub(baseTokenAmount);
+        uint additionalCollateralCTokenAmount = additionalCollateralAmount.mul(cTokenExchangeRate).div(1 ether);
 
         uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
         token.addPosition(poolAddr, totalCollateralAmount, flowTokenAmount);
 
         baseToken.safeTransferFrom(msg.sender, tokenAddr, baseTokenAmount);
-        baseToken.safeTransferFrom(poolAddr, tokenAddr, additionalCollateralAmount);
+        require(cToken.transferFrom(poolAddr, tokenAddr, additionalCollateralCTokenAmount), "cToken transferFrom failed");
         token.mint(msg.sender, flowTokenAmount);
         return flowTokenAmount;
     }
 
-    function withdraw(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external returns (uint) {
+    function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external returns (uint) {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 

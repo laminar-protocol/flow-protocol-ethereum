@@ -17,97 +17,114 @@ contract MoneyMarket is Ownable {
 
     IERC20 public baseToken;
     CErc20Interface public cToken;
-    MintableToken public mToken;
     MintableToken public iToken;
 
     Percentage.Percent public minLiquidity;
+    
+    Percentage.Percent private insignificantPercent;
 
     constructor(
         CErc20Interface cToken_,
         uint minLiquidity_,
-        string memory mTokenName,
-        string memory mTokenSymbol,
         string memory iTokenName,
         string memory iTokenSymbol
     ) public {
         cToken = cToken_;
         baseToken = IERC20(cToken_.underlying());
-        mToken = new MintableToken(mTokenName, mTokenSymbol);
         iToken = new MintableToken(iTokenName, iTokenSymbol);
+
+        // TODO: do we need to make this configurable and what should be the default value?
+        insignificantPercent = Percentage.fromFraction(5, 100); // 5%
 
         setMinLiquidity(minLiquidity_);
     }
 
-    function mint(uint amount) external {
-        baseToken.safeTransferFrom(msg.sender, address(this), amount);
-        mToken.mint(msg.sender, amount);
+    function mint(uint baseTokenAmount) external {
+        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
+        uint iTokenAmount = baseTokenAmount.mul(exchangeRate()).div(1 ether);
+        iToken.mint(msg.sender, iTokenAmount);
 
-        _rebalance();
+        _rebalance(0);
     }
 
-    function redeem(uint amount) external {
-        redeemTo(msg.sender, amount);
+    function redeem(uint iTokenAmount) external {
+        redeemTo(msg.sender, iTokenAmount);
     }
 
-    function redeemTo(address recipient, uint amount) public {
-        mToken.burn(msg.sender, amount);
+    function redeemTo(address recipient, uint iTokenAmount) public {
+        iToken.burn(msg.sender, iTokenAmount);
 
-        uint bal = baseToken.balanceOf(address(this));
-        if (bal < amount) {
-            uint withdrawAmount = amount - bal;
-            require(cToken.redeemUnderlying(withdrawAmount) == 0, "Failed to redeem cToken");
-        }
-        baseToken.safeTransfer(recipient, amount);
-        
-        _rebalance();
+        uint baseTokenAmount = iTokenAmount.mul(1 ether).div(exchangeRate());
+
+        _rebalance(baseTokenAmount);
+
+        baseToken.safeTransfer(recipient, baseTokenAmount);
     }
 
-    function deposit(uint amount) external {
-        mToken.ownerTransferFrom(msg.sender, address(this), amount);
-        iToken.mint(msg.sender, amount);
+    function mintWithCToken(uint cTokenAmount) external {
+        require(cToken.transferFrom(msg.sender, address(this), cTokenAmount), "cToken transferFrom failed");
+        // baseTokenAmount = cTokenAmount / cTokenExchangeRate
+        // iTokenAmount = baseTokenAmount * exchangeRate
+        uint iTokenAmount = cTokenAmount.mul(exchangeRate()).div(cToken.exchangeRateStored());
+        iToken.mint(msg.sender, iTokenAmount);
+
+        _rebalance(0);
     }
 
-    function withdraw(uint amount) external {
-        require(amount <= iToken.balanceOf(msg.sender), "Not enough token");
-        uint iTokenTotalSupply = iToken.totalSupply();
-        Percentage.Percent memory percent = Percentage.fromFraction(amount, iTokenTotalSupply);
-        uint totalInterest = totalHoldings().sub(mToken.totalSupply());
+    function redeemCToken(uint iTokenAmount) external {
+        redeemCTokenTo(msg.sender, iTokenAmount);
+    }
 
-        uint share = totalInterest.mulPercent(percent);
+    function redeemCTokenTo(address recipent, uint iTokenAmount) public {
+        iToken.burn(msg.sender, iTokenAmount);
 
-        iToken.burn(msg.sender, amount);
-        mToken.ownerTransferFrom(address(this), msg.sender, amount);
-        mToken.mint(msg.sender, share);
+        // baseTokenAmount = iTokenAmount / exchangeRate
+        // cTokenAmount = baseTokenAmount * cTokenExchangeRate
+        uint cTokenAmount = iTokenAmount.mul(cToken.exchangeRateStored()).div(exchangeRate());
+        // TODO: handle the unlikely case where we need to convert base token to cToken to fillfull the withdraw
+        cToken.transfer(recipent, cTokenAmount);
+
+        _rebalance(0);
     }
 
     function rebalance() external {
-        _rebalance();
+        _rebalance(0);
     }
 
     function setMinLiquidity(uint value) public onlyOwner {
         require(value > 0 && value < Percentage.one(), "Invalid minLiquidity");
         minLiquidity.value = value;
-        _rebalance();
+        _rebalance(0);
     }
 
-    function _rebalance() private {
+    function _rebalance(uint extraLiquidity) private {
         Percentage.Percent memory cTokenLiquidity = _cTokenLiquidity();
-        if (cTokenLiquidity.value >= minLiquidity.value) {
-            require(cToken.mint(baseToken.balanceOf(address(this))) == 0, "Failed to mint cToken");
-            return;
-        }
+
         uint expectedUtilization = Percentage.one().sub(minLiquidity.value);
         uint cTokenUtilization = Percentage.one().sub(cTokenLiquidity.value);
         Percentage.Percent memory toCTokenPercent = Percentage.fromFraction(expectedUtilization, cTokenUtilization);
         assert(toCTokenPercent.value < Percentage.one());
 
-        uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored());
+        uint cTokenExchangeRate = cToken.exchangeRateStored();
+        uint currentCTokenValue = cToken.balanceOf(address(this)).mul(1 ether).div(cTokenExchangeRate);
         uint totalBaseToken = currentCTokenValue.add(baseToken.balanceOf(address(this)));
         uint desiredCTokenValue = totalBaseToken.mulPercent(toCTokenPercent);
+        if (extraLiquidity != 0) {
+            desiredCTokenValue = desiredCTokenValue.sub(extraLiquidity.mul(cTokenExchangeRate).div(1 ether));
+        }
+
+        uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
+        
         if (desiredCTokenValue > currentCTokenValue) {
-            require(cToken.mint(desiredCTokenValue - currentCTokenValue) == 0, "Failed to mint cToken");
+            uint toMint = desiredCTokenValue - currentCTokenValue;
+            if (toMint > insignificantAmount) {
+                require(cToken.mint(toMint) == 0, "Failed to mint cToken");
+            }
         } else {
-            require(cToken.redeemUnderlying(currentCTokenValue - desiredCTokenValue) == 0, "Failed to redeem cToken");
+            uint toRedeem = currentCTokenValue - desiredCTokenValue;
+            if (toRedeem > insignificantAmount) {
+                require(cToken.redeemUnderlying(toRedeem) == 0, "Failed to redeem cToken");
+            }
         }
     }
 
@@ -123,10 +140,10 @@ contract MoneyMarket is Ownable {
         if (totalSupply == 0) {
             return 1 ether;
         }
-        return totalHoldings().div(totalSupply);
+        return totalHoldings().mul(1 ether).div(totalSupply);
     }
 
     function totalHoldings() view public returns (uint) {
-        return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).add(baseToken.balanceOf(address(this)));
+        return cToken.balanceOf(address(this)).mul(1 ether).div(cToken.exchangeRateStored()).add(baseToken.balanceOf(address(this)));
     }
 }
