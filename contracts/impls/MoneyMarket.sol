@@ -6,11 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../interfaces/CErc20Interface.sol";
+import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";
 import "./FlowToken.sol";
 import "./MintableToken.sol";
 
-contract MoneyMarket is Ownable {
+contract MoneyMarket is MoneyMarketInterface, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
@@ -45,7 +46,7 @@ contract MoneyMarket is Ownable {
 
     function mintTo(address recipient, uint baseTokenAmount) public {
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
-        uint iTokenAmount = baseTokenAmount.mul(exchangeRate()).div(1 ether);
+        uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
         iToken.mint(recipient, iTokenAmount);
 
         _rebalance(0);
@@ -56,43 +57,27 @@ contract MoneyMarket is Ownable {
     }
 
     function redeemTo(address recipient, uint iTokenAmount) public {
-        iToken.burn(msg.sender, iTokenAmount);
+        uint baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
 
-        uint baseTokenAmount = iTokenAmount.mul(1 ether).div(exchangeRate());
+        iToken.burn(msg.sender, iTokenAmount);
 
         _rebalance(baseTokenAmount);
 
         baseToken.safeTransfer(recipient, baseTokenAmount);
     }
 
-    function mintWithCToken(uint cTokenAmount) external {
-        mintWithCTokenTo(msg.sender, cTokenAmount);
+    function redeemBaseToken(uint baseTokenAmount) external {
+        redeemBaseTokenTo(msg.sender, baseTokenAmount);
     }
 
-    function mintWithCTokenTo(address recipient, uint cTokenAmount) public {
-        require(cToken.transferFrom(msg.sender, address(this), cTokenAmount), "cToken transferFrom failed");
-        // baseTokenAmount = cTokenAmount / cTokenExchangeRate
-        // iTokenAmount = baseTokenAmount * exchangeRate
-        uint iTokenAmount = cTokenAmount.mul(exchangeRate()).div(cToken.exchangeRateStored());
-        iToken.mint(recipient, iTokenAmount);
+    function redeemBaseTokenTo(address recipient, uint baseTokenAmount) public {
+        uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
 
-        _rebalance(0);
-    }
-
-    function redeemCToken(uint iTokenAmount) external {
-        redeemCTokenTo(msg.sender, iTokenAmount);
-    }
-
-    function redeemCTokenTo(address recipent, uint iTokenAmount) public {
         iToken.burn(msg.sender, iTokenAmount);
 
-        // baseTokenAmount = iTokenAmount / exchangeRate
-        // cTokenAmount = baseTokenAmount * cTokenExchangeRate
-        uint cTokenAmount = iTokenAmount.mul(cToken.exchangeRateStored()).div(exchangeRate());
-        // TODO: handle the unlikely case where we need to convert base token to cToken to fillfull the withdraw
-        cToken.transfer(recipent, cTokenAmount);
+        _rebalance(baseTokenAmount);
 
-        _rebalance(0);
+        baseToken.safeTransfer(recipient, baseTokenAmount);
     }
 
     function rebalance() external {
@@ -114,11 +99,11 @@ contract MoneyMarket is Ownable {
         assert(toCTokenPercent.value < Percentage.one());
 
         uint cTokenExchangeRate = cToken.exchangeRateStored();
-        uint currentCTokenValue = cToken.balanceOf(address(this)).mul(1 ether).div(cTokenExchangeRate);
+        uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
         uint totalBaseToken = currentCTokenValue.add(baseToken.balanceOf(address(this)));
         uint desiredCTokenValue = totalBaseToken.mulPercent(toCTokenPercent);
         if (extraLiquidity != 0) {
-            desiredCTokenValue = desiredCTokenValue.sub(extraLiquidity.mul(cTokenExchangeRate).div(1 ether));
+            desiredCTokenValue = desiredCTokenValue.sub(extraLiquidity.mul(1 ether).div(cTokenExchangeRate));
         }
 
         uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
@@ -152,6 +137,13 @@ contract MoneyMarket is Ownable {
     }
 
     function totalHoldings() view public returns (uint) {
-        return cToken.balanceOf(address(this)).mul(1 ether).div(cToken.exchangeRateStored()).add(baseToken.balanceOf(address(this)));
+        return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1 ether).add(baseToken.balanceOf(address(this)));
+    }
+
+    function convertAmountFromBase(uint rate, uint baseTokenAmount) pure public returns (uint) {
+        return baseTokenAmount.mul(1 ether).div(rate);
+    }
+    function convertAmountToBase(uint rate, uint iTokenAmount) pure public returns (uint) {
+        return iTokenAmount.mul(rate).div(1 ether);
     }
 }

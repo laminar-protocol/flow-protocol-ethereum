@@ -10,9 +10,9 @@ import "../libs/Percentage.sol";
 import "../interfaces/FlowProtocolInterface.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/PriceOracleInterface.sol";
+import "../interfaces/MoneyMarketInterface.sol";
 import "../roles/ProtocolOwnable.sol";
 import "./FlowToken.sol";
-import "./MoneyMarket.sol";
 
 contract FlowProtocol is FlowProtocolInterface, Ownable {
     using SafeMath for uint256;
@@ -20,50 +20,46 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     using SafeERC20 for IERC20;
 
     PriceOracleInterface public oracle;
-    MoneyMarket public moneyMarket;
-    IERC20 public baseToken;
-    CErc20Interface cToken;
+    MoneyMarketInterface public moneyMarket;
 
     mapping (string => FlowToken) public tokens;
     mapping (address => bool) public tokenWhitelist;
 
-    constructor(PriceOracleInterface oracle_, MoneyMarket moneyMarket_) public {
+    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
         oracle = oracle_;
         moneyMarket = moneyMarket_;
-
-        baseToken = moneyMarket.baseToken();
-        cToken = moneyMarket.cToken();
     }
 
     function createFlowToken(string calldata name, string calldata symbol) external onlyOwner {
         require(address(tokens[name]) == address(0), "already exists");
-        FlowToken token = new FlowToken(name, symbol, baseToken);
+        FlowToken token = new FlowToken(name, symbol, moneyMarket);
         tokens[symbol] = token;
         tokenWhitelist[address(token)] = true;
     }
 
     function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external returns (uint) {
+        IERC20 baseToken = moneyMarket.baseToken();
+        IERC20 iToken = moneyMarket.iToken();
+
         require(baseToken.balanceOf(msg.sender) >= baseTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         address poolAddr = address(pool);
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
-        uint cTokenExchangeRate = cToken.exchangeRateStored();
 
         uint spread = pool.getAskSpread(tokenAddr);
         uint askPrice = price.add(spread);
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
         uint additionalCollateralAmount = flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).sub(baseTokenAmount);
-        uint additionalCollateralCTokenAmount = additionalCollateralAmount.mul(cTokenExchangeRate).div(1 ether);
+        uint additionalCollateralITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), additionalCollateralAmount);
 
         uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
 
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         moneyMarket.mintTo(tokenAddr, baseTokenAmount);
-        require(cToken.transferFrom(poolAddr, address(this), additionalCollateralCTokenAmount), "cToken transferFrom failed");
-        moneyMarket.mintWithCTokenTo(tokenAddr, additionalCollateralCTokenAmount);
+        iToken.safeTransferFrom(poolAddr, address(this), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
 
         token.addPosition(poolAddr, totalCollateralAmount, flowTokenAmount, additionalCollateralAmount);
@@ -72,6 +68,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external returns (uint) {
+        IERC20 iToken = moneyMarket.iToken();
+
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
@@ -90,8 +88,9 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint interest = token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
         refundToPool = refundToPool.add(interest);
 
-        baseToken.safeTransferFrom(tokenAddr, poolAddr, refundToPool);
-        baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount);
+        uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
+        iToken.safeTransferFrom(tokenAddr, poolAddr, refundToPoolITokenAmount);
+        token.withdrawTo(msg.sender, baseTokenAmount);
 
         token.burn(msg.sender, flowTokenAmount);
 
@@ -99,6 +98,8 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
+        IERC20 iToken = moneyMarket.iToken();
+
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
@@ -115,20 +116,44 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint incentive;
         (collateralsToRemove, refundToPool, incentive) = _calculateRemovePositionAndIncentive(token, pool, price, flowTokenAmount, baseTokenAmount);
 
-        token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+        uint interest = token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+        refundToPool = refundToPool.add(interest);
 
-        if (refundToPool > 0) {
-            baseToken.safeTransferFrom(tokenAddr, poolAddr, refundToPool);
-        }
-        baseToken.safeTransferFrom(tokenAddr, msg.sender, baseTokenAmount.add(incentive));
+        uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
+        iToken.safeTransferFrom(tokenAddr, poolAddr, refundToPoolITokenAmount);
+        token.withdrawTo(msg.sender, baseTokenAmount.add(incentive));
 
         token.burn(msg.sender, flowTokenAmount);
     }
 
-    function addCollateral(FlowToken token, address poolAddr, uint amount) external {
+    function addCollateral(FlowToken token, address poolAddr, uint baseTokenAmount) external {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
-        baseToken.safeTransferFrom(msg.sender, address(token), amount);
-        token.addPosition(poolAddr, amount, 0, amount);
+
+        uint iTokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), baseTokenAmount);
+
+        moneyMarket.iToken().safeTransferFrom(msg.sender, address(token), iTokenAmount);
+        token.addPosition(poolAddr, baseTokenAmount, 0, baseTokenAmount);
+    }
+
+    function withdrawCollateral(FlowToken token) external returns (uint) {
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
+        
+        IERC20 iToken = moneyMarket.iToken();
+
+        LiquidityPoolInterface pool = LiquidityPoolInterface(msg.sender);
+        address tokenAddr = address(token);
+        uint price = getPrice(tokenAddr);
+
+        uint collateralsToRemove;
+        uint refundToPool;
+        (collateralsToRemove, refundToPool) = _calculateRemovePosition(token, pool, price, 0, 0);
+        uint interest = token.removePosition(msg.sender, collateralsToRemove, 0);
+        refundToPool = refundToPool.add(interest);
+
+        uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
+        iToken.safeTransferFrom(tokenAddr, msg.sender, refundToPoolITokenAmount);
+
+        return refundToPoolITokenAmount;
     }
 
     function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {
@@ -141,7 +166,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         uint mintedAfter = minted.sub(flowTokenAmount);
 
         uint mintedValue = mintedAfter.mul(price).div(1 ether);
-        uint requiredCollaterals = mintedValue.mulPercent(getAdditoinalCollateralRatio(token, pool));
+        uint requiredCollaterals = mintedValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).add(mintedValue);
         collateralsToRemove = baseTokenAmount;
         refundToPool = 0;
         if (requiredCollaterals <= collaterals) {
@@ -159,7 +184,7 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
 
         Percentage.Percent memory currentRatio = getCurrentTotalCollateralRatio(collaterals, minted, price);
 
-        require(currentRatio.value < token.minCollateralRatio(), "Still in a safe position");
+        require(currentRatio.value < token.minCollateralRatio().add(Percentage.one()), "Still in a safe position");
 
         uint mintedAfter = minted.sub(flowTokenAmount);
         uint mintedAfterValue = mintedAfter.mul(price).div(1 ether);

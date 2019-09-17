@@ -6,9 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "../interfaces/MoneyMarketInterface.sol";
 import "../roles/ProtocolOwnable.sol";
 import "../libs/Percentage.sol";
-import "./MoneyMarket.sol";
 
 contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     using SafeMath for uint256;
@@ -17,7 +17,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
 
     uint constant MAX_UINT = 2**256 - 1;
 
-    MoneyMarket moneyMarket;
+    MoneyMarketInterface moneyMarket;
 
     Percentage.Percent public minCollateralRatio;
     Percentage.Percent public defaultCollateralRatio;
@@ -36,24 +36,22 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     constructor(
         string memory name,
         string memory symbol,
-        MoneyMarket moneyMarket_
+        MoneyMarketInterface moneyMarket_
     ) ERC20Detailed(name, symbol, 18) public {
         moneyMarket = moneyMarket_;
 
-        IERC20(moneyMarket.iToken()).safeApprove(msg.sender, MAX_UINT);
+        moneyMarket.iToken().safeApprove(msg.sender, MAX_UINT);
 
         // TODO: from constructor parameter
-        minCollateralRatio = Percentage.fromFraction(105, 100);
-        defaultCollateralRatio = Percentage.fromFraction(110, 100);
+        minCollateralRatio = Percentage.fromFraction(5, 100);
+        defaultCollateralRatio = Percentage.fromFraction(10, 100);
     }
 
     function setMinCollateralRatio(uint percent) external onlyProtocol {
-        require(percent > Percentage.one(), "minCollateralRatio must be greater than 100%");
         minCollateralRatio.value = percent;
     }
 
     function setDefaultCollateralRatio(uint percent) external onlyProtocol {
-        require(percent > Percentage.one(), "defaultCollateralRatio must be greater than 100%");
         defaultCollateralRatio.value = percent;
     }
 
@@ -105,15 +103,19 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     function _burnInterestShares(address recipient, Percentage.Percent memory percentShare) private returns (uint) {
         uint prevShares = interestShares[recipient];
 
-        uint shares = prevShares.mulPercent(percentShare);
-        uint debitToBurn = interestDebits[recipient].mulPercent(percentShare);
+        uint sharesToBurn = prevShares.mulPercent(percentShare);
+        uint sharesToBurnValue = sharesToBurn.mul(interestShareExchangeRate()).div(1 ether);
 
-        uint currentValue = shares.mul(interestShareExchangeRate());
-        uint netValue = currentValue.sub(debitToBurn);
+        uint newShares = interestShares[recipient].sub(sharesToBurn);
+        
+        uint oldDebits = interestDebits[recipient];
+        uint newDebits = newShares.mul(interestShareExchangeRate()).div(1 ether);
 
-        totalInterestShares = totalInterestShares.sub(shares);
-        interestShares[recipient] = interestShares[recipient].sub(shares);
-        interestDebits[recipient] = interestDebits[recipient].sub(debitToBurn);
+        uint netValue = sharesToBurnValue.add(newDebits).sub(oldDebits);
+
+        totalInterestShares = totalInterestShares.sub(sharesToBurn);
+        interestShares[recipient] = newShares;
+        interestDebits[recipient] = newDebits;
 
         return netValue;
     }
@@ -126,5 +128,9 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
             .mul(moneyMarket.exchangeRate()).div(1 ether)
             .sub(totalPrincipalAmount)
             .div(totalInterestShares);
+    }
+
+    function withdrawTo(address recipient, uint baseTokenAmount) external onlyProtocol {
+        moneyMarket.redeemBaseTokenTo(recipient, baseTokenAmount);
     }
 }
