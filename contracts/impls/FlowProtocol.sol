@@ -98,10 +98,10 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
     }
 
     function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external {
-        IERC20 iToken = moneyMarket.iToken();
-
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
+
+        IERC20 iToken = moneyMarket.iToken();
 
         address poolAddr = address(pool);
         address tokenAddr = address(token);
@@ -154,6 +154,21 @@ contract FlowProtocol is FlowProtocolInterface, Ownable {
         iToken.safeTransferFrom(tokenAddr, msg.sender, refundToPoolITokenAmount);
 
         return refundToPoolITokenAmount;
+    }
+
+    function deposit(FlowToken token, uint flowTokenAmount) external {
+        require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
+
+        uint price = getPrice(address(token));
+
+        token.deposit(msg.sender, flowTokenAmount, price);
+    }
+
+    function withdraw(FlowToken token, uint flowTokenAmount) external {
+        require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
+
+        token.withdraw(msg.sender, flowTokenAmount);
     }
 
     function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {

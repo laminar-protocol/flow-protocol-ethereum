@@ -133,4 +133,19 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     function withdrawTo(address recipient, uint baseTokenAmount) external onlyProtocol {
         moneyMarket.redeemBaseTokenTo(recipient, baseTokenAmount);
     }
+
+    function deposit(address sender, uint amount, uint price) external onlyProtocol {
+        _transfer(sender, address(this), amount);
+        uint shares = amount.mul(price).div(1 ether);
+        _mintInterestShares(sender, shares);
+    }
+
+    function withdraw(address sender, uint amount) external onlyProtocol {
+        _transfer(address(this), sender, amount);
+
+        Percentage.Percent memory percentShare = Percentage.fromFraction(amount, interestShares[sender]);
+
+        uint interestBaseTokenAmount = _burnInterestShares(sender, percentShare);
+        moneyMarket.redeemBaseTokenTo(sender, interestBaseTokenAmount);
+    }
 }
