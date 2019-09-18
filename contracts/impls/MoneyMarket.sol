@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../interfaces/CErc20Interface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
@@ -11,7 +12,7 @@ import "../libs/Percentage.sol";
 import "./FlowToken.sol";
 import "./MintableToken.sol";
 
-contract MoneyMarket is MoneyMarketInterface, Ownable {
+contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
@@ -47,7 +48,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
         mintTo(msg.sender, baseTokenAmount);
     }
 
-    function mintTo(address recipient, uint baseTokenAmount) public {
+    function mintTo(address recipient, uint baseTokenAmount) public nonReentrant {
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
         iToken.mint(recipient, iTokenAmount);
@@ -59,7 +60,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
         redeemTo(msg.sender, iTokenAmount);
     }
 
-    function redeemTo(address recipient, uint iTokenAmount) public {
+    function redeemTo(address recipient, uint iTokenAmount) public nonReentrant {
         uint baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
 
         iToken.burn(msg.sender, iTokenAmount);
@@ -73,7 +74,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
         redeemBaseTokenTo(msg.sender, baseTokenAmount);
     }
 
-    function redeemBaseTokenTo(address recipient, uint baseTokenAmount) public {
+    function redeemBaseTokenTo(address recipient, uint baseTokenAmount) public nonReentrant {
         uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
 
         iToken.burn(msg.sender, iTokenAmount);
@@ -83,7 +84,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
         baseToken.safeTransfer(recipient, baseTokenAmount);
     }
 
-    function rebalance() external {
+    function rebalance() external nonReentrant {
         _rebalance(0);
     }
 

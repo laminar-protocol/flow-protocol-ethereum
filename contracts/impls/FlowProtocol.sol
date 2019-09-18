@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../libs/Percentage.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
@@ -12,7 +13,7 @@ import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "./FlowToken.sol";
 
-contract FlowProtocol is Ownable {
+contract FlowProtocol is Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using Percentage for uint256;
     using SafeERC20 for IERC20;
@@ -35,7 +36,7 @@ contract FlowProtocol is Ownable {
         tokenWhitelist[address(token)] = true;
     }
 
-    function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external returns (uint) {
+    function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external nonReentrant returns (uint) {
         IERC20 baseToken = moneyMarket.baseToken();
         IERC20 iToken = moneyMarket.iToken();
 
@@ -44,8 +45,7 @@ contract FlowProtocol is Ownable {
 
         uint price = getPrice(address(token));
 
-        uint spread = pool.getAskSpread(address(token));
-        uint askPrice = price.add(spread);
+        uint askPrice = price.add(pool.getAskSpread(address(token)));
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
         uint additionalCollateralAmount = flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).sub(baseTokenAmount);
@@ -63,7 +63,7 @@ contract FlowProtocol is Ownable {
         return flowTokenAmount;
     }
 
-    function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external returns (uint) {
+    function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external nonReentrant returns (uint) {
         IERC20 iToken = moneyMarket.iToken();
 
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
@@ -73,8 +73,7 @@ contract FlowProtocol is Ownable {
         address tokenAddr = address(token);
         uint price = getPrice(tokenAddr);
 
-        uint spread = pool.getBidSpread(tokenAddr);
-        uint bidPrice = price.sub(spread);
+        uint bidPrice = price.sub(pool.getBidSpread(tokenAddr));
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -93,7 +92,7 @@ contract FlowProtocol is Ownable {
         return baseTokenAmount;
     }
 
-    function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external returns (uint) {
+    function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external nonReentrant returns (uint) {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
@@ -101,8 +100,7 @@ contract FlowProtocol is Ownable {
 
         uint price = getPrice(address(token));
 
-        uint spread = pool.getBidSpread(address(token));
-        uint bidPrice = price.sub(spread);
+        uint bidPrice = price.sub(pool.getBidSpread(address(token)));
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -122,7 +120,7 @@ contract FlowProtocol is Ownable {
         return baseTokenAmount;
     }
 
-    function addCollateral(FlowToken token, address poolAddr, uint baseTokenAmount) external {
+    function addCollateral(FlowToken token, address poolAddr, uint baseTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         uint iTokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), baseTokenAmount);
@@ -131,7 +129,7 @@ contract FlowProtocol is Ownable {
         token.addPosition(poolAddr, baseTokenAmount, 0, baseTokenAmount);
     }
 
-    function withdrawCollateral(FlowToken token) external returns (uint) {
+    function withdrawCollateral(FlowToken token) external nonReentrant returns (uint) {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
         
         IERC20 iToken = moneyMarket.iToken();
@@ -152,7 +150,7 @@ contract FlowProtocol is Ownable {
         return refundToPoolITokenAmount;
     }
 
-    function deposit(FlowToken token, uint flowTokenAmount) external {
+    function deposit(FlowToken token, uint flowTokenAmount) external nonReentrant {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
@@ -161,7 +159,7 @@ contract FlowProtocol is Ownable {
         token.deposit(msg.sender, flowTokenAmount, price);
     }
 
-    function withdraw(FlowToken token, uint flowTokenAmount) external {
+    function withdraw(FlowToken token, uint flowTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         token.withdraw(msg.sender, flowTokenAmount);
