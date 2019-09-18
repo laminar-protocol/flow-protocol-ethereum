@@ -13,6 +13,10 @@ library Percentage {
     }
 
     function fromFraction(uint numerator, uint denominator) internal pure returns (Percent memory) {
+        if (numerator == 0) {
+            // it is fine if denominator is 0 in this case
+            return Percent(0);
+        }
         return Percent(numerator.mul(ONE).div(denominator));
     }
 

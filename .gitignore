@@ -31,3 +31,5 @@ package-lock.json
 
 .vscode/
 .idea/
+types/truffle-contracts
+types/web3-contracts

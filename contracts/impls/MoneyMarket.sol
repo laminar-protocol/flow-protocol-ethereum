@@ -16,6 +16,8 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
+    uint constant MAX_UINT = 2**256 - 1;
+
     IERC20 public baseToken;
     CErc20Interface public cToken;
     MintableToken public iToken;
@@ -33,11 +35,12 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
         cToken = cToken_;
         baseToken = IERC20(cToken_.underlying());
         iToken = new MintableToken(iTokenName, iTokenSymbol);
+        baseToken.safeApprove(address(cToken), MAX_UINT);
 
         // TODO: do we need to make this configurable and what should be the default value?
         insignificantPercent = Percentage.fromFraction(5, 100); // 5%
 
-        setMinLiquidity(minLiquidity_);
+        minLiquidity.value = minLiquidity_;
     }
 
     function mint(uint baseTokenAmount) external {
@@ -91,6 +94,8 @@ contract MoneyMarket is MoneyMarketInterface, Ownable {
     }
 
     function _rebalance(uint extraLiquidity) private {
+        // TODO: this formula is not entirely correct
+
         Percentage.Percent memory cTokenLiquidity = _cTokenLiquidity();
 
         uint expectedUtilization = Percentage.one().sub(minLiquidity.value);

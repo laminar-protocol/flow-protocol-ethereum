@@ -10,7 +10,6 @@ import "../libs/Percentage.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
-import "../roles/ProtocolOwnable.sol";
 import "./FlowToken.sol";
 
 contract FlowProtocol is Ownable {
@@ -29,9 +28,9 @@ contract FlowProtocol is Ownable {
         moneyMarket = moneyMarket_;
     }
 
-    function createFlowToken(string calldata name, string calldata symbol) external onlyOwner {
-        require(address(tokens[name]) == address(0), "already exists");
-        FlowToken token = new FlowToken(name, symbol, moneyMarket);
+    function addFlowToken(FlowToken token) external onlyOwner {
+        string memory symbol = token.symbol();
+        require(address(tokens[symbol]) == address(0), "already exists");
         tokens[symbol] = token;
         tokenWhitelist[address(token)] = true;
     }

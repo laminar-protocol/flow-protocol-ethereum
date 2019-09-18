@@ -3,14 +3,27 @@
   "version": "0.0.1",
   "author": "Bryan Chen <bryan@laminar.one>",
   "private": true,
+  "scripts": {
+    "generate": "truffle compile && typechain --target truffle './build/**/*.json' && typechain --target web3-1.0.0 './build/**/*.json'",
+    "postinstall": "yarn generate"
+  },
   "dependencies": {
     "@openzeppelin/contracts": "^2.3.0"
   },
   "devDependencies": {
+    "@types/bignumber.js": "^5.0.0",
+    "@types/chai": "^4.2.2",
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.7.5",
     "chai": "^4.2.0",
     "dotenv": "^8.1.0",
     "eslint": "^6.2.2",
     "openzeppelin-test-helpers": "^0.4.3",
-    "truffle-hdwallet-provider": "^1.0.17"
+    "truffle-contract-size": "^1.0.1",
+    "truffle-hdwallet-provider": "^1.0.17",
+    "truffle-typings": "^1.0.8",
+    "ts-node": "^8.4.1",
+    "typechain": "^0.3.21",
+    "typescript": "^3.6.3"
   }
 }
