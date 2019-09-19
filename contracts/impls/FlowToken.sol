@@ -121,6 +121,9 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     }
 
     function interestShareExchangeRate() public view returns (uint) {
+        // TODO: handle the case where total interest shares is zero
+        // TODO: this is not correct. needs fix
+
         // totalBaseTokenAmount = iTokenAmount * iTokenExcahngeRate
         // totalInterest = totalBaseTokenAmount - totalPrincipalAmount
         // interestShareExchangeRate = totalInterest / totalInterestShares
