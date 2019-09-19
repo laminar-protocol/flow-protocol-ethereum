@@ -1,7 +1,9 @@
 # flow-protocol
 
 ## Introduction
-Laminar aims to be the bridge of on-and-off chain players via arena of DeFi - on one hand, increase on-chain liquidity, exposure and variety, on the other hand, tap into the off-chain mature markets like Forex which has $5 trillion daily trading volume, and bring transparency of pricing and counter-party actions to traders, and new revenue opportunity to off-chain players.  
+Laminar aims to create an open finance platform along with financial assets to serve traders from both the crypto and mainstream finance worlds. Forex market alone has an average daily trading volume of $5 trillion, while the most active DeFi projects (mostly on Ethereum) have about $500 million of funds locked in smart contracts. 
+
+Laminar's goal is to provide people with better access to trading instruments, and introduce new, competitive business models to mainstream financial service providers. The Flow Protocols - as Laminar's flagship product - will help to solve the challenges of opaque pricing and price manipulation in the current financial markets, bridges on- and off-chain participants, and ultimately boosts on-chain trading liquidity, exposure, and variety
 
 This document serves as a general overview of Flow protocols - generalized synthetic asset, margin trading and money market protocols, and as a brief introduction to its reference implementation on Ethereum as Smart Contracts and on Polkadot as parachain. We will add more details for developers to build on top of the protocol as it evolves further.
 
@@ -10,28 +12,28 @@ Flow protocol is generalized for any type of synthetic assets and trading, the f
 
 Flow protocols have the following properties：
 
-- **Instant Liquidity**: traders trade against smart contracts (or runtime modules in Polkadot/Substrate terms) not order book, hence there's instant and infinite liquidity provided that the collateral ratio doesn't fall below threshold.
+- **Instant Liquidity**: traders trade against smart contracts (or runtime modules in Polkadot/Substrate terms) instead of order books, hence there's instant and infinite liquidity, provided that the collateral ratio doesn't fall below the preset liquidation threshold.
 
-- **Asset Efficiency for traders**: while all positions are over-collateralized, traders only put up collateral for the position value , the rest of the risk is taken on by liquidity providers. In return liquidity providers earn a fee e.g. in the form of spread in Forex case. Savvy liquidity providers would have means to hedge their risks on or off chain depending on the asset type and their own strategy.
+- **Asset Efficiency for traders**: While all positions are over-collateralized, ***traders only need to put up collateral for the value of the positions***. The rest of the risks are taken on by the liquidity providers. In return, liquidity providers earn transaction fees, e.g. in the form of a bid and ask spread in a Forex case. Savvy liquidity providers would have initiatives to hedge their risks on- or off-chain, depending on the asset type and their risk management strategies. Margin traders will also be able to trade against the liquidity pools, that ***traders’ risks and liabilities are capped by the margin locked***, while their potential profits are also secured by the protocol.
 
-- **Better trading experience**: traders in current off-chain market e.g. Forex are challenged by opaque pricing and price manipulation. Flow protocol enables transparent pricing and transparent counter-party actions governed by the protocol and the community, while providing the trading experience comparable to the off-chain ones. 
+- **Better trading experience**: Flow Protocols enable ***transparent pricing and counter-party actions*** governed by the protocol and the community while providing an excellent trading experience comparable to the off-chain services. When collateralized positions are at risk, they will be open to the public for liquidation with rewards, which ensure the soundness and safety of the liquidity pools.
 
-- **Integrated money market**: assets deposited into the protocols both from the traders and liquidity providers will earn interest to further increase on-chain liquidity. We look to work with DeFi partners such as Compound.Finance for Ethereum implementation to enable such service via a general interface with multiple providers.  
+- **Integrated money market**: assets deposited into the protocols both from the traders and liquidity providers will earn interest that further increases on-chain liquidity. We look to work with DeFi partners such as Compound.Finance for Ethereum implementation to enable such service via a general interface with multiple providers.  
 
-- **Tokenized positions**: synthetic stable fiat assets are tokenized as fToken (Flow Token) e.g. fEUR. Margin positions that allows traders to leverage long or short an asset are tokenized as margin Tokens e.g. sEURUSD.20x as short EUR with leverage of 20:1. Tokenized positions enables fluidity of the assets e.g. easily trading ERC20 fTokens and margin tokens in open markets, or as building blocks of other financial services, or other programmable use cases that we can't wait for programmers and the community to explore. 
+- **Tokenized positions**: Users can deposit USD stablecoins in exchange for synthetic stable fiat assets in the form of fTokens (Flow Tokens) e.g. fEUR. Traders can also tokenize margin positions connected to their short or long leveraged positions. These tokenized positions enable fluidity across asset classes, e.g. through easily tradable fTokens and margin tokens in open markets, or as building blocks of other financial services. We can't wait for programmers and the community to explore further use cases!
 
 Below we will introduce the following protocols
-- Collateralized Synthetic Asset Protocol (draft design and implementation)
-- Money Market Protocol (design is being finalized)
-- Collateralized Margin Trading Protocol (design is being finalized)
+- Collateralized Synthetic Asset Protocol (draft design and implementation available)
+- Money Market Protocol (to be published, design is being finalized)
+- Collateralized Margin Trading Protocol (to be published, design is being finalized)
 
-For formal verfication on the synthetic asset design, please refer to the [Flow Synthetic Asset Whitepaper](https://github.com/laminar-protocol/flow-protocol-whitepaper)
+For formal verification on the synthetic asset design, please refer to the [Flow Synthetic Asset Whitepaper](https://github.com/laminar-protocol/flow-protocol-whitepaper)
 
 ## Collateralized Synthetic Asset Protocol
 The collateralized synthetic asset protocol allows user to mint non-USD stable-coin fToken e.g. fEUR or fJPY using USD stable-coin e.g. DAI or equivalent as collateral. There are a number of use cases for fToken
-- as the basis for Forex margin trading protocol
-- as general purpose stable-coin/currency for payment
-- as sore of value where holders can deposit it into money market to earn interest
+- as the basis for margin trading protocol
+- as general purpose stable-coin/currency for payments
+- as a sore of value where holders can deposit it into money market to earn interest
 
 ### Liquidity Pool
 Liquidity pool is set up by a liquidity provider for a particular fToken, where a certain amount of funds e.g. USD stable-coins are locked in it to serve as collateral, the spreads (bid and ask spread for a given Forex symbol e.g. EURUSD) are set up which is essentially fees to the liquidity provider, and liquidity provider's own collateral ratio is set. 
@@ -133,7 +135,7 @@ We will provide more details once we have a draft design.
 We will provide more details once we have a draft design.
 
 ## Implementation 
-We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading, and there are existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers etc, a high throughput low cost specialized trading blockchain is required to deliver the intended on-and-off ramp trading experience with the scale and speed needed. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
+We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading. There are also existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers, a high performance and low cost specialized trading blockchain is required to deliver the intended experience. For instance, the platform needs to be capable of handling large trading volume and frequent price fluctuations. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
 
 ### Flow Protocol Smart Contracts on Ethereum
 Simple Proof of Concept Flow Synthetic Asset Protocol on Koven. The codes in the repo are the actual protocols and have not been deployed yet.
@@ -215,3 +217,4 @@ The oracle price is set by price feed administrator. We will watch closely gover
 The difference between the new price and the last price is capped by the **`delta last limit`**. We also take a snapshot of price over a certain period. The difference between the capped new price and the snapshot price is further capped by the **`delta snapshot limit`**.
 
 Pseudo cap function, for last price cap, `priceCap` is the **`delta last limit`**, and `lastPrice` is the Oracle last price; for snapshot price cap, `priceCap` is the **`delta snapshot limit`**, and `lastPrice` is the snapshot price.
+
