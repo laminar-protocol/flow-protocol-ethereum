@@ -1,7 +1,7 @@
-const { expectRevert } = require('openzeppelin-test-helpers');
-const { expect } = require('chai');
-
-const helper = require('./helpers');
+import { expectRevert } from 'openzeppelin-test-helpers';
+import { expect } from 'chai';
+import { LiquidityPoolInstance } from 'types/truffle-contracts';
+import * as helper from './helpers';
 
 const LiquidityPool = artifacts.require("LiquidityPool");
 
@@ -11,7 +11,7 @@ contract('LiquidityPool', accounts => {
   const fToken = accounts[2];
   const fTokenTwo = accounts[3];
   const badAddress = accounts[4];
-  let liquidityPool;
+  let liquidityPool: LiquidityPoolInstance;
   let usd;
 
   beforeEach(async () => {

@@ -1,7 +1,7 @@
-const { expectRevert, time } = require('openzeppelin-test-helpers');
-const { expect } = require('chai');
-
-const helper = require('./helpers');
+import { expectRevert, time } from 'openzeppelin-test-helpers';
+import { expect } from 'chai';
+import { SimplePriceOracleInstance } from 'types/truffle-contracts';
+import * as helper from './helpers';
 
 const SimplePriceOracle = artifacts.require("SimplePriceOracle");
 
@@ -13,7 +13,7 @@ contract('SimplePriceOracle', accounts => {
     const fTokenTwo = accounts[4];
     const badAddress = accounts[5];
 
-    let oracle;
+    let oracle: SimplePriceOracleInstance;
 
     beforeEach(async () => {
         oracle = await SimplePriceOracle.new([priceFeeder]);

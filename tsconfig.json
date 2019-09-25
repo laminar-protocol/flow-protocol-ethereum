@@ -14,8 +14,10 @@
       "sourceMap": true,
       "typeRoots": ["./node_modules/@types", "./types"],
       "types": ["node", "truffle-contracts"],
-      "baseUrl": "./"
+      "baseUrl": "./",
+      "esModuleInterop": true
     },
-    "include": ["**/*.ts"],
+    "include": ["**/*.ts", "typings.d.ts"],
+    "files": ["./typings.d.ts"],
     "exclude": ["node_modules", "build"]
   }
