@@ -114,6 +114,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         uint netValue = sharesToBurnValue.add(newDebits).sub(oldDebits);
 
         totalInterestShares = totalInterestShares.sub(sharesToBurn);
+        totalPrincipalAmount = totalPrincipalAmount.sub(netValue).sub(sharesToBurnValue);
         interestShares[recipient] = newShares;
         interestDebits[recipient] = newDebits;
 
@@ -121,7 +122,9 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     }
 
     function interestShareExchangeRate() public view returns (uint) {
-        // TODO: handle the case where total interest shares is zero
+        if (totalInterestShares == 0) {
+            return 1 ether;
+        }
         // TODO: this is not correct. needs fix
 
         // totalBaseTokenAmount = iTokenAmount * iTokenExcahngeRate
