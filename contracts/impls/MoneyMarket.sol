@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../interfaces/CErc20Interface.sol";
@@ -97,19 +98,21 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function _rebalance(uint extraLiquidity) private {
         // TODO: this formula is not entirely correct
 
-        Percentage.Percent memory cTokenLiquidity = _cTokenLiquidity();
-
-        uint expectedUtilization = Percentage.one().sub(minLiquidity.value);
-        uint cTokenUtilization = Percentage.one().sub(cTokenLiquidity.value);
-        Percentage.Percent memory toCTokenPercent = Percentage.fromFraction(expectedUtilization, cTokenUtilization);
-        assert(toCTokenPercent.value < Percentage.one());
+        Percentage.Percent memory cTokenUtilization = _cTokenUtilization();
+        uint targetUtilization = Percentage.one().sub(minLiquidity.value);
+        Percentage.Percent memory toCTokenPercent;
+        if (cTokenUtilization.value > 0) {
+            toCTokenPercent = Percentage.fromFraction(targetUtilization, cTokenUtilization.value);
+            assert(toCTokenPercent.value <= Percentage.one());
+        }
 
         uint cTokenExchangeRate = cToken.exchangeRateStored();
         uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
         uint totalBaseToken = currentCTokenValue.add(baseToken.balanceOf(address(this)));
         uint desiredCTokenValue = totalBaseToken.mulPercent(toCTokenPercent);
         if (extraLiquidity != 0) {
-            desiredCTokenValue = desiredCTokenValue.sub(extraLiquidity.mul(1 ether).div(cTokenExchangeRate));
+            uint extraLiquidityCTokenValue = Math.min(extraLiquidity.mul(1 ether).div(cTokenExchangeRate), desiredCTokenValue);
+            desiredCTokenValue = desiredCTokenValue.sub(extraLiquidityCTokenValue);
         }
 
         uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
@@ -127,11 +130,11 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         }
     }
 
-    function _cTokenLiquidity() view private returns (Percentage.Percent memory) {
+    function _cTokenUtilization() view private returns (Percentage.Percent memory) {
         uint cash = cToken.getCash();
         uint borrows = cToken.totalBorrows();
         uint total = cash.add(borrows);
-        return Percentage.fromFraction(cash, total);
+        return Percentage.fromFraction(borrows, total);
     }
 
     function exchangeRate() view public returns (uint) {

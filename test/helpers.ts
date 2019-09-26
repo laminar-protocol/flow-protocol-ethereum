@@ -1,6 +1,9 @@
 import BN from 'bn.js';
 
 const TestToken = artifacts.require("TestToken");
+const TestCToken = artifacts.require("TestCToken");
+const MoneyMarket = artifacts.require("MoneyMarket");
+const IERC20 = artifacts.require("IERC20");
 
 export const ZERO = new BN(0);
 
@@ -11,6 +14,12 @@ export async function createTestToken(...args: [string, number][]) {
     }
     return token;
 };
+
+export async function createMoneyMarket(testTokenAddress: string, liquidity = fromPercent(100)) {
+    const cToken = await TestCToken.new(testTokenAddress);
+    const moneyMarket = await MoneyMarket.new(cToken.address, liquidity, 'Test iToken', 'iTEST');
+    return { moneyMarket, cToken, iToken: await IERC20.at(await moneyMarket.iToken()) };
+}
 
 export const fromPip = (val: number | string): any => web3.utils.toWei(new BN(val)).div(new BN(10000));
 export const fromPercent = (val: number | string): any => web3.utils.toWei(new BN(val)).div(new BN(100));

@@ -1,22 +1,26 @@
 import { expectRevert } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
-import { LiquidityPoolInstance } from 'types/truffle-contracts';
+import { LiquidityPoolInstance, TestTokenInstance, MoneyMarketInstance, IERC20Instance } from 'types/truffle-contracts';
 import * as helper from './helpers';
 
 const LiquidityPool = artifacts.require("LiquidityPool");
 
 contract('LiquidityPool', accounts => {
-  const liquidityProvider = accounts[0];
-  const protocol = accounts[1];
-  const fToken = accounts[2];
-  const fTokenTwo = accounts[3];
-  const badAddress = accounts[4];
+  const liquidityProvider = accounts[1];
+  const protocol = accounts[2];
+  const fToken = accounts[3];
+  const fTokenTwo = accounts[4];
+  const badAddress = accounts[5];
   let liquidityPool: LiquidityPoolInstance;
-  let usd;
+  let usd: TestTokenInstance;
+  let iToken: IERC20Instance;
+  let moneyMarket: MoneyMarketInstance;
 
   beforeEach(async () => {
     usd = await helper.createTestToken([liquidityProvider, 10000]);
-    liquidityPool = await LiquidityPool.new(protocol, usd.address, helper.fromPip(10), [fToken]);
+    ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
+    liquidityPool = await LiquidityPool.new(protocol, moneyMarket.address, helper.fromPip(10), [fToken], { from: liquidityProvider });
+    usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
   });
 
   describe('spread', () => {
@@ -35,7 +39,7 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to set and get new value', async () => {
-      await liquidityPool.setSpread(helper.fromPip(20));
+      await liquidityPool.setSpread(helper.fromPip(20), { from: liquidityProvider });
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(helper.fromPip(20));
       spread = await liquidityPool.getAskSpread(fToken);
@@ -59,7 +63,7 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to set and get new value', async () => {
-      await liquidityPool.setCollateralRatio(helper.fromPercent(20));
+      await liquidityPool.setCollateralRatio(helper.fromPercent(20), { from: liquidityProvider });
       const ratio = await liquidityPool.getAdditoinalCollateralRatio(fToken);
       expect(ratio).bignumber.equal(helper.fromPercent(20));
     });
@@ -69,9 +73,9 @@ contract('LiquidityPool', accounts => {
     });
   });
 
-  describe('enable token', async () => {
+  describe('enable token', () => {
     it('should be able to enable token', async () => {
-      await liquidityPool.enableToken(fTokenTwo);
+      await liquidityPool.enableToken(fTokenTwo, { from: liquidityProvider });
 
       let spread = await liquidityPool.getBidSpread(fTokenTwo);
       expect(spread).bignumber.equal(helper.fromPip(10), 'should get spread for enabled token');
@@ -80,7 +84,7 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to disable token', async () => {
-      await liquidityPool.disableToken(fToken);
+      await liquidityPool.disableToken(fToken, { from: liquidityProvider });
   
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(helper.ZERO, 'should get 0 for disabled token');
@@ -96,4 +100,20 @@ contract('LiquidityPool', accounts => {
       await expectRevert(liquidityPool.disableToken(fToken, { from: badAddress }), helper.messages.onlyOwner);
     });
   });
-})
+
+  describe('withdraw', () => {
+    beforeEach(async () => {
+      await moneyMarket.mintTo(liquidityPool.address, 1000, { from: liquidityProvider });
+    });
+
+    it('should be able to withdraw by owner', async () => {
+      await liquidityPool.withdraw(500, { from: liquidityProvider });
+      expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(helper.bn(9500));
+      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(helper.bn(500));
+    });
+
+    it('should not be able to withdraw by others', async () => {
+      await expectRevert(liquidityPool.withdraw(500, { from: badAddress }), helper.messages.onlyOwner);
+    });
+  });
+});
