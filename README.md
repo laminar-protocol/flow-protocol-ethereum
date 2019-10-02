@@ -29,7 +29,7 @@ Below we will introduce the following protocols
 
 For formal verification on the synthetic asset design, please refer to the [Flow Synthetic Asset Whitepaper](https://github.com/laminar-protocol/flow-protocol-whitepaper)
 
-## Collateralized Synthetic Asset Protocol
+## The Collateralized Synthetic Asset Protocol
 The collateralized synthetic asset protocol allows user to mint non-USD stable-coin fToken e.g. fEUR or fJPY using USD stable-coin e.g. DAI or equivalent as collateral. There are a number of use cases for fToken
 - as the basis for margin trading protocol
 - as general purpose stable-coin/currency for payments
@@ -50,7 +50,7 @@ Liquidity Pool Pseudo Interface
 ### Collateral
 A position is always over-collateralized for risk management purposes. The **`additional collateral ratio`** is defined per fToken. A 10% **`additional collateral ratio`** represents 110% collateral coverage ratio meaning 110% collateral is required for the position. 
 
-To mint a new fToken (e.g. fUER), trader's deposit includes the **USD amount required** based on exchange rate, plus the **spread paid** to the liquidity provider. Both of these will be contributed to the collateral, and the remaining comes from the liquidity pool to make up a total of 110% collateral. The additional collateral is there to protect the position from exchange rate fluctuation hence stablizing the fToken.
+To mint a new fToken (e.g. fUER), trader's deposit includes the **USD amount required** based on exchange rate, plus the **spread paid** to the liquidity provider. Both of these will be contributed to the collateral, and the remaining comes from the liquidity pool to make up a total of 110% collateral. The additional collateral is there to protect the position from exchange rate fluctuation hence stabilizing the fToken.
 
 For example, to mint USD$1,001 worth of fEUR, with exchange rate of 1:1 for simplicity, ask spread at 0.001, **`additional collateral ratio`** as 10%, the following would happen
 - user deposits USD$1,001 to exchange 1,000 fEUR where USD$1 is spread paid
@@ -128,10 +128,74 @@ The exchange rate for a Forex pair is provided by a price oracle from reputable 
 bidPrice = exchangePrice - bidSpread;
 askPrice = exchangePrice + askSpread;
 ```
-## Money Market Protocol
-We will provide more details once we have a draft design.
+## The Money Market Protocol 
+The money market protocol serves the synthetic asset and margin trading protocols to further increase liquidity on chain. It connects to chosen money markets e.g. Compound.Finance to maximize return while guaranteeing liquidity of the asset and trading protocols. Liquidity provider would earn interest on funds in liquidity pools and collaterals. Users would earn interest on deposited fTokens. Not all the funds managed by the Money Market would earn interest, as a certain amount of cash is required to ensure liquidity for trading.
 
-## Collateralized Margin Trading Protocol
+### iToken
+iToken e.g. iUSD similar to the concept of cToken in Compound.Finance, is a way to account for interest earned for the funds managed by the money market. The value of iToken increases overtime. 
+
+A liquidity pool would accept iToken as locked funds to serve as collateral. A liquidity provider would deposit USD stable-coin into the Money Market to mint iUSD and transfer the iUSDs into the liquidity pool.
+
+When a trade happens e.g. trading USD stable-coin for fEUR, the trader's fund would convert to iUSD as collateral, while liquidity pool would transfer the remaining required iUSD into the collateral. 
+
+```
+// this can be achieved in one method
+function mintTo(address liquidityPoolAddress, uint baseTokenAmount)
+```
+The Money Market would then invest a **proportion** of the USD stable-coins that have been converted to iUSD into chosen lending platform. This proportion is calculated based on the **minimum liquidity level** set in the protocol and the utilization of funds (based on total supply and total borrowed) on the chosen lending platform. The rationale behind this is that not all money invested in lending platforms like Compound can be fully withdrawn at all times, hence we need to calculate the appropriate amount to invest to ensure certain amount of funds can be withdrawn at all times in the Flow Protocols. 
+
+```
+// initial deposit of $100,000 to Money Market
+minimum_liquidity_level = 40% 
+fund_to_money_market_0 = 100,000 // this could be initial liquidity injection from liquidity provider
+proportion_to_invest_0 = (1 - minimum_liquidity_level) * TS / ( TB - (1 - minimum_liquidity_level) * fund_to_money_market_0) 
+                       = 85.21%                    // TS is total supply of external lending platform; TS_0 = 34,000,000; 
+                                                   // TB is total borrow of that platform; TB_0 = 24,000,000;
+amount_invested_0 = fund_to_money_market_0 * proportion_to_invest_0 = 100,000 * 85.21% = 85,213
+```
+Subsequent deposits into the Money Market will require rebalance to ensure the **minimum liquidity level** is maintained for ***ALL*** the funds managed in the Money Market.  
+
+```
+// subsequent deposit of $200,000 to Money Market
+fund_to_money_market_1 = 200,000 // this could be a new position opened
+proportion_to_invest_1 = 85.93%  // TS_1 (total supply) = 34,200,000; TB_1 = 24,000,000;
+                                 // TS and TB here are arbitrary; they will be obtained from external lending platform. 
+                                 // when supply is larger relative to amount borrowed, proportion_to_invest will be bigger
+amount_invested_1 = 200,000 * 85.93% = 171,859
+```
+Rebalance formula: we need to calculate the ***adjustment*** required that is whether and how much we need to invest in or withdraw from the lending platform to maintain the minimum liquidity requirement for all funds managed in the Money Market. This adjustment is the difference between the minimum liquidity amount, minus the withdraw-able amount from lending platform, minus current liquidity in the protocol.
+
+```
+adjustment_1 = minimum_liquidity_level * total_fund_managed_1 - total_amount_invested_1 * withdrawable_proportion_1 - total_liquidity_1 
+             = 40% * (100,000 + 200,000) - (85,213 + 171,859) * 30.18% - 42,928 = -500
+
+// If adjustment_1 > 0, then additional amount can be invested; if adjustment_1 < 0, the amount needs to be withdrawn; otherwise no action is required. 
+
+withdrawable_proportion_1 = (TS_1 + amount_invested_1 - TB_1) / (TS_1 + amount_invested_1)
+                          = (34,200,000 + 171,859 - 24,000,000) / (34,200,000 + 171,859) = 30.18%
+```  
+For more details, please refer to the whitepaper.
+
+### Interest Allocation
+Interest earned from funds in the liquidity pool belongs to the liquidity provider who puts up that capital investment. This is accounted in iToken when liquidity provider withdrawing say USD from a liquidity pool. 
+
+#### Interest Share
+Interest earned from funds in the collateral is shared between liquidity provider and those who deposited fToken into the Money Market. **Interest share** similar to shares of a company is a way to measure contribution and account for distribution of returns. 
+
+When a new position is added, the over-collateral amount would be transferred from liquidity pool to the collateral, and an equivalent amount of interest share is minted to account for return to the liquidity provider. When the position is closed, the interest share would be burnt.
+
+For example, if a new position of 100 USD to 99 fEUR is added, (for simplicity sake, spread is ignored in calculation), the additional collateral ratio is 10%, then $10 is required from the liquidity pool as additional collateral. Consequently 10 interest shares are minted to account for the contribution. 
+
+If this is the only fEUR position, and there's only 10 interest share issued, then liquidity provider will receive 100% (10/10) of total interest earned.
+
+When a fToken holder deposits fToken to the Money Market, then an equivalent amount of interest share accounted in the underlying USD would be minted. The interest share would be burnt when fToken is withdrawn.
+
+Following on the previous example, if a user deposits 9 fEUR (=10 USD), then 10 interest shares would be minted and accounted as the contribution of this user. At this point, liquidity provider will receive 50% (10/20 interest shares) of total interest earned, while the user will receive 50% of total interest earned.
+
+#### Interest Share Exchange Rate
+[TODO] add more details once design finalized.
+
+## The Collateralized Margin Trading Protocol
 We will provide more details once we have a draft design.
 
 ## Implementation 
@@ -187,7 +251,7 @@ fn transfer(AccountId sender, AccountId recipient, Balance: amount)
 // Dispatachable methods
 fn get_bid_spread(FlowTokenId fToken)
 fn get_ask_spread(FlowTokenId fToken)
-fn get_additoinal_collateral_ratio(FlowTokenId fToken)
+fn get_additional_collateral_ratio(FlowTokenId fToken)
 fn set_spread(uint value) 
 fn set_collateral_ratio(uint value) 
 fn enable_token(FlowTokenId token) 
