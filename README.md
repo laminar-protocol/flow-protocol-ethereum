@@ -1,4 +1,31 @@
-# flow-protocol
+Table of Contents
+<!-- TOC -->
+
+- [Introduction](#introduction)
+- [Overview](#overview)
+- [The Collateralized Synthetic Asset Protocol](#the-collateralized-synthetic-asset-protocol)
+  - [Liquidity Pool](#liquidity-pool)
+  - [Collateral](#collateral)
+  - [Liquidation Incentive](#liquidation-incentive)
+  - [fToken](#ftoken)
+    - [Deposit/Mint](#depositmint)
+    - [Withdraw](#withdraw)
+    - [Liquidation](#liquidation)
+    - [Exchange Rate](#exchange-rate)
+- [The Money Market Protocol](#the-money-market-protocol)
+  - [iToken](#itoken)
+  - [Interest Allocation](#interest-allocation)
+    - [Interest Share](#interest-share)
+      - [Allocation to Liquidity Provider](#allocation-to-liquidity-provider)
+      - [Allocation to fToken depositor](#allocation-to-ftoken-depositor)
+    - [Interest Share Exchange Rate](#interest-share-exchange-rate)
+- [The Collateralized Margin Trading Protocol](#the-collateralized-margin-trading-protocol)
+- [Implementation](#implementation)
+  - [Flow Protocol Smart Contracts on Ethereum](#flow-protocol-smart-contracts-on-ethereum)
+  - [Flowchain as parachain on Polkadot](#flowchain-as-parachain-on-polkadot)
+  - [Oracle Reference Implementation](#oracle-reference-implementation)
+
+<!-- /TOC -->
 
 ## Introduction
 Laminar aims to create an open finance platform along with financial assets to serve traders from both the crypto and mainstream finance worlds. Forex market alone has an average daily trading volume of $5 trillion, while the most active DeFi projects (mostly on Ethereum) have about $500 million of funds locked in smart contracts. 
@@ -151,7 +178,8 @@ fund_to_money_market_0 = 100,000 // this could be initial liquidity injection fr
 proportion_to_invest_0 = (1 - minimum_liquidity_level) * TS / ( TB - (1 - minimum_liquidity_level) * fund_to_money_market_0) 
                        = 85.21%                    // TS is total supply of external lending platform; TS_0 = 34,000,000; 
                                                    // TB is total borrow of that platform; TB_0 = 24,000,000;
-amount_invested_0 = fund_to_money_market_0 * proportion_to_invest_0 = 100,000 * 85.21% = 85,213
+amount_invested_0 = fund_to_money_market_0 * proportion_to_invest_0 = 100,000 * 85.21% 
+                  = 85,213
 ```
 Subsequent deposits into the Money Market will require rebalance to ensure the **minimum liquidity level** is maintained for ***ALL*** the funds managed in the Money Market.  
 
@@ -163,7 +191,7 @@ proportion_to_invest_1 = 85.93%  // TS_1 (total supply) = 34,200,000; TB_1 = 24,
                                  // when supply is larger relative to amount borrowed, proportion_to_invest will be bigger
 amount_invested_1 = 200,000 * 85.93% = 171,859
 ```
-Rebalance formula: we need to calculate the ***adjustment*** required that is whether and how much we need to invest in or withdraw from the lending platform to maintain the minimum liquidity requirement for all funds managed in the Money Market. This adjustment is the difference between the minimum liquidity amount, minus the withdraw-able amount from lending platform, minus current liquidity in the protocol.
+Rebalance formula: we need to calculate the ***adjustment*** required that is whether and how much we need to invest in or withdraw from the lending platform to maintain the minimum liquidity requirement for all funds managed in the Money Market. This **adjustment** is the difference between the **minimum liquidity amount**, minus the **withdraw-able amount** from lending platform, minus **current liquidity** in the protocol.
 
 ```
 adjustment_1 = minimum_liquidity_level * total_fund_managed_1 - total_amount_invested_1 * withdrawable_proportion_1 - total_liquidity_1 
@@ -182,12 +210,14 @@ Interest earned from funds in the liquidity pool belongs to the liquidity provid
 #### Interest Share
 Interest earned from funds in the collateral is shared between liquidity provider and those who deposited fToken into the Money Market. **Interest share** similar to shares of a company is a way to measure contribution and account for distribution of returns. 
 
+##### Allocation to Liquidity Provider
 When a new position is added, the over-collateral amount would be transferred from liquidity pool to the collateral, and an equivalent amount of interest share is minted to account for return to the liquidity provider. When the position is closed, the interest share would be burnt.
 
 For example, if a new position of 100 USD to 99 fEUR is added, (for simplicity sake, spread is ignored in calculation), the additional collateral ratio is 10%, then $10 is required from the liquidity pool as additional collateral. Consequently 10 interest shares are minted to account for the contribution. 
 
 If this is the only fEUR position, and there's only 10 interest share issued, then liquidity provider will receive 100% (10/10) of total interest earned.
 
+##### Allocation to fToken depositor 
 When a fToken holder deposits fToken to the Money Market, then an equivalent amount of interest share accounted in the underlying USD would be minted. The interest share would be burnt when fToken is withdrawn.
 
 Following on the previous example, if a user deposits 9 fEUR (=10 USD), then 10 interest shares would be minted and accounted as the contribution of this user. At this point, liquidity provider will receive 50% (10/20 interest shares) of total interest earned, while the user will receive 50% of total interest earned.
