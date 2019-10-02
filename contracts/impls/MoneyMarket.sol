@@ -96,23 +96,20 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     }
 
     function _rebalance(uint extraLiquidity) private {
-        // TODO: this formula is not entirely correct
-
-        Percentage.Percent memory cTokenUtilization = _cTokenUtilization();
-        uint targetUtilization = Percentage.one().sub(minLiquidity.value);
-        Percentage.Percent memory toCTokenPercent;
-        if (cTokenUtilization.value > 0) {
-            toCTokenPercent = Percentage.fromFraction(targetUtilization, cTokenUtilization.value);
-            assert(toCTokenPercent.value <= Percentage.one());
-        }
-
         uint cTokenExchangeRate = cToken.exchangeRateStored();
         uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
         uint totalBaseToken = currentCTokenValue.add(baseToken.balanceOf(address(this)));
-        uint desiredCTokenValue = totalBaseToken.mulPercent(toCTokenPercent);
-        if (extraLiquidity != 0) {
-            uint extraLiquidityCTokenValue = Math.min(extraLiquidity.mul(1 ether).div(cTokenExchangeRate), desiredCTokenValue);
-            desiredCTokenValue = desiredCTokenValue.sub(extraLiquidityCTokenValue);
+
+        uint cash = cToken.getCash();
+        uint borrows = cToken.totalBorrows();
+        uint cashBaseTokenAmount = calculateCashAmount(cash, cash.add(borrows), totalBaseToken);
+        uint desiredCTokenValue = totalBaseToken.sub(cashBaseTokenAmount);
+        if (extraLiquidity > 0) {
+            if (desiredCTokenValue > extraLiquidity) {
+                desiredCTokenValue = desiredCTokenValue - extraLiquidity;
+            } else {
+                desiredCTokenValue = 0;
+            }
         }
 
         uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
@@ -128,6 +125,16 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
                 require(cToken.redeemUnderlying(toRedeem) == 0, "Failed to redeem cToken");
             }
         }
+    }
+
+    function calculateCashAmount(uint cTokenCash, uint cTokenTotal, uint totalValue) view public returns (uint) {
+        if (cTokenTotal == 0) {
+            return totalValue;
+        }
+        // totalValue * (cTokenTotal ^ 2 * minLIquidity - cTokenCash ^ 2) / ( cTokenTotal ^ 2 - cTokenCash ^ 2 )
+        uint cTokenCashSquare = cTokenCash.mul(cTokenCash);
+        uint cTokenTotalSquare = cTokenTotal.mul(cTokenTotal);
+        return totalValue.mul(cTokenTotalSquare.mulPercent(minLiquidity).sub(cTokenCashSquare)).div(cTokenTotalSquare.sub(cTokenCashSquare));
     }
 
     function _cTokenUtilization() view private returns (Percentage.Percent memory) {

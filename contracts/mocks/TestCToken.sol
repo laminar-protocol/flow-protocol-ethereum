@@ -58,7 +58,7 @@ contract TestCToken is CErc20Interface, ERC20, ERC20Detailed {
     }
 
     function getCash() external view returns (uint256) {
-        return baseToken.balanceOf(address(this)) - totalBorrows;
+        return baseToken.balanceOf(address(this));
     }
 
     function underlying() external view returns (address) {
