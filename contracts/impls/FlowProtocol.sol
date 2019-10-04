@@ -18,6 +18,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     using Percentage for uint256;
     using SafeERC20 for IERC20;
 
+    uint constant MAX_UINT = 2**256 - 1;
+
     PriceOracleInterface public oracle;
     MoneyMarketInterface public moneyMarket;
 
@@ -27,6 +29,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
         oracle = oracle_;
         moneyMarket = moneyMarket_;
+
+        moneyMarket.baseToken().safeApprove(address(moneyMarket), MAX_UINT);
     }
 
     function addFlowToken(FlowToken token) external onlyOwner {
@@ -38,7 +42,6 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
     function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external nonReentrant returns (uint) {
         IERC20 baseToken = moneyMarket.baseToken();
-        IERC20 iToken = moneyMarket.iToken();
 
         require(baseToken.balanceOf(msg.sender) >= baseTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
@@ -48,19 +51,23 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         uint askPrice = price.add(pool.getAskSpread(address(token)));
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
-        uint additionalCollateralAmount = flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).sub(baseTokenAmount);
+        uint additionalCollateralAmount = _calcAdditionalCollateralAmount(flowTokenCurrentValue, token, pool, baseTokenAmount);
         uint additionalCollateralITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), additionalCollateralAmount);
 
         uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
 
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         moneyMarket.mintTo(address(token), baseTokenAmount);
-        iToken.safeTransferFrom(address(pool), address(this), additionalCollateralITokenAmount);
+        moneyMarket.iToken().safeTransferFrom(address(pool), address(this), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
 
         token.addPosition(address(pool), totalCollateralAmount, flowTokenAmount, additionalCollateralAmount);
 
         return flowTokenAmount;
+    }
+
+    function _calcAdditionalCollateralAmount(uint flowTokenCurrentValue, FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) private view returns (uint) {
+        return flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).add(flowTokenCurrentValue).sub(baseTokenAmount);
     }
 
     function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external nonReentrant returns (uint) {

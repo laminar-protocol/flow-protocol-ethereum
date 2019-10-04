@@ -36,8 +36,9 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     constructor(
         string memory name,
         string memory symbol,
-        MoneyMarketInterface moneyMarket_
-    ) ERC20Detailed(name, symbol, 18) public {
+        MoneyMarketInterface moneyMarket_,
+        address protocol
+    ) ERC20Detailed(name, symbol, 18) ProtocolOwnable(protocol) public {
         moneyMarket = moneyMarket_;
 
         moneyMarket.iToken().safeApprove(msg.sender, MAX_UINT);

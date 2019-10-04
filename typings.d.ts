@@ -3,6 +3,7 @@ declare module 'openzeppelin-test-helpers' {
     export const time: {
         increase: (n: number) => Promise<any>
     }
+    export const constants: any;
 }
 
 declare module Chai {

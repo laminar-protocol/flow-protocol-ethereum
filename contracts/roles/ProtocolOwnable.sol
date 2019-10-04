@@ -3,8 +3,8 @@ pragma solidity ^0.5.8;
 contract ProtocolOwnable {
     address private _protocol;
 
-    constructor () internal {
-        _protocol = msg.sender;
+    constructor (address protocol) internal {
+        _protocol = protocol;
     }
 
     function protocol() public view returns (address) {

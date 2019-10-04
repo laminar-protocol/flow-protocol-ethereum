@@ -1,61 +1,66 @@
-const { expectRevert, constants } = require('openzeppelin-test-helpers');
-const { expect } = require('chai');
-
-const helper = require('./helpers');
+import { expectRevert, constants } from 'openzeppelin-test-helpers';
+import { expect } from 'chai';
+import { createTestToken, createMoneyMarket, fromPercent, messages, bn, fromPip } from './helpers';
+import { 
+  SimplePriceOracleInstance, FlowProtocolInstance, LiquidityPoolInstance, TestTokenInstance,
+  FlowTokenInstance, MoneyMarketInstance, IERC20Instance
+} from 'types/truffle-contracts';
 
 const FlowProtocol = artifacts.require("FlowProtocol");
 const LiquidityPool = artifacts.require("LiquidityPool");
 const SimplePriceOracle = artifacts.require("SimplePriceOracle");
 const FlowToken = artifacts.require("FlowToken");
 
-// TODO: fix this
-contract.skip('FlowProtocol', accounts => {
+contract.only('FlowProtocol', accounts => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
   const bob = accounts[3];
   const badAddress = accounts[4];
 
-  let oracle;
-  let protocol;
-  let liquidityPool;
-  let usd;
-  let fToken;
+  let oracle: SimplePriceOracleInstance;
+  let protocol: FlowProtocolInstance;
+  let liquidityPool: LiquidityPoolInstance;
+  let usd: TestTokenInstance;
+  let fToken: FlowTokenInstance;
+  let moneyMarket: MoneyMarketInstance;
 
   before(async () => {
     oracle = await SimplePriceOracle.new([owner]);
-    await oracle.setOracleDeltaLastLimit(helper.fromPercent(100));
-    await oracle.setOracleDeltaSnapshotLimit(helper.fromPercent(100));
+    await oracle.setOracleDeltaLastLimit(fromPercent(100));
+    await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
   });
 
   beforeEach(async () => {
-    usd = await helper.createTestToken([liquidityProvider, 20000], [alice, 10000], [bob, 10000]);
-    protocol = await FlowProtocol.new(oracle.address, usd.address);
-    await protocol.createFlowToken('Euro', 'EUR');
-    fToken = new FlowToken(await protocol.tokens('EUR'));
+    usd = await createTestToken([liquidityProvider, 20000], [alice, 10000], [bob, 10000]);
+    ({ moneyMarket } = await createMoneyMarket(usd.address, fromPercent(100)));
+    protocol = await FlowProtocol.new(oracle.address, moneyMarket.address);
+    fToken = await FlowToken.new('Euro', 'EUR', moneyMarket.address, protocol.address);
+    await protocol.addFlowToken(fToken.address);
+
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
-    await usd.approve(protocol.address, constants.MAX_UINT256, { from: liquidityProvider });
+    await usd.approve(moneyMarket.address, constants.MAX_UINT256, { from: liquidityProvider });
     
-    liquidityPool = await LiquidityPool.new(protocol.address, usd.address, helper.fromPip(10), [fToken.address]);
-    await usd.transfer(liquidityPool.address, 10000, { from: liquidityProvider });
+    liquidityPool = await LiquidityPool.new(protocol.address, moneyMarket.address, fromPip(10), [fToken.address]);
+    await moneyMarket.mintTo(liquidityPool.address, 10000, { from: liquidityProvider });
 
-    await oracle.setPrice(fToken.address, helper.fromPercent(100));
+    await oracle.setPrice(fToken.address, fromPercent(100));
   });
 
   it('requires owner to create new token', async () => {
-    await expectRevert(protocol.createFlowToken('Test', 'TEST', { from: badAddress }), helper.messages.onlyOwner);
+    await expectRevert(protocol.addFlowToken(fToken.address, { from: badAddress }), messages.onlyOwner);
   });
 
-  const buy = (addr, amount) => () => protocol.deposit(fToken.address, liquidityPool.address, amount, { from: addr });
-  const sell = (addr, amount) => () => protocol.withdraw(fToken.address, liquidityPool.address, amount, { from: addr });
-  const balance = (token, addr, amount) => async () => expect(await token.balanceOf(addr)).bignumber.equal(helper.bn(amount));
-  const setPrice = price => () => oracle.setPrice(fToken.address, helper.fromPercent(price));
-  const liquidate = (addr, amount) => () => protocol.liquidate(fToken.address, liquidityPool.address, amount, { from: addr });
-  const addCollateral = (from, token, pool, amount) => () => protocol.addCollateral(token, pool, amount, { from });
-  const revert = (fn, msg) => () => expectRevert(fn(), msg);
+  const buy = (addr: string, amount: number) => () => protocol.mint(fToken.address, liquidityPool.address, amount, { from: addr });
+  const sell = (addr: string, amount: number) => () => protocol.redeem(fToken.address, liquidityPool.address, amount, { from: addr });
+  const balance = (token: IERC20Instance, addr: string, amount: number) => async () => expect(await token.balanceOf(addr)).bignumber.equal(bn(amount));
+  const setPrice = (price: number) => () => oracle.setPrice(fToken.address, fromPercent(price));
+  const liquidate = (addr: string, amount: number) => () => protocol.liquidate(fToken.address, liquidityPool.address, amount, { from: addr });
+  const addCollateral = (from: string, token: string, pool: string, amount: number) => () => protocol.addCollateral(token, pool, amount, { from });
+  const revert = (fn: () => Promise<any>, msg: string) => () => expectRevert(fn(), msg);
 
-  it('able to buy and sell', async () => {
+  it.only('able to buy and sell', async () => {
     const actions = [
       buy(alice, 1001),
       balance(fToken, alice, 1000),
@@ -189,7 +194,7 @@ contract.skip('FlowProtocol', accounts => {
         buy(alice, 1000),
         setPrice(107),
         addCollateral(liquidityProvider, fToken.address, liquidityPool.address, 100),
-        revert(liquidate(alice, 999), helper.messages.stillSafe),
+        revert(liquidate(alice, 999), messages.stillSafe),
       ];
       for (const act of actions) {
         await act();
@@ -199,7 +204,7 @@ contract.skip('FlowProtocol', accounts => {
     it('not allow people to liquidate with safe position', async () => {
       const actions = [
         buy(alice, 1000),
-        revert(liquidate(alice, 999), helper.messages.stillSafe),
+        revert(liquidate(alice, 999), messages.stillSafe),
       ];
       for (const act of actions) {
         await act();

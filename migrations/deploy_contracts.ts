@@ -28,7 +28,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         await deployer.deploy(FlowProtocol, oracle.address, moneyMarket.address);
         const protocol = await FlowProtocol.deployed();
 
-        await deployer.deploy(FlowToken, "EU Dollar", "EUR", moneyMarket.address);
+        await deployer.deploy(FlowToken, "Euro", "EUR", moneyMarket.address, protocol.address);
         const fEUR = await FlowToken.deployed();
 
         await protocol.addFlowToken(fEUR.address);
