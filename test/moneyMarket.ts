@@ -17,6 +17,7 @@ contract('MoneyMarket', accounts => {
         ({ moneyMarket, iToken, cToken } = await createMoneyMarket(usd.address, fromPercent(100)));
         usd.approve(moneyMarket.address, dollar(10000), { from: alice });
         usd.approve(moneyMarket.address, dollar(10000), { from: bob });
+        usd.approve(cToken.address, dollar(10000));
     });
 
     const expectBalances = async (token: IERC20Instance | TestCTokenInstance | TestTokenInstance, address: string | { address: string }, value: number | string) =>
@@ -74,19 +75,23 @@ contract('MoneyMarket', accounts => {
 
         describe('setMinLiquidity', async () => {
             it('should be able to setMinLiquidity and rebalance', async () => {
-                // make cToken utilization to 100%
-                await usd.transfer(cToken.address, dollar(200));
-                await cToken.borrow(alice, dollar(200));
+                await cToken.mint(dollar(10000));
+                await cToken.borrow(alice, dollar(8000));
 
-                await moneyMarket.setMinLiquidity(fromPercent(10));
-                expect(await moneyMarket.minLiquidity()).bignumber.equal(fromPercent(10));
-                await expectBalances(usd, moneyMarket, dollar(100));
-                await expectBalances(usd, cToken, dollar(900));
+                await moneyMarket.setMinLiquidity(fromPercent(50));
+                expect(await moneyMarket.minLiquidity()).bignumber.equal(fromPercent(50));
+                await expectBalances(usd, moneyMarket, '333333333333333333334');
+                await expectBalances(usd, cToken, '2666666666666666666666');
 
-                await moneyMarket.setMinLiquidity(fromPercent(20));
-                expect(await moneyMarket.minLiquidity()).bignumber.equal(fromPercent(20));
-                await expectBalances(usd, moneyMarket, dollar(200));
-                await expectBalances(usd, cToken, dollar(800));
+                await moneyMarket.setMinLiquidity(fromPercent(100));
+                expect(await moneyMarket.minLiquidity()).bignumber.equal(fromPercent(100));
+                await expectBalances(usd, moneyMarket, dollar(1000));
+                await expectBalances(usd, cToken, dollar(2000));
+
+                await moneyMarket.setMinLiquidity(fromPercent(80));
+                expect(await moneyMarket.minLiquidity()).bignumber.equal(fromPercent(80));
+                await expectBalances(usd, moneyMarket, '743589743589743589744');
+                await expectBalances(usd, cToken, '2256410256410256410256');
             });
 
             it('should not be able to setMinLiquidity by others', async () => {
@@ -120,7 +125,7 @@ contract('MoneyMarket', accounts => {
         
                     const totalValueBN = dollar(totalValue);
         
-                    await usd.transfer(cToken.address, cTokenTotalBN);
+                    await cToken.mint(cTokenTotalBN);
                     await cToken.borrow(alice, cTokenBorrowBN);
         
                     const invest = calculateInvestAmount(cTokenCashBN, cTokenBorrowBN, totalValueBN, minLiquidity);
@@ -129,6 +134,8 @@ contract('MoneyMarket', accounts => {
                     await moneyMarket.mint(totalValueBN, { from: alice });
                     await expectBalances(usd, moneyMarket, cash);
                     await expectBalances(usd, cToken, cTokenCashBN.add(invest));
+
+                    // TODO: check calculated liquidity matches to minLiquidity
                 });
             }
 

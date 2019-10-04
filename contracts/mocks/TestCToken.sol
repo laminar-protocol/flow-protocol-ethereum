@@ -15,18 +15,18 @@ contract TestCToken is CErc20Interface, ERC20, ERC20Detailed {
     }
 
     function mint(uint baseTokenAmount) external returns (uint) {
-        uint iTokenAmount = baseTokenAmount * 1 ether / getPrice();
+        uint cTokenAmount = baseTokenAmount * 1 ether / getPrice();
 
         require(baseToken.transferFrom(msg.sender, address(this), baseTokenAmount));
-        _mint(msg.sender, iTokenAmount);
+        _mint(msg.sender, cTokenAmount);
 
         return 0;
     }
 
-    function redeem(uint iTokenAmount) public returns (uint) {        
-        uint baseTokenAmount = iTokenAmount * getPrice() / 1 ether;
+    function redeem(uint cTokenAmount) public returns (uint) {        
+        uint baseTokenAmount = cTokenAmount * getPrice() / 1 ether;
 
-        _burn(msg.sender, iTokenAmount);
+        _burn(msg.sender, cTokenAmount);
         require(baseToken.transfer(msg.sender, baseTokenAmount));
 
         return 0;
@@ -65,7 +65,12 @@ contract TestCToken is CErc20Interface, ERC20, ERC20Detailed {
         return address(baseToken);
     }
 
-    function redeemUnderlying(uint256 redeemAmount) external returns (uint256) {
-        return redeem(redeemAmount / getPrice());
+    function redeemUnderlying(uint256 baseTokenAmount) external returns (uint256) {
+        uint cTokenAmount = baseTokenAmount * 1 ether / getPrice();
+
+        _burn(msg.sender, cTokenAmount);
+        require(baseToken.transfer(msg.sender, baseTokenAmount));
+
+        return 0;
     }
 }
