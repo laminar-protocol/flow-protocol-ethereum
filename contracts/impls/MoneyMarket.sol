@@ -90,7 +90,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     }
 
     function setMinLiquidity(uint value) public onlyOwner {
-        require(value > 0 && value < Percentage.one(), "Invalid minLiquidity");
+        require(value >= 0 && value <= Percentage.one(), "Invalid minLiquidity");
         minLiquidity.value = value;
         _rebalance(0);
     }
@@ -98,18 +98,16 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function _rebalance(uint extraLiquidity) private {
         uint cTokenExchangeRate = cToken.exchangeRateStored();
         uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
-        uint totalBaseToken = currentCTokenValue.add(baseToken.balanceOf(address(this)));
+        uint currentBaseToken = baseToken.balanceOf(address(this));
+        uint totalBaseToken = currentCTokenValue.add(currentBaseToken);
 
         uint cash = cToken.getCash();
         uint borrows = cToken.totalBorrows();
-        uint cashBaseTokenAmount = calculateCashAmount(cash, cash.add(borrows), totalBaseToken);
-        uint desiredCTokenValue = totalBaseToken.sub(cashBaseTokenAmount);
-        if (extraLiquidity > 0) {
-            if (desiredCTokenValue > extraLiquidity) {
-                desiredCTokenValue = desiredCTokenValue - extraLiquidity;
-            } else {
-                desiredCTokenValue = 0;
-            }
+        uint desiredCTokenValue = calculateInvestAmount(cash, borrows, totalBaseToken);
+        if (desiredCTokenValue > extraLiquidity) {
+            desiredCTokenValue = desiredCTokenValue - extraLiquidity;
+        } else {
+            desiredCTokenValue = 0;
         }
 
         uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
@@ -121,27 +119,36 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
             }
         } else {
             uint toRedeem = currentCTokenValue - desiredCTokenValue;
-            if (toRedeem > insignificantAmount) {
+            if (toRedeem > insignificantAmount || currentBaseToken < extraLiquidity) {
                 require(cToken.redeemUnderlying(toRedeem) == 0, "Failed to redeem cToken");
             }
         }
     }
 
-    function calculateCashAmount(uint cTokenCash, uint cTokenTotal, uint totalValue) view public returns (uint) {
-        if (cTokenTotal == 0) {
+    function calculateInvestAmount(uint cTokenCash, uint cTokenBorrow, uint totalValue) view public returns (uint) {
+        if (cTokenBorrow == 0) {
+            // cToken is not been used? withdraw all
+            return 0;
+        }
+
+        // targetLiquidityAmount = totalValue * minLiquidity
+        uint targetLiquidityAmount = totalValue.mulPercent(minLiquidity);
+
+        // a = cTokenBorrow + targetLiquidityAmount
+        uint a = cTokenBorrow.add(targetLiquidityAmount);
+        if (a <= totalValue) {
+            // already more than enough liquidity in cToken, deposit all
             return totalValue;
         }
-        // totalValue * (cTokenTotal ^ 2 * minLIquidity - cTokenCash ^ 2) / ( cTokenTotal ^ 2 - cTokenCash ^ 2 )
-        uint cTokenCashSquare = cTokenCash.mul(cTokenCash);
-        uint cTokenTotalSquare = cTokenTotal.mul(cTokenTotal);
-        return totalValue.mul(cTokenTotalSquare.mulPercent(minLiquidity).sub(cTokenCashSquare)).div(cTokenTotalSquare.sub(cTokenCashSquare));
-    }
 
-    function _cTokenUtilization() view private returns (Percentage.Percent memory) {
-        uint cash = cToken.getCash();
-        uint borrows = cToken.totalBorrows();
-        uint total = cash.add(borrows);
-        return Percentage.fromFraction(borrows, total);
+        // invest = ((totalValue - targetLiquidityAmount) * (cTokenCash + cTokenBorrow)) / (a - totalValue)
+        uint invest = totalValue.sub(targetLiquidityAmount).mul(cTokenCash.add(cTokenBorrow)).div(a.sub(totalValue));
+        if (invest > totalValue) {
+            // liquidity in cToken is more than enough after we deposit all
+            return totalValue;
+        }
+
+        return invest;
     }
 
     function exchangeRate() view public returns (uint) {

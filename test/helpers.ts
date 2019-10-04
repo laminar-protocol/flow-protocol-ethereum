@@ -23,7 +23,8 @@ export async function createMoneyMarket(testTokenAddress: string, liquidity = fr
 
 export const fromPip = (val: number | string): any => web3.utils.toWei(new BN(val)).div(new BN(10000));
 export const fromPercent = (val: number | string): any => web3.utils.toWei(new BN(val)).div(new BN(100));
-export const bn = (val: number | string): any => new BN(val);
+export const dollar = (val: number | string): any => web3.utils.toWei(new BN(val));
+export const bn = (val: number | string | bigint): any => new BN(val.toString());
 
 export const messages = {
     onlyOwner: 'Ownable: caller is not the owner',
