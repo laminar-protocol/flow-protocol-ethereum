@@ -58,7 +58,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         moneyMarket.mintTo(address(token), baseTokenAmount);
-        moneyMarket.iToken().safeTransferFrom(address(pool), address(this), additionalCollateralITokenAmount);
+        moneyMarket.iToken().safeTransferFrom(address(pool), address(token), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
 
         token.addPosition(address(pool), totalCollateralAmount, flowTokenAmount, additionalCollateralAmount);

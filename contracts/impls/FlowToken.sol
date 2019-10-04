@@ -94,23 +94,26 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     }
 
     function _mintInterestShares(address recipient, uint shares) private {
+        uint exchangeRate = interestShareExchangeRate();
+
         totalInterestShares = totalInterestShares.add(shares);
         interestShares[recipient] = interestShares[recipient].add(shares);
 
-        uint debits = shares.mul(interestShareExchangeRate()).div(1 ether);
+        uint debits = shares.mul(exchangeRate).div(1 ether);
         interestDebits[recipient] = interestDebits[recipient].add(debits);
     }
 
     function _burnInterestShares(address recipient, Percentage.Percent memory percentShare) private returns (uint) {
         uint prevShares = interestShares[recipient];
+        uint exchangeRate = interestShareExchangeRate();
 
         uint sharesToBurn = prevShares.mulPercent(percentShare);
-        uint sharesToBurnValue = sharesToBurn.mul(interestShareExchangeRate()).div(1 ether);
+        uint sharesToBurnValue = sharesToBurn.mul(exchangeRate).div(1 ether);
 
         uint newShares = interestShares[recipient].sub(sharesToBurn);
         
         uint oldDebits = interestDebits[recipient];
-        uint newDebits = newShares.mul(interestShareExchangeRate()).div(1 ether);
+        uint newDebits = newShares.mul(exchangeRate).div(1 ether);
 
         uint netValue = sharesToBurnValue.add(newDebits).sub(oldDebits);
 

@@ -50,8 +50,9 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     }
 
     function mintTo(address recipient, uint baseTokenAmount) public nonReentrant {
-        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
+
+        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         iToken.mint(recipient, iTokenAmount);
 
         _rebalance(0);

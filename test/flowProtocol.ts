@@ -22,6 +22,7 @@ contract.only('FlowProtocol', accounts => {
   let protocol: FlowProtocolInstance;
   let liquidityPool: LiquidityPoolInstance;
   let usd: TestTokenInstance;
+  let iUsd: IERC20Instance;
   let fToken: FlowTokenInstance;
   let moneyMarket: MoneyMarketInstance;
 
@@ -33,7 +34,7 @@ contract.only('FlowProtocol', accounts => {
 
   beforeEach(async () => {
     usd = await createTestToken([liquidityProvider, 20000], [alice, 10000], [bob, 10000]);
-    ({ moneyMarket } = await createMoneyMarket(usd.address, fromPercent(100)));
+    ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(usd.address, fromPercent(100)));
     protocol = await FlowProtocol.new(oracle.address, moneyMarket.address);
     fToken = await FlowToken.new('Euro', 'EUR', moneyMarket.address, protocol.address);
     await protocol.addFlowToken(fToken.address);
@@ -65,14 +66,14 @@ contract.only('FlowProtocol', accounts => {
       buy(alice, 1001),
       balance(fToken, alice, 1000),
       balance(usd, alice, 8999),
-      balance(usd, fToken.address, 1100),
-      balance(usd, liquidityPool.address, 9901),
+      balance(iUsd, fToken.address, 1100),
+      balance(iUsd, liquidityPool.address, 9901),
 
       sell(alice, 1000),
       balance(fToken, alice, 0),
       balance(usd, alice, 9998),
-      balance(usd, fToken.address, 0),
-      balance(usd, liquidityPool.address, 10002),
+      balance(iUsd, fToken.address, 0),
+      balance(iUsd, liquidityPool.address, 10002),
     ];
 
     for (const act of actions) {
