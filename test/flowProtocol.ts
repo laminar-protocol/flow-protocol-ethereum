@@ -11,7 +11,7 @@ const LiquidityPool = artifacts.require("LiquidityPool");
 const SimplePriceOracle = artifacts.require("SimplePriceOracle");
 const FlowToken = artifacts.require("FlowToken");
 
-contract.skip('FlowProtocol', accounts => {
+contract('FlowProtocol', accounts => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -42,9 +42,11 @@ contract.skip('FlowProtocol', accounts => {
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
     await usd.approve(moneyMarket.address, constants.MAX_UINT256, { from: liquidityProvider });
+    await iUsd.approve(protocol.address, constants.MAX_UINT256, { from: liquidityProvider });
     
     liquidityPool = await LiquidityPool.new(protocol.address, moneyMarket.address, fromPip(10), [fToken.address]);
     await moneyMarket.mintTo(liquidityPool.address, 10000, { from: liquidityProvider });
+    await moneyMarket.mint(10000, { from: liquidityProvider });
 
     await oracle.setPrice(fToken.address, fromPercent(100));
   });
@@ -86,15 +88,15 @@ contract.skip('FlowProtocol', accounts => {
       buy(alice, 1001),
       balance(fToken, alice, 1000),
       balance(usd, alice, 8999),
-      balance(usd, fToken.address, 1100),
-      balance(usd, liquidityPool.address, 9901),
+      balance(iUsd, fToken.address, 1100),
+      balance(iUsd, liquidityPool.address, 9901),
       setPrice(105),
 
       sell(alice, 1000),
       balance(fToken, alice, 0),
       balance(usd, alice, 10048),
-      balance(usd, fToken.address, 0),
-      balance(usd, liquidityPool.address, 9952),
+      balance(iUsd, fToken.address, 0),
+      balance(iUsd, liquidityPool.address, 9952),
     ];
 
     for (const act of actions) {
@@ -107,15 +109,15 @@ contract.skip('FlowProtocol', accounts => {
       buy(alice, 1001),
       balance(fToken, alice, 1000),
       balance(usd, alice, 8999),
-      balance(usd, fToken.address, 1100),
-      balance(usd, liquidityPool.address, 9901),
+      balance(iUsd, fToken.address, 1100),
+      balance(iUsd, liquidityPool.address, 9901),
       setPrice(95),
 
       sell(alice, 1000),
       balance(fToken, alice, 0),
       balance(usd, alice, 9948),
-      balance(usd, fToken.address, 0),
-      balance(usd, liquidityPool.address, 10052),
+      balance(iUsd, fToken.address, 0),
+      balance(iUsd, liquidityPool.address, 10052),
     ];
 
     for (const act of actions) {
@@ -131,8 +133,8 @@ contract.skip('FlowProtocol', accounts => {
       balance(fToken, bob, 1000),
       balance(usd, alice, 8999),
       balance(usd, bob, 8999),
-      balance(usd, fToken.address, 2200),
-      balance(usd, liquidityPool.address, 9802),
+      balance(iUsd, fToken.address, 2200),
+      balance(iUsd, liquidityPool.address, 9802),
 
       setPrice(98),
 
@@ -142,8 +144,8 @@ contract.skip('FlowProtocol', accounts => {
       balance(fToken, bob, 500),
       balance(usd, alice, 8019),
       balance(usd, bob, 9488),
-      balance(usd, fToken.address, 2692),
-      balance(usd, liquidityPool.address, 9801),
+      balance(iUsd, fToken.address, 2692),
+      balance(iUsd, liquidityPool.address, 9801),
 
       setPrice(100),
 
@@ -153,8 +155,8 @@ contract.skip('FlowProtocol', accounts => {
       balance(fToken, bob, 1518),
       balance(usd, alice, 9016),
       balance(usd, bob, 8468),
-      balance(usd, fToken.address, 2769),
-      balance(usd, liquidityPool.address, 9747),
+      balance(iUsd, fToken.address, 2769),
+      balance(iUsd, liquidityPool.address, 9747),
 
       setPrice(101),
 
@@ -164,8 +166,8 @@ contract.skip('FlowProtocol', accounts => {
       balance(fToken, bob, 0),
       balance(usd, alice, 10025),
       balance(usd, bob, 9999),
-      balance(usd, fToken.address, 0),
-      balance(usd, liquidityPool.address, 9976),
+      balance(iUsd, fToken.address, 0),
+      balance(iUsd, liquidityPool.address, 9976),
     ];
 
     for (const act of actions) {
@@ -182,8 +184,8 @@ contract.skip('FlowProtocol', accounts => {
 
         balance(fToken, alice, 0),
         balance(usd, alice, 10083),
-        balance(usd, fToken.address, 0),
-        balance(usd, liquidityPool.address, 9917),
+        balance(iUsd, fToken.address, 0),
+        balance(iUsd, liquidityPool.address, 9917),
       ];
       for (const act of actions) {
         await act();
@@ -220,14 +222,14 @@ contract.skip('FlowProtocol', accounts => {
 
         balance(fToken, alice, 500),
         balance(usd, alice, 9541),
-        balance(usd, fToken.address, 549),
-        balance(usd, liquidityPool.address, 9910),
+        balance(iUsd, fToken.address, 549),
+        balance(iUsd, liquidityPool.address, 9910),
 
         liquidate(alice, 500),
         balance(fToken, alice, 0),
         balance(usd, alice, 10082),
-        balance(usd, fToken.address, 0),
-        balance(usd, liquidityPool.address, 9918),
+        balance(iUsd, fToken.address, 0),
+        balance(iUsd, liquidityPool.address, 9918),
       ];
       for (const act of actions) {
         await act();
