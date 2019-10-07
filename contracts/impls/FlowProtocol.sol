@@ -56,12 +56,12 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint totalCollateralAmount = baseTokenAmount.add(additionalCollateralAmount);
 
+        token.addPosition(address(pool), totalCollateralAmount, flowTokenAmount, additionalCollateralAmount);
+
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         moneyMarket.mintTo(address(token), baseTokenAmount);
         moneyMarket.iToken().safeTransferFrom(address(pool), address(token), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
-
-        token.addPosition(address(pool), totalCollateralAmount, flowTokenAmount, additionalCollateralAmount);
 
         return flowTokenAmount;
     }
@@ -132,8 +132,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint iTokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), baseTokenAmount);
 
-        moneyMarket.iToken().safeTransferFrom(msg.sender, address(token), iTokenAmount);
         token.addPosition(poolAddr, baseTokenAmount, 0, baseTokenAmount);
+        moneyMarket.iToken().safeTransferFrom(msg.sender, address(token), iTokenAmount);
     }
 
     function withdrawCollateral(FlowToken token) external nonReentrant returns (uint) {

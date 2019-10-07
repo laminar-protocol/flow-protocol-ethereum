@@ -11,7 +11,7 @@ const LiquidityPool = artifacts.require("LiquidityPool");
 const SimplePriceOracle = artifacts.require("SimplePriceOracle");
 const FlowToken = artifacts.require("FlowToken");
 
-contract.only('FlowProtocol', accounts => {
+contract.skip('FlowProtocol', accounts => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -61,7 +61,7 @@ contract.only('FlowProtocol', accounts => {
   const addCollateral = (from: string, token: string, pool: string, amount: number) => () => protocol.addCollateral(token, pool, amount, { from });
   const revert = (fn: () => Promise<any>, msg: string) => () => expectRevert(fn(), msg);
 
-  it.only('able to buy and sell', async () => {
+  it('able to buy and sell', async () => {
     const actions = [
       buy(alice, 1001),
       balance(fToken, alice, 1000),

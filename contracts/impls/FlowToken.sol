@@ -30,6 +30,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     mapping (address => LiquidityPoolPosition) public liquidityPoolPositions;
     uint public totalPrincipalAmount; // collateral amount without interest
     uint public totalInterestShares;
+    uint public totalInterestDebits;
     mapping (address => uint) public interestShares;
     mapping (address => uint) public interestDebits;
 
@@ -41,7 +42,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     ) ERC20Detailed(name, symbol, 18) ProtocolOwnable(protocol) public {
         moneyMarket = moneyMarket_;
 
-        moneyMarket.iToken().safeApprove(msg.sender, MAX_UINT);
+        moneyMarket.iToken().safeApprove(protocol, MAX_UINT);
 
         // TODO: from constructor parameter
         minCollateralRatio = Percentage.fromFraction(5, 100);
@@ -71,15 +72,19 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     }
 
     function addPosition(address poolAddr, uint additonalCollaterals, uint additionaMinted, uint liquidityPoolShares) external onlyProtocol {
+        uint exchangeRate = interestShareExchangeRate();
+
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
         position.collaterals = position.collaterals.add(additonalCollaterals);
         position.minted = position.minted.add(additionaMinted);
 
         totalPrincipalAmount = totalPrincipalAmount.add(additonalCollaterals);
-        _mintInterestShares(poolAddr, liquidityPoolShares);
+        _mintInterestShares(exchangeRate, poolAddr, liquidityPoolShares);
     }
 
     function removePosition(address poolAddr, uint collateralsToRemove, uint mintedToRemove) external onlyProtocol returns (uint) {
+        uint exchangeRate = interestShareExchangeRate();
+
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
         uint prevMinted = position.minted;
 
@@ -87,57 +92,50 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         position.minted = position.minted.sub(mintedToRemove);
 
         totalPrincipalAmount = totalPrincipalAmount.sub(collateralsToRemove);
-
-        uint interestBaseTokenAmount = _burnInterestShares(poolAddr, Percentage.fromFraction(mintedToRemove, prevMinted));
+        uint interestBaseTokenAmount = _burnInterestShares(exchangeRate, poolAddr, Percentage.fromFraction(mintedToRemove, prevMinted));
 
         return interestBaseTokenAmount;
     }
 
-    function _mintInterestShares(address recipient, uint shares) private {
-        uint exchangeRate = interestShareExchangeRate();
-
+    function _mintInterestShares(uint exchangeRate, address recipient, uint shares) private {
         totalInterestShares = totalInterestShares.add(shares);
         interestShares[recipient] = interestShares[recipient].add(shares);
 
         uint debits = shares.mul(exchangeRate).div(1 ether);
+        totalInterestDebits = totalInterestDebits.add(debits);
         interestDebits[recipient] = interestDebits[recipient].add(debits);
     }
 
-    function _burnInterestShares(address recipient, Percentage.Percent memory percentShare) private returns (uint) {
+    function _burnInterestShares(uint exchangeRate, address recipient, Percentage.Percent memory percentShare) private returns (uint) {
         uint prevShares = interestShares[recipient];
-        uint exchangeRate = interestShareExchangeRate();
 
         uint sharesToBurn = prevShares.mulPercent(percentShare);
-        uint sharesToBurnValue = sharesToBurn.mul(exchangeRate).div(1 ether);
 
-        uint newShares = interestShares[recipient].sub(sharesToBurn);
+        uint oldShares = interestShares[recipient];
+        uint newShares = oldShares.sub(sharesToBurn);
         
         uint oldDebits = interestDebits[recipient];
+        uint interests = oldShares.mul(exchangeRate).div(1 ether).sub(oldDebits);
         uint newDebits = newShares.mul(exchangeRate).div(1 ether);
 
-        uint netValue = sharesToBurnValue.add(newDebits).sub(oldDebits);
-
         totalInterestShares = totalInterestShares.sub(sharesToBurn);
-        totalPrincipalAmount = totalPrincipalAmount.sub(netValue).sub(sharesToBurnValue);
+        totalInterestDebits = totalInterestDebits.add(newDebits).sub(oldDebits);
         interestShares[recipient] = newShares;
         interestDebits[recipient] = newDebits;
 
-        return netValue;
+        return interests;
     }
 
     function interestShareExchangeRate() public view returns (uint) {
         if (totalInterestShares == 0) {
             return 1 ether;
         }
-        // TODO: this is not correct. needs fix
 
-        // totalBaseTokenAmount = iTokenAmount * iTokenExcahngeRate
-        // totalInterest = totalBaseTokenAmount - totalPrincipalAmount
-        // interestShareExchangeRate = totalInterest / totalInterestShares
         return moneyMarket.iToken().balanceOf(address(this))
             .mul(moneyMarket.exchangeRate()).div(1 ether)
+            .add(totalInterestDebits)
             .sub(totalPrincipalAmount)
-            .div(totalInterestShares);
+            .mul(1 ether).div(totalInterestShares);
     }
 
     function withdrawTo(address recipient, uint baseTokenAmount) external onlyProtocol {
@@ -145,17 +143,21 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     }
 
     function deposit(address sender, uint amount, uint price) external onlyProtocol {
+        uint exchangeRate = interestShareExchangeRate();
+
         _transfer(sender, address(this), amount);
         uint shares = amount.mul(price).div(1 ether);
-        _mintInterestShares(sender, shares);
+        _mintInterestShares(exchangeRate, sender, shares);
     }
 
     function withdraw(address sender, uint amount) external onlyProtocol {
+        uint exchangeRate = interestShareExchangeRate();
+
         _transfer(address(this), sender, amount);
 
         Percentage.Percent memory percentShare = Percentage.fromFraction(amount, interestShares[sender]);
 
-        uint interestBaseTokenAmount = _burnInterestShares(sender, percentShare);
+        uint interestBaseTokenAmount = _burnInterestShares(exchangeRate, sender, percentShare);
         moneyMarket.redeemBaseTokenTo(sender, interestBaseTokenAmount);
     }
 }
