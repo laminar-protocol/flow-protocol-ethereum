@@ -33,6 +33,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     uint public totalInterestDebits;
     mapping (address => uint) public interestShares;
     mapping (address => uint) public interestDebits;
+    mapping (address => uint) public deposits;
 
     constructor(
         string memory name,
@@ -145,6 +146,8 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     function deposit(address sender, uint amount, uint price) external onlyProtocol {
         uint exchangeRate = interestShareExchangeRate();
 
+        deposits[sender] = deposits[sender].add(amount);
+
         _transfer(sender, address(this), amount);
         uint shares = amount.mul(price).div(1 ether);
         _mintInterestShares(exchangeRate, sender, shares);
@@ -152,10 +155,12 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
 
     function withdraw(address sender, uint amount) external onlyProtocol {
         uint exchangeRate = interestShareExchangeRate();
+        uint senderDeposit = deposits[sender];
+        deposits[sender] = senderDeposit.sub(amount);
+
+        Percentage.Percent memory percentShare = Percentage.fromFraction(amount, senderDeposit);
 
         _transfer(address(this), sender, amount);
-
-        Percentage.Percent memory percentShare = Percentage.fromFraction(amount, interestShares[sender]);
 
         uint interestBaseTokenAmount = _burnInterestShares(exchangeRate, sender, percentShare);
         moneyMarket.redeemBaseTokenTo(sender, interestBaseTokenAmount);
