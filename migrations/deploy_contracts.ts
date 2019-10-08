@@ -1,6 +1,40 @@
-module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
+const deployTokens = async (artifacts: Truffle.Artifacts, deployer: Truffle.Deployer) => {
     const TestToken = artifacts.require("TestToken");
     const TestCToken = artifacts.require("TestCToken");
+    const IERC20 = artifacts.require("IERC20");
+
+    await deployer.deploy(TestToken);
+    const baseToken = await TestToken.deployed();
+
+    await deployer.deploy(TestCToken, baseToken.address);
+    const cToken = await TestCToken.deployed();
+
+    return {
+        baseToken: await IERC20.at(baseToken.address),
+        cToken: await IERC20.at(cToken.address)
+    }
+}
+
+const getTokens = (baseToken: string, cToken: string) => async (artifacts: Truffle.Artifacts) => {
+    const IERC20 = artifacts.require("IERC20");
+
+    return {
+        baseToken: await IERC20.at(baseToken),
+        cToken: await IERC20.at(cToken),
+    }
+}
+
+const getTokensByNetwork = {
+    development: deployTokens,
+    kovan: getTokens('0xbf7a7169562078c96f0ec1a8afd6ae50f12e5a99', '0x0a1e4d0b5c71b955c0a5993023fc48ba6e380496'),
+    'kovan-fork': getTokens('0xbf7a7169562078c96f0ec1a8afd6ae50f12e5a99', '0x0a1e4d0b5c71b955c0a5993023fc48ba6e380496'),
+    ropsten: getTokens('0xb5e5d0f8c0cba267cd3d7035d6adc8eba7df7cdd', '0x2b536482a01e620ee111747f8334b395a42a555e'),
+    'ropsten-fork': getTokens('0xb5e5d0f8c0cba267cd3d7035d6adc8eba7df7cdd', '0x2b536482a01e620ee111747f8334b395a42a555e'),
+}
+
+type Network = keyof typeof getTokensByNetwork;
+
+module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const MoneyMarket = artifacts.require("MoneyMarket");
     const FlowProtocol = artifacts.require("FlowProtocol");
     const FlowToken = artifacts.require("FlowToken");
@@ -8,21 +42,17 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const SimplePriceOracle = artifacts.require("SimplePriceOracle");
     const IERC20 = artifacts.require("IERC20");
 
-    return async (deployer: Truffle.Deployer) => {
-        const accounts = await web3.eth.getAccounts()
-        const mainAccount = accounts[0];
+    return async (deployer: Truffle.Deployer, network: Network, accounts: string[]) => {
+        console.log(`---- Deploying on network: ${network}`);
       
-        await deployer.deploy(TestToken);
-        const baseToken = await TestToken.deployed();
+        const { cToken, baseToken } = await getTokensByNetwork[network](artifacts, deployer);
 
-        await deployer.deploy(TestCToken, baseToken.address);
-        const cToken = await TestCToken.deployed();
-
-        await deployer.deploy(MoneyMarket, cToken.address, web3.utils.toWei('0.5'), "Test iToken", "iTEST");
+        await deployer.deploy(MoneyMarket, cToken.address, web3.utils.toWei('0.3'), "iUSD", "iUSD");
         const moneyMarket = await MoneyMarket.deployed();
         const iToken = await IERC20.at(await moneyMarket.iToken());
       
-        await deployer.deploy(SimplePriceOracle, [mainAccount]);
+        // TODO: make price feeder configurable
+        await deployer.deploy(SimplePriceOracle, ['0xD98C58B8a7cc6FFC44105E4A93253798D1D3f472']);
         const oracle = await SimplePriceOracle.deployed();
       
         await deployer.deploy(FlowProtocol, oracle.address, moneyMarket.address);
@@ -38,10 +68,19 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       
         await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
 
-        await moneyMarket.mint(web3.utils.toWei('1000'));
+        // await moneyMarket.mint(web3.utils.toWei('50'));
 
-        await iToken.transfer(pool.address, web3.utils.toWei('1000'));
+        // await iToken.transfer(pool.address, web3.utils.toWei('50'));
       
         await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
+
+        console.log('Deploy success', {
+            moneyMarket: moneyMarket.address,
+            iToken: iToken.address,
+            oracle: oracle.address,
+            protocol: protocol.address,
+            fEUR: fEUR.address,
+            pool: pool.address
+        });
     };
 }
