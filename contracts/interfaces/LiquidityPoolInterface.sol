@@ -9,4 +9,7 @@ interface LiquidityPoolInterface {
     function getAskSpread(address fToken) external view returns (uint);
     // additional collaterla ratio this pool want to maintain. e.g. 0.5 ether means 150% of the issuing assets value
     function getAdditoinalCollateralRatio(address fToken) external view returns (uint);
+
+    event SpreadUpdated();
+    event AdditoinalCollateralRatioUpdated();
 }

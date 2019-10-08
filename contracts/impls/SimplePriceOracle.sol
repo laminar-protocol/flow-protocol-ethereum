@@ -16,6 +16,8 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
 
     bool public constant isPriceOracle = true;
 
+    event PriceUpdated(address indexed addr, uint price);
+
     constructor(address[] memory priceFeeders) public {
         for (uint i = 0; i < priceFeeders.length; i++) {
             addPriceFeeder(priceFeeders[i]);
@@ -38,6 +40,8 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
         }
 
         prices[addr] = price3;
+
+        emit PriceUpdated(addr, price3);
     }
 
     function capPrice(uint current, uint last, Percentage.Percent storage limit) pure internal returns (uint) {

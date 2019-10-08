@@ -26,6 +26,15 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     mapping (string => FlowToken) public tokens;
     mapping (address => bool) public tokenWhitelist;
 
+    event NewFlowToken(address indexed token);
+    event Minted(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount);
+    event Redeemed(address indexed sender, address indexed token, address indexed liquidityPool, uint flowTokenAmount);
+    event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint flowTokenAmount);
+    event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount);
+    event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount);
+    event FlowTokenDeposited(address indexed sender, address indexed token, uint flowTokenAmount);
+    event FlowTokenWithdrew(address indexed sender, address indexed token, uint flowTokenAmount);
+
     constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
         oracle = oracle_;
         moneyMarket = moneyMarket_;
@@ -38,6 +47,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         require(address(tokens[symbol]) == address(0), "already exists");
         tokens[symbol] = token;
         tokenWhitelist[address(token)] = true;
+
+        emit NewFlowToken(address(token));
     }
 
     function mint(FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) external nonReentrant returns (uint) {
@@ -62,6 +73,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         moneyMarket.mintTo(address(token), baseTokenAmount);
         moneyMarket.iToken().safeTransferFrom(address(pool), address(token), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
+
+        emit Minted(msg.sender, address(token), address(pool), baseTokenAmount);
 
         return flowTokenAmount;
     }
@@ -96,6 +109,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         token.burn(msg.sender, flowTokenAmount);
 
+        emit Redeemed(msg.sender, address(token), address(pool), flowTokenAmount);
+
         return baseTokenAmount;
     }
 
@@ -124,6 +139,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         token.burn(msg.sender, flowTokenAmount);
 
+        emit Liquidated(msg.sender, address(token), address(pool), flowTokenAmount);
+
         return baseTokenAmount;
     }
 
@@ -134,6 +151,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         token.addPosition(poolAddr, baseTokenAmount, 0, baseTokenAmount);
         moneyMarket.iToken().safeTransferFrom(msg.sender, address(token), iTokenAmount);
+
+        emit CollateralAdded(address(token), poolAddr, baseTokenAmount);
     }
 
     function withdrawCollateral(FlowToken token) external nonReentrant returns (uint) {
@@ -154,6 +173,8 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
         iToken.safeTransferFrom(tokenAddr, msg.sender, refundToPoolITokenAmount);
 
+        emit CollateralWithdrew(address(token), msg.sender, refundToPool);
+
         return refundToPoolITokenAmount;
     }
 
@@ -164,12 +185,16 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         uint price = getPrice(address(token));
 
         token.deposit(msg.sender, flowTokenAmount, price);
+
+        emit FlowTokenDeposited(address(token), msg.sender, flowTokenAmount);
     }
 
     function withdraw(FlowToken token, uint flowTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         token.withdraw(msg.sender, flowTokenAmount);
+
+        emit FlowTokenWithdrew(address(token), msg.sender, flowTokenAmount);
     }
 
     function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {

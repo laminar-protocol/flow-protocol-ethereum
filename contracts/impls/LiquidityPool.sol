@@ -53,10 +53,14 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
 
     function setSpread(uint value) external onlyOwner {
         spread = value;
+
+        emit SpreadUpdated();
     }
 
     function setCollateralRatio(uint value) external onlyOwner {
         collateralRatio = value;
+
+        emit AdditoinalCollateralRatioUpdated();
     }
 
     function enableToken(address token) external onlyOwner {
