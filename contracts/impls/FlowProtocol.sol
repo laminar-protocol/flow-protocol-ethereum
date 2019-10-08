@@ -89,22 +89,20 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
-        address poolAddr = address(pool);
-        address tokenAddr = address(token);
-        uint price = getPrice(tokenAddr);
+        uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(pool.getBidSpread(tokenAddr));
+        uint bidPrice = price.sub(pool.getBidSpread(address(token)));
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
         uint refundToPool;
         (collateralsToRemove, refundToPool) = _calculateRemovePosition(token, pool, price, flowTokenAmount, baseTokenAmount);
 
-        uint interest = token.removePosition(poolAddr, collateralsToRemove, flowTokenAmount);
+        uint interest = token.removePosition(address(pool), collateralsToRemove, flowTokenAmount);
         refundToPool = refundToPool.add(interest);
 
         uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
-        iToken.safeTransferFrom(tokenAddr, poolAddr, refundToPoolITokenAmount);
+        iToken.safeTransferFrom(address(token), address(pool), refundToPoolITokenAmount);
         token.withdrawTo(msg.sender, baseTokenAmount);
 
         token.burn(msg.sender, flowTokenAmount);
