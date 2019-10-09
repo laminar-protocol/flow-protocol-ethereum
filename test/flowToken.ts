@@ -162,4 +162,25 @@ contract('FlowProtocol', accounts => {
       });
     });
   });
+
+  describe('incentiveRatio', () => {
+    const data = [
+      // extreme, liquidation, current, incentive
+      [1, 5, 106, 0],
+      [1, 5, 105, 0],
+      [1, 5, 100, 100],
+      [1, 5, 99, 0],
+      [1, 5, 103, 50],
+      [10, 20, 112, 80],
+      [10, 20, 117, 30]
+    ];
+
+    for (const [extreme, liquidation, current, incentive] of data) {
+      it(`calculates incentive ratio with ${JSON.stringify({extreme, liquidation, current, incentive})}`, async () => {
+        await fToken.setExtremeCollateralRatio(fromPercent(extreme));
+        await fToken.setLiquidationCollateralRatio(fromPercent(liquidation));
+        expect(await fToken.incentiveRatio(fromPercent(current))).bignumber.equal(fromPercent(incentive));
+      });
+    }
+  });
 });

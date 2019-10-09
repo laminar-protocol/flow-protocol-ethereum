@@ -19,7 +19,8 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
 
     MoneyMarketInterface moneyMarket;
 
-    Percentage.Percent public minCollateralRatio;
+    Percentage.Percent public extremeCollateralRatio;
+    Percentage.Percent public liquidationCollateralRatio;
     Percentage.Percent public defaultCollateralRatio;
 
     struct LiquidityPoolPosition {
@@ -46,16 +47,40 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         moneyMarket.iToken().safeApprove(protocol, MAX_UINT);
 
         // TODO: from constructor parameter
-        minCollateralRatio = Percentage.fromFraction(5, 100);
+        extremeCollateralRatio = Percentage.fromFraction(1, 100);
+        liquidationCollateralRatio = Percentage.fromFraction(5, 100);
         defaultCollateralRatio = Percentage.fromFraction(10, 100);
     }
 
-    function setMinCollateralRatio(uint percent) external onlyProtocol {
-        minCollateralRatio.value = percent;
+    function setLiquidationCollateralRatio(uint percent) external onlyProtocol {
+        liquidationCollateralRatio.value = percent;
+    }
+
+    function setExtremeCollateralRatio(uint percent) external onlyProtocol {
+        extremeCollateralRatio.value = percent;
     }
 
     function setDefaultCollateralRatio(uint percent) external onlyProtocol {
         defaultCollateralRatio.value = percent;
+    }
+
+    function incentiveRatio(uint currentRatio) external view onlyProtocol returns (uint) {
+        if (currentRatio < Percentage.one()) {
+            return 0;
+        }
+        uint additionalRatio = currentRatio - Percentage.one(); // underflow is checked above
+        if (additionalRatio >= liquidationCollateralRatio.value) {
+            // this shouldn't happen, but it is not an unrecoverable error
+            return 0;
+        }
+        if (additionalRatio <= extremeCollateralRatio.value) {
+            return Percentage.one();
+        }
+        uint ratio = liquidationCollateralRatio.value.sub(extremeCollateralRatio.value);
+        return Percentage.fromFraction(
+            ratio.sub(additionalRatio.sub(extremeCollateralRatio.value)),
+            ratio
+        ).value;
     }
 
     function mint(address account, uint amount) external onlyProtocol {

@@ -214,37 +214,57 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         }
     }
 
-    function _calculateRemovePositionAndIncentive(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool, uint incentive) {
+    function _calculateRemovePositionAndIncentive(
+        FlowToken token,
+        LiquidityPoolInterface pool,
+        uint price,
+        uint flowTokenAmount,
+        uint baseTokenAmount
+    ) private view returns (uint collateralsToRemove, uint refundToPool, uint incentive) {
         uint collaterals;
         uint minted;
         (collaterals, minted) = token.getPosition(address(pool));
 
         require(minted >= flowTokenAmount, "Liquidity pool does not have enough position");
 
-        Percentage.Percent memory currentRatio = getCurrentTotalCollateralRatio(collaterals, minted, price);
+        uint mintedValue = minted.mul(price).div(1 ether);
 
-        require(currentRatio.value < token.minCollateralRatio().add(Percentage.one()), "Still in a safe position");
+        if (collaterals <= mintedValue) {
+            // this should never happen but it happned for some reason
+            // no incentive
+            return (baseTokenAmount, 0, 0);
+        }
+
+        Percentage.Percent memory currentRatio = Percentage.fromFraction(collaterals, mintedValue);
+
+        require(currentRatio.value < token.liquidationCollateralRatio().add(Percentage.one()), "Still in a safe position");
 
         uint mintedAfter = minted.sub(flowTokenAmount);
-        uint mintedAfterValue = mintedAfter.mul(price).div(1 ether);
 
-        collateralsToRemove = baseTokenAmount;
-        refundToPool = 0;
-        incentive = 0;
-        uint newCollaterals = collaterals.sub(collateralsToRemove);
-        uint withCurrentRatio = mintedAfterValue.mulPercent(currentRatio);
+        return _calculateIncentive(token, mintedAfter, price, collaterals, baseTokenAmount, currentRatio);
+    }
+
+    // just to get it compile without stack too deep issue
+    function _calculateIncentive(
+        FlowToken token,
+        uint mintedAfter,
+        uint price,
+        uint collaterals,
+        uint baseTokenAmount,
+        Percentage.Percent memory currentRatio
+    ) private view returns (uint, uint, uint) {
+        uint newCollaterals = collaterals.sub(baseTokenAmount);
+        uint withCurrentRatio = mintedAfter.mul(price).div(1 ether).mulPercent(currentRatio);
         
         if (newCollaterals > withCurrentRatio) {
             uint availableForIncentive = newCollaterals.sub(withCurrentRatio);
-            incentive = availableForIncentive / 2; // TODO: maybe need a better formula
-            refundToPool = availableForIncentive.sub(incentive);
-            collateralsToRemove = collateralsToRemove.add(incentive).add(refundToPool);
+            uint incentiveRatio = token.incentiveRatio(currentRatio.value);
+            uint incentive = availableForIncentive.mul(incentiveRatio).div(Percentage.one());
+            uint refundToPool = availableForIncentive.sub(incentive);
+            return (baseTokenAmount.add(incentive).add(refundToPool), refundToPool, incentive);
         } // else no more incentive can be given
-    }
 
-    function getCurrentTotalCollateralRatio(uint collaterals, uint minted, uint price) internal pure returns (Percentage.Percent memory) {
-        uint mintedValue = minted.mul(price).div(1 ether);
-        return Percentage.fromFraction(collaterals, mintedValue);
+        return (baseTokenAmount, 0, 0);
     }
 
     function getAdditoinalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {

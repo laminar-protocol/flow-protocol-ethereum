@@ -183,9 +183,9 @@ contract('FlowProtocol', accounts => {
         liquidate(alice, 1000),
 
         balance(fToken, alice, 0),
-        balance(usd, alice, 10083),
+        balance(usd, alice, 10085),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, 9917),
+        balance(iUsd, liquidityPool.address, 9915),
       ];
       for (const act of actions) {
         await act();
@@ -221,19 +221,21 @@ contract('FlowProtocol', accounts => {
         liquidate(alice, 500),
 
         balance(fToken, alice, 500),
-        balance(usd, alice, 9541),
+        balance(usd, alice, 9542),
         balance(iUsd, fToken.address, 549),
-        balance(iUsd, liquidityPool.address, 9910),
+        balance(iUsd, liquidityPool.address, 9909),
 
         liquidate(alice, 500),
         balance(fToken, alice, 0),
-        balance(usd, alice, 10082),
+        balance(usd, alice, 10084),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, 9918),
+        balance(iUsd, liquidityPool.address, 9916),
       ];
       for (const act of actions) {
         await act();
       }
     });
+
+    // TODO: check liquidation incentive amount calculation is correct
   });
 });
