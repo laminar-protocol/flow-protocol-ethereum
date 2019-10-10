@@ -12,6 +12,27 @@ library PriceOracleStructs {
     }
 }
 
+contract PriceOracleDataSource is PriceFeederRole {
+    // key => feeder => price record
+    mapping(address => mapping(address => PriceOracleStructs.PriceRecord)) private prices;
+    // key => hasUpdate // what for?
+    mapping(address => bool) hasUpdate;
+
+    constructor(address[] memory priceFeeders) public {
+        for (uint i = 0; i < priceFeeders.length; i++) {
+            addPriceFeeder(priceFeeders[i]);
+        }
+    }
+
+    function feedPrice(address key, uint price) public onlyPriceFeeder {
+        // TODO: impl
+    }
+
+    function getKthLargestPrice(address key, uint k, uint staleIn) public {
+        // TODO: impl
+    }
+}
+
 contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInterface {
     mapping(address => uint) private prices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
@@ -19,12 +40,6 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
     bool public constant isPriceOracle = true;
 
     event PriceUpdated(address indexed addr, uint price);
-
-    constructor(address[] memory priceFeeders) public {
-        for (uint i = 0; i < priceFeeders.length; i++) {
-            addPriceFeeder(priceFeeders[i]);
-        }
-    }
 
     function getPrice(address addr) external view returns (uint) {
         return prices[addr];
