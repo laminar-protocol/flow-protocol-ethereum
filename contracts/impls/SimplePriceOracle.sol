@@ -34,9 +34,9 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
         PriceData storage snapshotPrice = priceSnapshots[addr];
         uint price2 = capPrice(price, lastPrice, oracleDeltaLastLimit);
         uint price3 = capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
-        if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < now) {
+        if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < block.timestamp) {
             snapshotPrice.price = price3;
-            snapshotPrice.timestamp = now;
+            snapshotPrice.timestamp = block.timestamp;
         }
 
         prices[addr] = price3;
@@ -44,7 +44,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
         emit PriceUpdated(addr, price3);
     }
 
-    function capPrice(uint current, uint last, Percentage.Percent storage limit) pure internal returns (uint) {
+    function capPrice(uint current, uint last, Percentage.Percent storage limit) internal pure returns (uint) {
         if (last == 0) {
             return current;
         }

@@ -1,3 +1,5 @@
+/* solium-disable error-reason */
+
 pragma solidity ^0.5.8;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -23,7 +25,7 @@ contract TestCToken is CErc20Interface, ERC20, ERC20Detailed {
         return 0;
     }
 
-    function redeem(uint cTokenAmount) public returns (uint) {        
+    function redeem(uint cTokenAmount) public returns (uint) {
         uint baseTokenAmount = cTokenAmount * getPrice() / 1 ether;
 
         _burn(msg.sender, cTokenAmount);
@@ -35,7 +37,7 @@ contract TestCToken is CErc20Interface, ERC20, ERC20Detailed {
     function getPrice() public view returns (uint) {
         uint poolSize = baseToken.balanceOf(address(this));
         uint issued = totalSupply();
-        
+
         if (poolSize == 0 || issued == 0) {
             return 1 ether;
         }

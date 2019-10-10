@@ -25,7 +25,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     MintableToken public iToken;
 
     Percentage.Percent public minLiquidity;
-    
+
     Percentage.Percent private insignificantPercent;
 
     constructor(
@@ -112,7 +112,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         }
 
         uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
-        
+
         if (desiredCTokenValue > currentCTokenValue) {
             uint toMint = desiredCTokenValue - currentCTokenValue;
             if (toMint > insignificantAmount) {
@@ -126,7 +126,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         }
     }
 
-    function calculateInvestAmount(uint cTokenCash, uint cTokenBorrow, uint totalValue) view public returns (uint) {
+    function calculateInvestAmount(uint cTokenCash, uint cTokenBorrow, uint totalValue) public view returns (uint) {
         if (cTokenBorrow == 0) {
             // cToken is not been used? withdraw all
             return 0;
@@ -152,7 +152,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         return invest;
     }
 
-    function exchangeRate() view public returns (uint) {
+    function exchangeRate() public view returns (uint) {
         uint totalSupply = iToken.totalSupply();
         if (totalSupply == 0) {
             return 1 ether;
@@ -160,14 +160,14 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         return totalHoldings().mul(1 ether).div(totalSupply);
     }
 
-    function totalHoldings() view public returns (uint) {
+    function totalHoldings() public view returns (uint) {
         return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1 ether).add(baseToken.balanceOf(address(this)));
     }
 
-    function convertAmountFromBase(uint rate, uint baseTokenAmount) pure public returns (uint) {
+    function convertAmountFromBase(uint rate, uint baseTokenAmount) public pure returns (uint) {
         return baseTokenAmount.mul(1 ether).div(rate);
     }
-    function convertAmountToBase(uint rate, uint iTokenAmount) pure public returns (uint) {
+    function convertAmountToBase(uint rate, uint iTokenAmount) public pure returns (uint) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 }

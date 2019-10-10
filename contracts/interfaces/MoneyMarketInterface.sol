@@ -3,11 +3,11 @@ pragma solidity ^0.5.8;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface MoneyMarketInterface {
-    function baseToken() view external returns (IERC20);
-    function iToken() view external returns (IERC20);
-    
-    function exchangeRate() view external returns (uint);
-    
+    function baseToken() external view returns (IERC20);
+    function iToken() external view returns (IERC20);
+
+    function exchangeRate() external view returns (uint);
+
     function mint(uint baseTokenAmount) external;
     function mintTo(address recipient, uint baseTokenAmount) external;
     function redeem(uint iTokenAmount) external;
@@ -15,6 +15,6 @@ interface MoneyMarketInterface {
     function redeemBaseToken(uint baseTokenAmount) external;
     function redeemBaseTokenTo(address recipient, uint baseTokenAmount) external;
 
-    function convertAmountFromBase(uint rate, uint baseTokenAmount) pure external returns (uint);
-    function convertAmountToBase(uint rate, uint iTokenAmount) pure external returns (uint);
+    function convertAmountFromBase(uint rate, uint baseTokenAmount) external pure returns (uint);
+    function convertAmountToBase(uint rate, uint iTokenAmount) external pure returns (uint);
 }

@@ -18,7 +18,7 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
 
     mapping (address => bool) private allowedTokens;
 
-    constructor(address protocol, MoneyMarketInterface moneyMarket_, uint spread_, address[] memory fTokens) public {        
+    constructor(address protocol, MoneyMarketInterface moneyMarket_, uint spread_, address[] memory fTokens) public {
         moneyMarket = moneyMarket_;
         spread = spread_;
         collateralRatio = 0; // use fToken default

@@ -91,7 +91,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         _burn(account, amount);
     }
 
-    function getPosition(address poolAddr) view external returns (uint collaterals, uint minted) {
+    function getPosition(address poolAddr) external view returns (uint collaterals, uint minted) {
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
         collaterals = position.collaterals;
         minted = position.minted;
@@ -139,7 +139,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
 
         uint oldShares = interestShares[recipient];
         uint newShares = oldShares.sub(sharesToBurn);
-        
+
         uint oldDebits = interestDebits[recipient];
         uint interests = oldShares.mul(exchangeRate).div(1 ether).sub(oldDebits);
         uint newDebits = newShares.mul(exchangeRate).div(1 ether);

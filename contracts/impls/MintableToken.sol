@@ -11,7 +11,7 @@ contract MintableToken is Ownable, ERC20, ERC20Detailed {
         string memory symbol
     ) ERC20Detailed(name, symbol, 18) public {
     }
-    
+
     function mint(address account, uint256 amount) public onlyOwner {
         _mint(account, amount);
     }

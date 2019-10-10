@@ -1,3 +1,5 @@
+/* solium-disable */
+
 pragma solidity ^0.5.8;
 
 // TODOs:
@@ -6,5 +8,4 @@ pragma solidity ^0.5.8;
 // - find best spread liquidity pool
 
 contract LiquidityPoolRegistry {
-
 }

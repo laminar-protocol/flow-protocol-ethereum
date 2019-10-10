@@ -79,7 +79,12 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         return flowTokenAmount;
     }
 
-    function _calcAdditionalCollateralAmount(uint flowTokenCurrentValue, FlowToken token, LiquidityPoolInterface pool, uint baseTokenAmount) private view returns (uint) {
+    function _calcAdditionalCollateralAmount(
+        uint flowTokenCurrentValue,
+        FlowToken token,
+        LiquidityPoolInterface pool,
+        uint baseTokenAmount
+    ) private view returns (uint) {
         return flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).add(flowTokenCurrentValue).sub(baseTokenAmount);
     }
 
@@ -155,7 +160,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
     function withdrawCollateral(FlowToken token) external nonReentrant returns (uint) {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
-        
+
         IERC20 iToken = moneyMarket.iToken();
 
         LiquidityPoolInterface pool = LiquidityPoolInterface(msg.sender);
@@ -195,7 +200,13 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         emit FlowTokenWithdrew(address(token), msg.sender, flowTokenAmount);
     }
 
-    function _calculateRemovePosition(FlowToken token, LiquidityPoolInterface pool, uint price, uint flowTokenAmount, uint baseTokenAmount) private view returns (uint collateralsToRemove, uint refundToPool) {
+    function _calculateRemovePosition(
+        FlowToken token,
+        LiquidityPoolInterface pool,
+        uint price,
+        uint flowTokenAmount,
+        uint baseTokenAmount
+    ) private view returns (uint collateralsToRemove, uint refundToPool) {
         uint collaterals;
         uint minted;
         (collaterals, minted) = token.getPosition(address(pool));
@@ -255,7 +266,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     ) private view returns (uint, uint, uint) {
         uint newCollaterals = collaterals.sub(baseTokenAmount);
         uint withCurrentRatio = mintedAfter.mul(price).div(1 ether).mulPercent(currentRatio);
-        
+
         if (newCollaterals > withCurrentRatio) {
             uint availableForIncentive = newCollaterals.sub(withCurrentRatio);
             uint incentiveRatio = token.incentiveRatio(currentRatio.value);

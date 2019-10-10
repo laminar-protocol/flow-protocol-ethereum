@@ -6,7 +6,7 @@ library Percentage {
     using SafeMath for uint256;
 
     uint public constant ONE = 1e18;
-    uint public constant ONE_BY_ONE = 1e36; 
+    uint public constant ONE_BY_ONE = 1e36;
 
     struct Percent {
         uint value;
