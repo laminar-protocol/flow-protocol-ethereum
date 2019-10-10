@@ -9,7 +9,8 @@
     "verify": "truffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle --network kovan",
     "lint": "solium -d contracts/ && eslint --ext .js,.ts . && tsc --noEmit --pretty",
     "test": "truffle test",
-    "develop": "truffle develop"
+    "ganache": "ganache-cli -p 9545 -m 'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat' > /dev/null &",
+    "stop": "sudo kill `sudo lsof -t -i:9545`"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.3.0",
@@ -28,6 +29,7 @@
     "eslint-import-resolver-typescript": "^2.0.0",
     "eslint-plugin-import": "^2.18.2",
     "ethlint": "^1.2.5",
+    "ganache-cli": "^6.7.0",
     "openzeppelin-test-helpers": "^0.4.3",
     "truffle": "^5.0.39",
     "truffle-contract-size": "^1.0.1",

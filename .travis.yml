@@ -5,15 +5,10 @@ node_js:
 cache: yarn
 
 script:
-  - yarn develop &
+  - yarn ganache &
   - yarn lint
-  - sleep 10
-  - curl http://127.0.0.1:9545/
-  - sleep 10
-  - curl http://127.0.0.1:9545/
-  - sleep 10
-  - curl http://127.0.0.1:9545/
   - yarn test
+  - yarn stop
 
 branches:
   only:
