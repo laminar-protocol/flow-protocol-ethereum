@@ -5,14 +5,16 @@ import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
 import "../roles/PriceFeederRole.sol";
 
-contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInterface {
-    struct PriceData {
+library PriceOracleStructs {
+    struct PriceRecord {
         uint price;
         uint timestamp;
     }
+}
 
+contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInterface {
     mapping(address => uint) private prices;
-    mapping(address => PriceData) private priceSnapshots;
+    mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
     bool public constant isPriceOracle = true;
 
@@ -31,7 +33,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
     function setPrice(address addr, uint price) public onlyPriceFeeder {
         require(price != 0, "Invalid price");
         uint lastPrice = prices[addr];
-        PriceData storage snapshotPrice = priceSnapshots[addr];
+        PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
         uint price2 = capPrice(price, lastPrice, oracleDeltaLastLimit);
         uint price3 = capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
         if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < block.timestamp) {
