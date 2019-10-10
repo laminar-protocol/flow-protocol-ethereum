@@ -7,5 +7,14 @@ cache: yarn
 script:
   - yarn develop &
   - yarn lint
-  - sleep 3
+  - sleep 10
+  - curl http://127.0.0.1:9545/
+  - sleep 10
+  - curl http://127.0.0.1:9545/
+  - sleep 10
+  - curl http://127.0.0.1:9545/
   - yarn test
+
+branches:
+  only:
+  - master
