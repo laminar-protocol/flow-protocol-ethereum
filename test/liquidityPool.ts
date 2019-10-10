@@ -3,9 +3,9 @@ import { expect } from 'chai';
 import { LiquidityPoolInstance, TestTokenInstance, MoneyMarketInstance, IERC20Instance } from 'types/truffle-contracts';
 import * as helper from './helpers';
 
-const LiquidityPool = artifacts.require("LiquidityPool");
+const LiquidityPool = artifacts.require('LiquidityPool');
 
-contract('LiquidityPool', accounts => {
+contract('LiquidityPool', (accounts) => {
   const liquidityProvider = accounts[1];
   const protocol = accounts[2];
   const fToken = accounts[3];
@@ -30,7 +30,7 @@ contract('LiquidityPool', accounts => {
       spread = await liquidityPool.getAskSpread(badAddress);
       expect(spread).bignumber.equal(helper.ZERO);
     });
-    
+
     it('should get default value', async () => {
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(helper.fromPip(10));
@@ -53,7 +53,7 @@ contract('LiquidityPool', accounts => {
 
   describe('collateral ratio', () => {
     it('should get 0 for disabled token', async () => {
-      let ratio = await liquidityPool.getAdditoinalCollateralRatio(badAddress);
+      const ratio = await liquidityPool.getAdditoinalCollateralRatio(badAddress);
       expect(ratio).bignumber.equal(helper.ZERO);
     });
 
@@ -85,7 +85,7 @@ contract('LiquidityPool', accounts => {
 
     it('should be able to disable token', async () => {
       await liquidityPool.disableToken(fToken, { from: liquidityProvider });
-  
+
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(helper.ZERO, 'should get 0 for disabled token');
       spread = await liquidityPool.getAskSpread(fToken);

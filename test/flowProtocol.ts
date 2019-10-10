@@ -1,17 +1,17 @@
 import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
-import { createTestToken, createMoneyMarket, fromPercent, messages, bn, fromPip } from './helpers';
-import { 
+import {
   SimplePriceOracleInstance, FlowProtocolInstance, LiquidityPoolInstance, TestTokenInstance,
-  FlowTokenInstance, MoneyMarketInstance, IERC20Instance
+  FlowTokenInstance, MoneyMarketInstance, IERC20Instance,
 } from 'types/truffle-contracts';
+import { createTestToken, createMoneyMarket, fromPercent, messages, bn, fromPip } from './helpers';
 
-const FlowProtocol = artifacts.require("FlowProtocol");
-const LiquidityPool = artifacts.require("LiquidityPool");
-const SimplePriceOracle = artifacts.require("SimplePriceOracle");
-const FlowToken = artifacts.require("FlowToken");
+const FlowProtocol = artifacts.require('FlowProtocol');
+const LiquidityPool = artifacts.require('LiquidityPool');
+const SimplePriceOracle = artifacts.require('SimplePriceOracle');
+const FlowToken = artifacts.require('FlowToken');
 
-contract('FlowProtocol', accounts => {
+contract('FlowProtocol', (accounts) => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -43,7 +43,7 @@ contract('FlowProtocol', accounts => {
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
     await usd.approve(moneyMarket.address, constants.MAX_UINT256, { from: liquidityProvider });
     await iUsd.approve(protocol.address, constants.MAX_UINT256, { from: liquidityProvider });
-    
+
     liquidityPool = await LiquidityPool.new(protocol.address, moneyMarket.address, fromPip(10), [fToken.address]);
     await moneyMarket.mintTo(liquidityPool.address, 10000, { from: liquidityProvider });
     await moneyMarket.mint(10000, { from: liquidityProvider });
@@ -57,7 +57,8 @@ contract('FlowProtocol', accounts => {
 
   const buy = (addr: string, amount: number) => () => protocol.mint(fToken.address, liquidityPool.address, amount, { from: addr });
   const sell = (addr: string, amount: number) => () => protocol.redeem(fToken.address, liquidityPool.address, amount, { from: addr });
-  const balance = (token: IERC20Instance, addr: string, amount: number) => async () => expect(await token.balanceOf(addr)).bignumber.equal(bn(amount));
+  const balance = (token: IERC20Instance, addr: string, amount: number) => async () =>
+    expect(await token.balanceOf(addr)).bignumber.equal(bn(amount));
   const setPrice = (price: number) => () => oracle.setPrice(fToken.address, fromPercent(price));
   const liquidate = (addr: string, amount: number) => () => protocol.liquidate(fToken.address, liquidityPool.address, amount, { from: addr });
   const addCollateral = (from: string, token: string, pool: string, amount: number) => () => protocol.addCollateral(token, pool, amount, { from });
