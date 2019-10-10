@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 
-const main = async () => {
+const main = async (time) => {
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const FlowToken = artifacts.require('FlowToken');
 
@@ -10,7 +10,7 @@ const main = async () => {
   const cycles = [50, 30, 10];
   const step = 0.001;
 
-  async function loop({ time, price, movements }) {
+  async function loop({ price, movements }) {
     const priceStr = price.toFixed(8);
     console.log(`${new Date().toISOString()}: Set Price - ${priceStr}`);
     await oracle.setPrice(fEUR.address, web3.utils.toWei(priceStr));
@@ -30,13 +30,13 @@ const main = async () => {
 
     return new Promise((resolve) => {
       setTimeout(() => {
-        resolve(loop({ time, price, movements }));
+        resolve(loop({ price, movements }));
       }, time);
     });
   }
 
   loop({
-    time: 500,
+    time,
     price: 1.2,
     movements: cycles.map(() => [Math.random(), 1]),
   });
@@ -44,7 +44,11 @@ const main = async () => {
 
 module.exports = async (callback) => {
   try {
-    await main();
+    const newtworkType = await web3.eth.net.getNetworkType();
+    const time = ({
+      private: 1000,
+    })[newtworkType] || 10000;
+    await main(time);
   } catch (err) {
     console.error(err);
     callback(err);
