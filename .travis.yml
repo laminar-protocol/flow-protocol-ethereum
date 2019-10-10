@@ -5,6 +5,11 @@ node_js:
 cache: yarn
 
 script:
-  - yarn develop &
+  - yarn ganache &
   - yarn lint
   - yarn test
+  - yarn stop
+
+branches:
+  only:
+  - master
