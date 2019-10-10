@@ -7,4 +7,5 @@ cache: yarn
 script:
   - yarn develop &
   - yarn lint
+  - sleep 3
   - yarn test
