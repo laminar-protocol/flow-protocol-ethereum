@@ -7,7 +7,9 @@
     "generate": "truffle compile && typechain --target truffle './build/**/*.json' && typechain --target web3-1.0.0 './build/**/*.json'",
     "postinstall": "yarn generate",
     "verify": "truffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle --network kovan",
-    "lint": "solium -d contracts/ && eslint --ext .js,.ts . && tsc --noEmit --pretty"
+    "lint": "solium -d contracts/ && eslint --ext .js,.ts . && tsc --noEmit --pretty",
+    "test": "truffle test",
+    "develop": "truffle develop"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.3.0",
@@ -27,6 +29,7 @@
     "eslint-plugin-import": "^2.18.2",
     "ethlint": "^1.2.5",
     "openzeppelin-test-helpers": "^0.4.3",
+    "truffle": "^5.0.39",
     "truffle-contract-size": "^1.0.1",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-typings": "^1.0.8",
