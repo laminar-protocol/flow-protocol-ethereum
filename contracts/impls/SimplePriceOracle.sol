@@ -16,7 +16,10 @@ contract PriceOracleDataSource is PriceFeederRole {
     // key => feeder => price record
     mapping(address => mapping(address => PriceOracleStructs.PriceRecord)) private prices;
     // key => hasUpdate // what for?
-    mapping(address => bool) hasUpdate;
+    mapping(address => bool) private hasUpdate;
+
+    // to store temp non-expired records for `getKthLargestPrice` method
+    PriceOracleStructs.PriceRecord[] private validPriceRecords;
 
     constructor(address[] memory priceFeeders) public {
         for (uint i = 0; i < priceFeeders.length; i++) {
@@ -25,12 +28,24 @@ contract PriceOracleDataSource is PriceFeederRole {
     }
 
     function feedPrice(address key, uint price) public onlyPriceFeeder {
-        prices[key][msg.sender] = PriceRecord(price, block.timestamp);
+        prices[key][msg.sender] = PriceOracleStructs.PriceRecord(price, block.timestamp);
         hasUpdate[key] = true;
     }
 
-    function getKthLargestPrice(address key, uint k, uint staleIn) public {
-        // TODO: impl
+    function getKthLargestPrice(address key, uint k, uint expireIn) public returns (uint) {
+        uint expireAt = block.timestamp - expireIn;
+
+        // filter non-expired records
+        delete validPriceRecords;
+        for (uint i = 0; i < _priceFeeders.length; i++) {
+            PriceOracleStructs.PriceRecord storage record = prices[key][_priceFeeders[i]];
+            if (record.timestamp > expireAt) {
+                validPriceRecords.push(record);
+            }
+        }
+
+        // TODO: find k-th largest
+        return 0;
     }
 }
 
