@@ -6,7 +6,7 @@
   "scripts": {
     "generate": "truffle compile && typechain --target truffle './build/**/*.json' && typechain --target web3-1.0.0 './build/**/*.json'",
     "postinstall": "yarn generate",
-    "verify": "truffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle --network kovan",
+    "verify": "truffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network kovan",
     "lint": "solium -d contracts/ && eslint --ext .js,.ts . && tsc --noEmit --pretty",
     "test": "truffle test",
     "ganache": "ganache-cli -p 9545 -m 'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat' > /dev/null &",

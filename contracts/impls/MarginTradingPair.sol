@@ -47,7 +47,7 @@ contract MarginTradingPair is Ownable {
         uint safeMarginPercent_,
         uint liquidationFee_
     ) public {
-        require((leverage >= 2 && leverage <= 100) || (leverage <= -2 && leverage >= -100), "Invalid leverage");
+        require((leverage_ >= 2 && leverage_ <= 100) || (leverage_ <= -2 && leverage_ >= -100), "Invalid leverage");
         require(safeMarginPercent_ <= Percentage.one(), "Invalid safeMarginPercent");
 
         moneyMarket = moneyMarket_;
