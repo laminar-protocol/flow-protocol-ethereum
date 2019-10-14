@@ -25,7 +25,8 @@ contract PriceOracleDataSource is PriceFeederRole {
     }
 
     function feedPrice(address key, uint price) public onlyPriceFeeder {
-        // TODO: impl
+        prices[key][msg.sender] = PriceRecord(price, block.timestamp);
+        hasUpdate[key] = true;
     }
 
     function getKthLargestPrice(address key, uint k, uint staleIn) public {
