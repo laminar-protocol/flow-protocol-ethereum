@@ -45,7 +45,9 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
         return 0;
     }
 
-    function openPosition(address /* tradingPair */, uint /* positionId */, IERC20 quoteToken, int leverage, uint /* baseTokenAmount */) external returns (bool) {
+    function openPosition(
+        address /* tradingPair */, uint /* positionId */, IERC20 quoteToken, int leverage, uint /* baseTokenAmount */
+    ) external returns (bool) {
         if (!allowedTokens[address(quoteToken)]) {
             return false;
         }

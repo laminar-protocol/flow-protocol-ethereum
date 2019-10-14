@@ -61,7 +61,9 @@ contract MarginTradingPair is Ownable {
         transferOwnership(protocol);
     }
 
-    function openPosition(address sender, address liquidityPool, uint baseTokenAmount, uint iTokenAmount, uint price, uint bidSpread) public onlyOwner returns (uint) {
+    function openPosition(
+        address sender, address liquidityPool, uint baseTokenAmount, uint iTokenAmount, uint price, uint bidSpread
+    ) public onlyOwner returns (uint) {
         require(baseTokenAmount > liquidationFee, "Not enough to pay for liquidation fee");
 
         uint positionId = nextPositionId;

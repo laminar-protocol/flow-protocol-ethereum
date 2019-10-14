@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.3.0",
+    "openzeppelin-test-helpers": "^0.5.1",
     "truffle-plugin-verify": "^0.3.3"
   },
   "devDependencies": {
@@ -30,7 +31,6 @@
     "eslint-plugin-import": "^2.18.2",
     "ethlint": "^1.2.5",
     "ganache-cli": "^6.7.0",
-    "openzeppelin-test-helpers": "^0.4.3",
     "truffle": "^5.0.39",
     "truffle-contract-size": "^1.0.1",
     "truffle-hdwallet-provider": "^1.0.17",
