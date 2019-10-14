@@ -18,16 +18,10 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
 
     mapping (address => bool) private allowedTokens;
 
-    constructor(address protocol, MoneyMarketInterface moneyMarket_, uint spread_, address[] memory fTokens) public {
+    constructor(MoneyMarketInterface moneyMarket_, uint spread_) public {
         moneyMarket = moneyMarket_;
         spread = spread_;
         collateralRatio = 0; // use fToken default
-
-        moneyMarket.iToken().safeApprove(protocol, MAX_UINT);
-
-        for (uint i = 0; i < fTokens.length; i++) {
-            allowedTokens[fTokens[i]] = true;
-        }
     }
 
     function getBidSpread(address fToken) external view returns (uint) {
@@ -49,6 +43,23 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
             return collateralRatio;
         }
         return 0;
+    }
+
+    function openPosition(address /* tradingPair */, uint /* positionId */, IERC20 quoteToken, int leverage, uint /* baseTokenAmount */) external returns (bool) {
+        if (!allowedTokens[address(quoteToken)]) {
+            return false;
+        }
+        if (leverage > 100 || leverage < -100) {
+            return false;
+        }
+        if (leverage < 2 && leverage > -2) {
+            return false;
+        }
+        return true;
+    }
+
+    function approve(address protocol, uint amount) external onlyOwner {
+        moneyMarket.iToken().safeApprove(protocol, amount);
     }
 
     function setSpread(uint value) external onlyOwner {

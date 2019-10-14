@@ -59,7 +59,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint askPrice = price.add(pool.getAskSpread(address(token)));
+        uint askPrice = price.add(getAskSpread(pool, token));
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
         uint additionalCollateralAmount = _calcAdditionalCollateralAmount(flowTokenCurrentValue, token, pool, baseTokenAmount);
@@ -96,7 +96,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(pool.getBidSpread(address(token)));
+        uint bidPrice = price.sub(getBidSpread(pool, token));
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -125,7 +125,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(pool.getBidSpread(address(token)));
+        uint bidPrice = price.sub(getBidSpread(pool, token));
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -287,5 +287,17 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         uint price = oracle.getPrice(tokenAddr);
         require(price > 0, "no oracle price");
         return price;
+    }
+
+    function getAskSpread(LiquidityPoolInterface pool, FlowToken token) internal view returns (uint) {
+        uint spread = pool.getAskSpread(address(token));
+        require(spread > 0, "Token disabled for this pool");
+        return spread;
+    }
+
+    function getBidSpread(LiquidityPoolInterface pool, FlowToken token) internal view returns (uint) {
+        uint spread = pool.getBidSpread(address(token));
+        require(spread > 0, "Token disabled for this pool");
+        return spread;
     }
 }
