@@ -17,7 +17,7 @@ contract('FlowMarginProtocol', (accounts) => {
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
   const bob = accounts[3];
-  const eur = accounts[4]
+  const eur = accounts[4];
   const badAddress = accounts[5];
 
   let oracle: SimplePriceOracleInstance;
@@ -37,7 +37,7 @@ contract('FlowMarginProtocol', (accounts) => {
     usd = await createTestToken([liquidityProvider, dollar(20000)], [alice, dollar(10000)], [bob, dollar(10000)]);
     ({ moneyMarket } = await createMoneyMarket(usd.address, fromPercent(100)));
     protocol = await FlowMarginProtocol.new(oracle.address, moneyMarket.address);
-    pair = await MarginTradingPair.new(protocol.address, moneyMarket.address, eur, 10, fromPercent(80), dollar(5))
+    pair = await MarginTradingPair.new(protocol.address, moneyMarket.address, eur, 10, fromPercent(80), dollar(5));
     await protocol.addTradingPair(pair.address);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });

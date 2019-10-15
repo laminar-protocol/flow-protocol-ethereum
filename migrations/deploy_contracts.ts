@@ -102,7 +102,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       fEUR: fEUR.address,
       pool: pool.address,
       marginProtocol: marginProtocol.address,
-      marginTradingPair: marginTradingPair.address
+      marginTradingPair: marginTradingPair.address,
     });
   };
 };
