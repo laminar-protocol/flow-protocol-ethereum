@@ -21,8 +21,8 @@ contract('LiquidityPool', (accounts) => {
     ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
     liquidityPool = await LiquidityPool.new(moneyMarket.address, helper.fromPip(10), { from: liquidityProvider });
 
-    await liquidityPool.approve(protocol, constants.MAX_UINT256);
-    await liquidityPool.enableToken(fToken);
+    await liquidityPool.approve(protocol, constants.MAX_UINT256, { from: liquidityProvider });
+    await liquidityPool.enableToken(fToken, { from: liquidityProvider });
 
     usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
   });
