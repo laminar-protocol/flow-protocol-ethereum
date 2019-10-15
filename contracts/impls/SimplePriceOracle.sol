@@ -17,7 +17,7 @@ contract PriceOracleDataSource is PriceFeederRole {
     // key => feeder => price record
     mapping(address => mapping(address => PriceOracleStructs.PriceRecord)) private priceRecords;
     // key => hasUpdate
-    mapping(address => bool) private hasUpdate;
+    mapping(address => bool) public hasUpdate;
 
     // to store temp non-expired records for `findMedianPrice` method
     uint[] private validPrices;
@@ -28,7 +28,7 @@ contract PriceOracleDataSource is PriceFeederRole {
         }
     }
 
-    function feedPrice(address key, uint price) public onlyPriceFeeder {
+    function feedPrice(address key, uint price) external onlyPriceFeeder {
         priceRecords[key][msg.sender] = PriceOracleStructs.PriceRecord(price, block.timestamp);
         hasUpdate[key] = true;
     }
@@ -47,23 +47,37 @@ contract PriceOracleDataSource is PriceFeederRole {
 
         return Arrays.findMedian(validPrices);
     }
+
+    function setHasUpdate(address key, bool value) public {
+        hasUpdate[key] = value;
+    }
 }
 
 contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInterface {
-    mapping(address => uint) private prices;
+    mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
+
+    PriceOracleDataSource private dataSource;
+    uint private expireIn;
 
     bool public constant isPriceOracle = true;
 
     event PriceUpdated(address indexed addr, uint price);
 
-    function getPrice(address addr) external view returns (uint) {
-        return prices[addr];
+    function getPrice(address key) external view returns (uint) {
+        if (dataSource.hasUpdate(key)) {
+            uint price = dataSource.findMedianPrice(key, expireIn);
+            if (price > 0) {
+                setPrice(key, price);
+                dataSource.setHasUpdate(key, false);
+            }
+        }
+        return cachedPrices[key];
     }
 
     function setPrice(address addr, uint price) public onlyPriceFeeder {
         require(price != 0, "Invalid price");
-        uint lastPrice = prices[addr];
+        uint lastPrice = cachedPrices[addr];
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
         uint price2 = capPrice(price, lastPrice, oracleDeltaLastLimit);
         uint price3 = capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
@@ -72,7 +86,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
             snapshotPrice.timestamp = block.timestamp;
         }
 
-        prices[addr] = price3;
+        cachedPrices[addr] = price3;
 
         emit PriceUpdated(addr, price3);
     }
