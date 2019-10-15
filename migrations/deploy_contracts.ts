@@ -1,5 +1,3 @@
-import { constants } from 'openzeppelin-test-helpers';
-
 const deployTokens = async (artifacts: Truffle.Artifacts, deployer: Truffle.Deployer) => {
   const TestToken = artifacts.require('TestToken');
   const TestCToken = artifacts.require('TestCToken');
@@ -69,7 +67,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(LiquidityPool, moneyMarket.address, web3.utils.toWei('0.01'));
     const pool = await LiquidityPool.deployed();
 
-    await pool.approve(protocol.address, constants.MAX_UINT256);
+    await pool.approve(protocol.address, web3.utils.toWei('1000000'));
     await pool.enableToken(fEUR.address);
 
     await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
@@ -94,7 +92,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const marginTradingPair = await MarginTradingPair.deployed();
 
     await marginProtocol.addTradingPair(marginTradingPair.address);
-    await pool.approve(marginProtocol.address, constants.MAX_UINT256);
+    await pool.approve(marginProtocol.address, web3.utils.toWei('1000000'));
 
     console.log('Deploy success', {
       moneyMarket: moneyMarket.address,
