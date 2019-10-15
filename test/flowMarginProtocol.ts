@@ -59,39 +59,98 @@ contract('FlowMarginProtocol', (accounts) => {
     await expectRevert(protocol.addTradingPair(eur, { from: badAddress }), messages.onlyOwner);
   });
 
-  it('able to open and close position', async () => {
-    await protocol.openPosition(pair.address, liquidityPool.address, dollar(105), { from: alice });
+  const run = async (...actions: Array<() => any>) => {
+    for (const act of actions) {
+      await act();
+    }
+  }
 
-    const positon = await pair.positions(0);
-    [alice, liquidityPool.address, dollar(105), fromPip(10010), dollar(5), fromPip(10)].forEach((x, i) => {
+  const openPosition = (from: string, amount: any) => () =>
+    protocol.openPosition(pair.address, liquidityPool.address, amount, { from });
+  const closePositon = (from: string, id: number) => () =>
+  protocol.closePosition(pair.address, id, { from });
+  const position = (id: number, from: string, amount: any, openPrice: any) => async () => {
+    const positon = await pair.positions(id);
+    [from, liquidityPool.address, amount, openPrice, dollar(5), fromPip(10)].forEach((x, i) => {
       if (BN.isBN(x)) {
         expect(positon[i]).bignumber.equal(x);
       } else {
         expect(positon[i]).equal(x);
       }
     });
+  };
+  const balance = (token: IERC20Instance, addr: string, amount: any) => async () =>
+    expect(await token.balanceOf(addr)).bignumber.equal(amount);
+  const setPrice = (price: number) => () => oracle.setPrice(eur, price);
+  const profit = (user: string, positions: Array<[number, number, number]>) => async () => {
+    let totalProfit = 0;
+    for (const [startPrice, endPrice, principal] of positions) {
+      const spread = 0.001;
+      const openPrice = startPrice + spread;
+      const closePrice = endPrice - spread;
+      const diff = (closePrice - openPrice) / endPrice;
+      const leverage = 10;
+      const leveragedDiff = diff * leverage;
+      const expectedProfit = principal * leveragedDiff;
+      totalProfit += expectedProfit;
+    }
 
-    expect(await usd.balanceOf(alice)).bignumber.equal(dollar(10000 - 105));
-    expect(await iUsd.balanceOf(liquidityPool.address)).bignumber.equal(dollar(10000 - 105));
-    expect(await iUsd.balanceOf(pair.address)).bignumber.equal(dollar(210));
+    const bal: BN = await usd.balanceOf(user) as any;
+    const profitVal = bal.sub(dollar(10000)).mul(bn(10000)).div(dollar(1)).toNumber() / 10000;
 
-    await protocol.closePosition(pair.address, 0, { from: alice });
+    expect(profitVal).closeTo(totalProfit, 0.0001);
+  };
 
-    const price = 1;
-    const spread = 0.001;
-    const openPrice = price + spread;
-    const closePrice = price - spread;
-    const diff = (closePrice - openPrice) / price;
-    const leverage = 10;
-    const leveragedDiff = diff * leverage;
-    const principal = 100;
-    const expectedProfit = principal * leveragedDiff;
 
-    const bal: BN = await usd.balanceOf(alice) as any;
-    const profit = bal.sub(dollar(10000)).mul(bn(10000)).div(dollar(1)).toNumber() / 10000;
+  it('able to open and close position', async () => {
+    await run(
+      openPosition(alice, dollar(105)),
+      position(0, alice, dollar(105), fromPip(10010)),
+      closePositon(alice, 0),
+      profit(alice, [[1, 1, 100]]),
+      balance(iUsd, liquidityPool.address, dollar(10002))
+    );
+  });
 
-    expect(profit).closeTo(expectedProfit, 0.0001);
+  it('should be able to make profit on price increase', async () => {
+    await run(
+      openPosition(alice, dollar(105)),
+      position(0, alice, dollar(105), fromPip(10010)),
+      setPrice(fromPercent(101)),
+      closePositon(alice, 0),
+      profit(alice, [[1, 1.01, 100]]),
+      balance(iUsd, liquidityPool.address, '9992079207920792079400')
+    );
+  });
 
-    expect(await iUsd.balanceOf(liquidityPool.address)).bignumber.equal(dollar(10002));
+  it('should be able to take lost on price decrease', async () => {
+    await run(
+      openPosition(alice, dollar(105)),
+      position(0, alice, dollar(105), fromPip(10010)),
+      setPrice(fromPercent(99)),
+      closePositon(alice, 0),
+      profit(alice, [[1, 0.99, 100]]),
+      balance(iUsd, liquidityPool.address, '10012121212121212121400')
+    );
+  });
+
+  it('should be able to have multiple positions', async () => {
+    await run(
+      openPosition(alice, dollar(105)),
+      openPosition(bob, dollar(65)),
+      position(0, alice, dollar(105), fromPip(10010)),
+      position(1, bob, dollar(65), fromPip(10010)),
+      setPrice(fromPercent(101)),
+      openPosition(bob, dollar(55)),
+      position(2, bob, dollar(55), fromPip(10110)),
+      setPrice(fromPercent(102)),
+      closePositon(alice, 0),
+      closePositon(bob, 2),
+      setPrice(fromPercent(99)),
+      closePositon(bob, 1),
+      profit(alice, [[1, 1.02, 100]]),
+      profit(bob, [[1, 0.99, 60], [1.01, 1.02, 50]]),
+      balance(iUsd, liquidityPool.address, '9985704099821746880940')
+    );
   });
 });

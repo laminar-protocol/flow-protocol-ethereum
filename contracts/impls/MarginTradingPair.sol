@@ -155,6 +155,8 @@ contract MarginTradingPair is Ownable {
 
         uint iTokenLiquidityPoolAmount = moneyMarket.convertAmountToBase(moneyMarket.exchangeRate(), liquidityPoolAmount);
         moneyMarket.iToken().safeTransfer(liquidityPool, iTokenLiquidityPoolAmount);
+
+        emit ClosePosition(owner, liquidityPool, sender, ownerAmount, liquidityPoolAmount);
     }
 
     function leverageAbs() private view returns (uint) {
