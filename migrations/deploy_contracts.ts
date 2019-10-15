@@ -41,6 +41,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const LiquidityPool = artifacts.require('LiquidityPool');
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const IERC20 = artifacts.require('IERC20');
+  const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
+  const MarginTradingPair = artifacts.require('MarginTradingPair');
 
   return async (deployer: Truffle.Deployer, network: Network, accounts: string[]) => {
     console.log(`---- Deploying on network: ${network}`);
@@ -62,16 +64,35 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     await protocol.addFlowToken(fEUR.address);
 
-    await deployer.deploy(LiquidityPool, protocol.address, moneyMarket.address, web3.utils.toWei('0.01'), [fEUR.address]);
+    await deployer.deploy(LiquidityPool, moneyMarket.address, web3.utils.toWei('0.01'));
     const pool = await LiquidityPool.deployed();
+
+    await pool.approve(protocol.address, web3.utils.toWei('1000000'));
+    await pool.enableToken(fEUR.address);
 
     await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
 
-    // await moneyMarket.mint(web3.utils.toWei('50'));
-
-    // await iToken.transfer(pool.address, web3.utils.toWei('50'));
-
     await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
+
+    // --- margin protocol
+
+    await deployer.deploy(FlowMarginProtocol, oracle.address, moneyMarket.address);
+    const marginProtocol = await FlowMarginProtocol.deployed();
+
+    await deployer.deploy(
+      MarginTradingPair,
+      marginProtocol.address,
+      moneyMarket.address,
+      fEUR.address,
+      10,
+      web3.utils.toWei('0.2'),
+      web3.utils.toWei('5')
+    );
+
+    const marginTradingPair = await MarginTradingPair.deployed();
+
+    await marginProtocol.addTradingPair(marginTradingPair.address);
+    await pool.approve(marginProtocol.address, web3.utils.toWei('1000000'));
 
     console.log('Deploy success', {
       moneyMarket: moneyMarket.address,
@@ -80,6 +101,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       protocol: protocol.address,
       fEUR: fEUR.address,
       pool: pool.address,
+      marginProtocol: marginProtocol.address,
+      marginTradingPair: marginTradingPair.address,
     });
   };
 };

@@ -8,13 +8,16 @@ interface MoneyMarketInterface {
 
     function exchangeRate() external view returns (uint);
 
-    function mint(uint baseTokenAmount) external;
-    function mintTo(address recipient, uint baseTokenAmount) external;
-    function redeem(uint iTokenAmount) external;
-    function redeemTo(address recipient, uint iTokenAmount) external;
+    function mint(uint baseTokenAmount) external returns (uint);
+    function mintTo(address recipient, uint baseTokenAmount) external returns (uint);
+    function redeem(uint iTokenAmount) external returns (uint);
+    function redeemTo(address recipient, uint iTokenAmount) external returns (uint);
     function redeemBaseToken(uint baseTokenAmount) external;
     function redeemBaseTokenTo(address recipient, uint baseTokenAmount) external;
 
     function convertAmountFromBase(uint rate, uint baseTokenAmount) external pure returns (uint);
     function convertAmountToBase(uint rate, uint iTokenAmount) external pure returns (uint);
+
+    event Minted(address indexed recipient, uint baseTokenAmount, uint iTokenAmount);
+    event Redeemed(address indexed recipient, uint baseTokenAmount, uint iTokenAmount);
 }

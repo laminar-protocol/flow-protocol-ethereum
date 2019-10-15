@@ -44,7 +44,11 @@ contract('FlowProtocol', (accounts) => {
     await usd.approve(moneyMarket.address, constants.MAX_UINT256, { from: liquidityProvider });
     await iUsd.approve(protocol.address, constants.MAX_UINT256, { from: liquidityProvider });
 
-    liquidityPool = await LiquidityPool.new(protocol.address, moneyMarket.address, fromPip(10), [fToken.address]);
+    liquidityPool = await LiquidityPool.new(moneyMarket.address, fromPip(10));
+
+    await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
+    await liquidityPool.enableToken(fToken.address);
+
     await moneyMarket.mintTo(liquidityPool.address, 10000, { from: liquidityProvider });
     await moneyMarket.mint(10000, { from: liquidityProvider });
 

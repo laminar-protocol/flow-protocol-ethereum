@@ -1,4 +1,4 @@
-import { expectRevert } from 'openzeppelin-test-helpers';
+import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import { LiquidityPoolInstance, TestTokenInstance, MoneyMarketInstance, IERC20Instance } from 'types/truffle-contracts';
 import * as helper from './helpers';
@@ -19,7 +19,11 @@ contract('LiquidityPool', (accounts) => {
   beforeEach(async () => {
     usd = await helper.createTestToken([liquidityProvider, 10000]);
     ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
-    liquidityPool = await LiquidityPool.new(protocol, moneyMarket.address, helper.fromPip(10), [fToken], { from: liquidityProvider });
+    liquidityPool = await LiquidityPool.new(moneyMarket.address, helper.fromPip(10), { from: liquidityProvider });
+
+    await liquidityPool.approve(protocol, constants.MAX_UINT256, { from: liquidityProvider });
+    await liquidityPool.enableToken(fToken, { from: liquidityProvider });
+
     usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
   });
 
