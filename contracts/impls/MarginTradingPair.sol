@@ -1,5 +1,7 @@
 pragma solidity ^0.5.8;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
@@ -11,6 +13,7 @@ import "../interfaces/MoneyMarketInterface.sol";
 
 contract MarginTradingPair is Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
     using Percentage for uint256;
 
     MoneyMarketInterface public moneyMarket;
@@ -107,7 +110,7 @@ contract MarginTradingPair is Ownable {
         uint price, Position storage position, uint bidPrice
     ) private view returns (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) {
         Percentage.Percent memory marginPercent = Percentage.fromFraction(1, leverageAbs());
-        uint maxDiff = price.mulPercent(marginPercent).sub(position.bidSpread);
+        uint maxDiff = price.mulPercent(marginPercent);
         uint totalMaxDiff = maxDiff * 2;   // can't overflow, maxDiff is price / X where X is >= 2
         uint safeDiff = maxDiff.mulPercent(safeMarginPercent);
 
@@ -149,7 +152,9 @@ contract MarginTradingPair is Ownable {
             liquidityPoolAmount = liquidityPoolAmount.add(iTokenLiquidationFee);
         }
         moneyMarket.redeemTo(owner, ownerAmount);
-        moneyMarket.redeemTo(liquidityPool, liquidityPoolAmount);
+
+        uint iTokenLiquidityPoolAmount = moneyMarket.convertAmountToBase(moneyMarket.exchangeRate(), liquidityPoolAmount);
+        moneyMarket.iToken().safeTransfer(liquidityPool, iTokenLiquidityPoolAmount);
     }
 
     function leverageAbs() private view returns (uint) {

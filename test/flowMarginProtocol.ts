@@ -3,9 +3,9 @@ import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import {
   SimplePriceOracleInstance, FlowMarginProtocolInstance, LiquidityPoolInstance, TestTokenInstance,
-  MarginTradingPairInstance, MoneyMarketInstance,
+  MarginTradingPairInstance, MoneyMarketInstance, IERC20Instance
 } from 'types/truffle-contracts';
-import { createTestToken, createMoneyMarket, fromPercent, messages, fromPip, dollar } from './helpers';
+import { createTestToken, createMoneyMarket, fromPercent, messages, fromPip, dollar, bn } from './helpers';
 
 const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
 const LiquidityPool = artifacts.require('LiquidityPool');
@@ -24,6 +24,7 @@ contract('FlowMarginProtocol', (accounts) => {
   let protocol: FlowMarginProtocolInstance;
   let liquidityPool: LiquidityPoolInstance;
   let usd: TestTokenInstance;
+  let iUsd: IERC20Instance;
   let pair: MarginTradingPairInstance;
   let moneyMarket: MoneyMarketInstance;
 
@@ -35,7 +36,7 @@ contract('FlowMarginProtocol', (accounts) => {
 
   beforeEach(async () => {
     usd = await createTestToken([liquidityProvider, dollar(20000)], [alice, dollar(10000)], [bob, dollar(10000)]);
-    ({ moneyMarket } = await createMoneyMarket(usd.address, fromPercent(100)));
+    ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(usd.address, fromPercent(100)));
     protocol = await FlowMarginProtocol.new(oracle.address, moneyMarket.address);
     pair = await MarginTradingPair.new(protocol.address, moneyMarket.address, eur, 10, fromPercent(80), dollar(5));
     await protocol.addTradingPair(pair.address);
@@ -58,7 +59,7 @@ contract('FlowMarginProtocol', (accounts) => {
     await expectRevert(protocol.addTradingPair(eur, { from: badAddress }), messages.onlyOwner);
   });
 
-  it('open position', async () => {
+  it('able to open and close position', async () => {
     await protocol.openPosition(pair.address, liquidityPool.address, dollar(105), { from: alice });
 
     const positon = await pair.positions(0);
@@ -69,5 +70,28 @@ contract('FlowMarginProtocol', (accounts) => {
         expect(positon[i]).equal(x);
       }
     });
+
+    expect(await usd.balanceOf(alice)).bignumber.equal(dollar(10000 - 105));
+    expect(await iUsd.balanceOf(liquidityPool.address)).bignumber.equal(dollar(10000 - 105));
+    expect(await iUsd.balanceOf(pair.address)).bignumber.equal(dollar(210));
+
+    await protocol.closePosition(pair.address, 0, { from: alice });
+
+    const price = 1;
+    const spread = 0.001;
+    const openPrice = price + spread;
+    const closePrice = price - spread;
+    const diff = (closePrice - openPrice) / price;
+    const leverage = 10;
+    const leveragedDiff = diff * leverage;
+    const principal = 100;
+    const expectedProfit = principal * leveragedDiff;
+
+    const bal: BN = await usd.balanceOf(alice) as any;
+    const profit = bal.sub(dollar(10000)).mul(bn(10000)).div(dollar(1)).toNumber() / 10000;
+
+    expect(profit).closeTo(expectedProfit, 0.0001);
+
+    expect(await iUsd.balanceOf(liquidityPool.address)).bignumber.equal(dollar(10002));
   });
 });
