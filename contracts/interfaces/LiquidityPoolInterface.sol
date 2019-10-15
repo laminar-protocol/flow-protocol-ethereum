@@ -1,7 +1,5 @@
 pragma solidity ^0.5.8;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
 interface LiquidityPoolInterface {
     // return 0 means not available for this trade
     function getBidSpread(address fToken) external view returns (uint);
@@ -11,7 +9,7 @@ interface LiquidityPoolInterface {
     function getAdditoinalCollateralRatio(address fToken) external view returns (uint);
 
     // positive leverage means long, negative means short
-    function openPosition(address tradingPair, uint positionId, IERC20 quoteToken, int leverage, uint baseTokenAmount) external returns (bool);
+    function openPosition(address tradingPair, uint positionId, address quoteToken, int leverage, uint baseTokenAmount) external returns (bool);
 
     event SpreadUpdated();
     event AdditoinalCollateralRatioUpdated();

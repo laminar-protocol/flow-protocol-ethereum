@@ -1,7 +1,5 @@
 pragma solidity ^0.5.8;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
@@ -14,11 +12,10 @@ import "../interfaces/MoneyMarketInterface.sol";
 contract MarginTradingPair is Ownable {
     using SafeMath for uint256;
     using Percentage for uint256;
-    using SafeERC20 for IERC20;
 
     MoneyMarketInterface public moneyMarket;
 
-    IERC20 public quoteToken;
+    address public quoteToken;
     int public leverage; // positive means long, negative means short
 
     Percentage.Percent public safeMarginPercent;
@@ -42,7 +39,7 @@ contract MarginTradingPair is Ownable {
     constructor(
         address protocol,
         MoneyMarketInterface moneyMarket_,
-        IERC20 quoteToken_,
+        address quoteToken_,
         int leverage_,
         uint safeMarginPercent_,
         uint liquidationFee_

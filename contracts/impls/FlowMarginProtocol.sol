@@ -50,7 +50,7 @@ contract FlowMarginProtocol is Ownable, ReentrancyGuard {
         uint bidSpread = pool.getBidSpread(quoteToken);
 
         require(
-            pool.openPosition(address(pair), pair.nextPositionId(), pair.quoteToken(), pair.leverage(), baseTokenAmount),
+            pool.openPosition(address(pair), pair.nextPositionId(), address(pair.quoteToken()), pair.leverage(), baseTokenAmount),
             "Cannot open position with liquidity pool"
         );
 
