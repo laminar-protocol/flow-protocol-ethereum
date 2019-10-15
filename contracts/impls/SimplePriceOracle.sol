@@ -4,6 +4,7 @@ import "../interfaces/PriceOracleInterface.sol";
 import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
 import "../roles/PriceFeederRole.sol";
+import "../libs/Arrays.sol";
 
 library PriceOracleStructs {
     struct PriceRecord {
@@ -19,7 +20,7 @@ contract PriceOracleDataSource is PriceFeederRole {
     mapping(address => bool) private hasUpdate;
 
     // to store temp non-expired records for `findMedianPrice` method
-    PriceOracleStructs.PriceRecord[] private validPriceRecords;
+    uint[] private validPrices;
 
     constructor(address[] memory priceFeeders) public {
         for (uint i = 0; i < priceFeeders.length; i++) {
@@ -36,16 +37,15 @@ contract PriceOracleDataSource is PriceFeederRole {
         uint expireAt = block.timestamp - expireIn;
 
         // filter active price records
-        delete validPriceRecords;
+        delete validPrices;
         for (uint i = 0; i < priceFeeders.length; i++) {
             PriceOracleStructs.PriceRecord storage record = priceRecords[key][priceFeeders[i]];
             if (record.timestamp > expireAt) {
-                validPriceRecords.push(record);
+                validPrices.push(record.price);
             }
         }
 
-        // TODO: find median
-        return 0;
+        return Arrays.findMedian(validPrices);
     }
 }
 
