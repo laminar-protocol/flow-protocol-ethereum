@@ -3,7 +3,7 @@ import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import {
   SimplePriceOracleInstance, FlowMarginProtocolInstance, LiquidityPoolInstance, TestTokenInstance,
-  MarginTradingPairInstance, MoneyMarketInstance, IERC20Instance
+  MarginTradingPairInstance, MoneyMarketInstance, IERC20Instance,
 } from 'types/truffle-contracts';
 import { createTestToken, createMoneyMarket, fromPercent, messages, fromPip, dollar, bn } from './helpers';
 
@@ -63,12 +63,12 @@ contract('FlowMarginProtocol', (accounts) => {
     for (const act of actions) {
       await act();
     }
-  }
+  };
 
   const openPosition = (from: string, amount: any) => () =>
     protocol.openPosition(pair.address, liquidityPool.address, amount, { from });
   const closePositon = (from: string, id: number) => () =>
-  protocol.closePosition(pair.address, id, { from });
+    protocol.closePosition(pair.address, id, { from });
   const position = (id: number, from: string, amount: any, openPrice: any) => async () => {
     const positon = await pair.positions(id);
     [from, liquidityPool.address, amount, openPrice, dollar(5), fromPip(10)].forEach((x, i) => {
