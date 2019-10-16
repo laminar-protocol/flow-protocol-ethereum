@@ -283,7 +283,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }
 
-    function getPrice(address tokenAddr) internal view returns (uint) {
+    function getPrice(address tokenAddr) internal returns (uint) {
         uint price = oracle.getPrice(tokenAddr);
         require(price > 0, "no oracle price");
         return price;

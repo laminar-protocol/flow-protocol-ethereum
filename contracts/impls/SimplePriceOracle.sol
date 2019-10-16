@@ -64,7 +64,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface {
 
     event PriceUpdated(address indexed addr, uint price);
 
-    function getPrice(address key) external view returns (uint) {
+    function getPrice(address key) external returns (uint) {
         if (dataSource.hasUpdate(key)) {
             uint price = dataSource.findMedianPrice(key, expireIn);
             if (price > 0) {
