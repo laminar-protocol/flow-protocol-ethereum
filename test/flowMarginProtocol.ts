@@ -12,7 +12,7 @@ const LiquidityPool = artifacts.require('LiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const MarginTradingPair = artifacts.require('MarginTradingPair');
 
-contract.only('FlowMarginProtocol', (accounts) => {
+contract('FlowMarginProtocol', (accounts) => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
