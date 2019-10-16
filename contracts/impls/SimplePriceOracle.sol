@@ -58,7 +58,6 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface {
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
     PriceOracleDataSource private dataSource;
-    uint private expireIn;
 
     bool public constant isPriceOracle = true;
 

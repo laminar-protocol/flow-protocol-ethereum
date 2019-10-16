@@ -11,6 +11,8 @@ contract PriceOracleConfig is Ownable {
     Percentage.Percent public oracleDeltaSnapshotLimit;
     // min time between snapshots
     uint public oracleDeltaSnapshotTime;
+    // price record is considered expired after this amount of time
+    uint public expireIn;
 
     constructor() internal {
         // TODO: all those values should be from constructor parameter
@@ -29,5 +31,9 @@ contract PriceOracleConfig is Ownable {
 
     function setOracleDeltaSnapshotTime(uint time) public onlyOwner {
         oracleDeltaSnapshotTime = time;
+    }
+
+    function setExpireIn(uint time) public onlyOwner {
+        expireIn = time;
     }
 }
