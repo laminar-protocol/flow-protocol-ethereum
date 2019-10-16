@@ -53,7 +53,7 @@ contract PriceOracleDataSource is PriceFeederRole {
     }
 }
 
-contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInterface {
+contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface {
     mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
@@ -69,13 +69,13 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
             uint price = dataSource.findMedianPrice(key, expireIn);
             if (price > 0) {
                 setPrice(key, price);
-                dataSource.setHasUpdate(key, false);
             }
+            dataSource.setHasUpdate(key, false);
         }
         return cachedPrices[key];
     }
 
-    function setPrice(address addr, uint price) public onlyPriceFeeder {
+    function setPrice(address addr, uint price) private {
         require(price != 0, "Invalid price");
         uint lastPrice = cachedPrices[addr];
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
@@ -91,7 +91,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
         emit PriceUpdated(addr, price3);
     }
 
-    function capPrice(uint current, uint last, Percentage.Percent storage limit) internal pure returns (uint) {
+    function capPrice(uint current, uint last, Percentage.Percent storage limit) private pure returns (uint) {
         if (last == 0) {
             return current;
         }
