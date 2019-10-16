@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
+import "./FlowProtocol.sol";
+import "./FlowToken.sol";
 import "./FlowMarginProtocol.sol";
 import "./MarginTradingPair.sol";
 
@@ -98,7 +100,20 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
         allowedTokens[token] = false;
     }
 
-    function withdraw(uint amount) external onlyOwner {
+    function depositLiquidity(uint amount) external {
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), amount);
+        moneyMarket.mint(amount);
+    }
+
+    function withdrawLiquidity(uint amount) external onlyOwner {
         moneyMarket.redeemTo(msg.sender, amount);
+    }
+
+    function addCollateral(FlowProtocol protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {
+        protocol.addCollateral(token, address(this), baseTokenAmount);
+    }
+
+    function withdrawCollateral(FlowProtocol protocol, FlowToken token) external onlyOwner {
+        protocol.withdrawCollateral(token);
     }
 }

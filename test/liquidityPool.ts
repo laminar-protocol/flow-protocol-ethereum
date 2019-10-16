@@ -111,13 +111,13 @@ contract('LiquidityPool', (accounts) => {
     });
 
     it('should be able to withdraw by owner', async () => {
-      await liquidityPool.withdraw(500, { from: liquidityProvider });
+      await liquidityPool.withdrawLiquidity(500, { from: liquidityProvider });
       expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(helper.bn(9500));
       expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(helper.bn(500));
     });
 
     it('should not be able to withdraw by others', async () => {
-      await expectRevert(liquidityPool.withdraw(500, { from: badAddress }), helper.messages.onlyOwner);
+      await expectRevert(liquidityPool.withdrawLiquidity(500, { from: badAddress }), helper.messages.onlyOwner);
     });
   });
 });
