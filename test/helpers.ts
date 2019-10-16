@@ -30,4 +30,7 @@ export const messages = {
   onlyOwner: 'Ownable: caller is not the owner',
   onlyPriceFeeder: 'PriceFeederRole: caller does not have the PriceFeeder role',
   stillSafe: 'Still in a safe position',
+  notEnoughLiquidationFee: 'Not enough to pay for liquidation fee',
+  onlyOwnerCanClosePosition: 'Only position owner can close a safe position',
+  onlyOwnerOrLiquidityPoolCanClosePosition: 'Only position owner or liquidity pool can close a open position'
 };

@@ -12,7 +12,7 @@ const LiquidityPool = artifacts.require('LiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const MarginTradingPair = artifacts.require('MarginTradingPair');
 
-contract('FlowMarginProtocol', (accounts) => {
+contract.only('FlowMarginProtocol', (accounts) => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -38,8 +38,6 @@ contract('FlowMarginProtocol', (accounts) => {
     usd = await createTestToken([liquidityProvider, dollar(20000)], [alice, dollar(10000)], [bob, dollar(10000)]);
     ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(usd.address, fromPercent(100)));
     protocol = await FlowMarginProtocol.new(oracle.address, moneyMarket.address);
-    pair = await MarginTradingPair.new(protocol.address, moneyMarket.address, eur, 10, fromPercent(80), dollar(5));
-    await protocol.addTradingPair(pair.address);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
@@ -55,10 +53,6 @@ contract('FlowMarginProtocol', (accounts) => {
     await oracle.setPrice(eur, fromPercent(100));
   });
 
-  it('requires owner to add new trading pair', async () => {
-    await expectRevert(protocol.addTradingPair(eur, { from: badAddress }), messages.onlyOwner);
-  });
-
   const run = async (...actions: Array<() => any>) => {
     for (const act of actions) {
       await act();
@@ -69,6 +63,9 @@ contract('FlowMarginProtocol', (accounts) => {
     protocol.openPosition(pair.address, liquidityPool.address, amount, { from });
   const closePositon = (from: string, id: number) => () =>
     protocol.closePosition(pair.address, id, { from });
+  const liquidityPoolClosePosition = (id: number) => () =>
+    liquidityPool.closeMarginPosition(protocol.address, pair.address, id);
+
   const position = (id: number, from: string, amount: any, openPrice: any) => async () => {
     const positon = await pair.positions(id);
     [from, liquidityPool.address, amount, openPrice, dollar(5), fromPip(10)].forEach((x, i) => {
@@ -88,9 +85,9 @@ contract('FlowMarginProtocol', (accounts) => {
       const spread = 0.001;
       const openPrice = startPrice + spread;
       const closePrice = endPrice - spread;
-      const diff = (closePrice - openPrice) / endPrice;
-      const leverage = 10;
-      const leveragedDiff = diff * leverage;
+      const diff = (closePrice - openPrice) / openPrice;
+      const leverage = await pair.leverage();
+      const leveragedDiff = diff * leverage.toNumber();
       const expectedProfit = principal * leveragedDiff;
       totalProfit += expectedProfit;
     }
@@ -100,57 +97,261 @@ contract('FlowMarginProtocol', (accounts) => {
 
     expect(profitVal).closeTo(totalProfit, 0.0001);
   };
+  const revert = (fn: () => Promise<any>, msg: string) => () => expectRevert(fn(), msg);
 
-
-  it('able to open and close position', async () => {
-    await run(
-      openPosition(alice, dollar(105)),
-      position(0, alice, dollar(105), fromPip(10010)),
-      closePositon(alice, 0),
-      profit(alice, [[1, 1, 100]]),
-      balance(iUsd, liquidityPool.address, dollar(10002))
-    );
+  it('requires owner to add new trading pair', async () => {
+    await expectRevert(protocol.addTradingPair(eur, { from: badAddress }), messages.onlyOwner);
   });
 
-  it('should be able to make profit on price increase', async () => {
-    await run(
-      openPosition(alice, dollar(105)),
-      position(0, alice, dollar(105), fromPip(10010)),
-      setPrice(fromPercent(101)),
-      closePositon(alice, 0),
-      profit(alice, [[1, 1.01, 100]]),
-      balance(iUsd, liquidityPool.address, '9992079207920792079400')
-    );
+  describe('with 10x long leverage', () => {
+    beforeEach(async () => {
+      pair = await MarginTradingPair.new(protocol.address, moneyMarket.address, eur, 10, fromPercent(70), dollar(5));
+      await protocol.addTradingPair(pair.address);
+    });
+
+    it('should be able to make profit on price increase', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        position(0, alice, dollar(105), fromPip(10010)),
+        setPrice(fromPercent(101)),
+        closePositon(alice, 0),
+        profit(alice, [[1, 1.01, 100]]),
+        balance(iUsd, liquidityPool.address, '9992007992007992008000')
+      );
+    });
+
+    it('should be able to take lost on price decrease', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        position(0, alice, dollar(105), fromPip(10010)),
+        setPrice(fromPercent(99)),
+        closePositon(alice, 0),
+        profit(alice, [[1, 0.99, 100]]),
+        balance(iUsd, liquidityPool.address, '10011988011988011988200')
+      );
+    });
+
+    it('should be able to have multiple positions', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        openPosition(bob, dollar(65)),
+        position(0, alice, dollar(105), fromPip(10010)),
+        position(1, bob, dollar(65), fromPip(10010)),
+        setPrice(fromPercent(101)),
+        openPosition(bob, dollar(55)),
+        position(2, bob, dollar(55), fromPip(10110)),
+        setPrice(fromPercent(102)),
+        closePositon(alice, 0),
+        closePositon(bob, 2),
+        setPrice(fromPercent(99)),
+        closePositon(bob, 1),
+        profit(alice, [[1, 1.02, 100]]),
+        profit(bob, [[1, 0.99, 60], [1.01, 1.02, 50]]),
+        balance(iUsd, liquidityPool.address, '9985254310476862405820')
+      );
+    });
+
+    describe('liquidation', () => {
+      it('should not open position without enough liquidation fee', async () => {
+        await run(
+          revert(openPosition(alice, dollar(5)), messages.notEnoughLiquidationFee),
+          revert(openPosition(alice, dollar(1)), messages.notEnoughLiquidationFee),
+        );
+      });
+
+      describe('with a safe open position', () => {
+        beforeEach(async () => {
+          await openPosition(alice, dollar(105))();
+        });
+
+        it('should allow owner to close it', async () => {
+          await run(
+            position(0, alice, dollar(105), fromPip(10010)),
+            closePositon(alice, 0),
+            profit(alice, [[1, 1, 100]]),
+            balance(iUsd, liquidityPool.address, '10001998001998001998200')
+          );
+        });
+
+        it('should not allow liquidity pool to close it', async () => {
+          await revert(liquidityPoolClosePosition(0), messages.onlyOwnerCanClosePosition)();
+        });
+
+        it('should not allow others to close it', async () => {
+          await revert(closePositon(bob, 0), messages.onlyOwnerOrLiquidityPoolCanClosePosition)();
+        });
+      });
+
+      describe('with an unsafe open position with increased price', () => {
+        beforeEach(async () => {
+          await run(
+            openPosition(alice, dollar(105)),
+            setPrice(fromPercent(108)),
+          );
+        });
+
+        it('should allow owner to close it', async () => {
+          await run(
+            closePositon(alice, 0),
+            profit(alice, [[1, 1.08, 100]]),
+          );
+        });
+
+        it('should  allow liquidity pool to close it', async () => {
+          await run(
+            liquidityPoolClosePosition(0),
+            profit(alice, [[1, 1.08, 100]]),
+          );
+        });
+
+        it('should not allow others to close it', async () => {
+          await revert(closePositon(bob, 0), messages.onlyOwnerOrLiquidityPoolCanClosePosition)();
+        });
+      });
+
+      describe('with an unsafe open position with decreased price', () => {
+        beforeEach(async () => {
+          await run(
+            openPosition(alice, dollar(105)),
+            setPrice(fromPercent(92)),
+          );
+        });
+
+        it('should allow owner to close it', async () => {
+          await run(
+            closePositon(alice, 0),
+            profit(alice, [[1, 0.92, 100]]),
+          );
+        });
+
+        it('should  allow liquidity pool to close it', async () => {
+          await run(
+            liquidityPoolClosePosition(0),
+            profit(alice, [[1, 0.92, 100]]),
+          );
+        });
+
+        it('should not allow others to close it', async () => {
+          await revert(closePositon(bob, 0), messages.onlyOwnerOrLiquidityPoolCanClosePosition)();
+        });
+      });
+
+      describe('with an closed position with increased price', () => {
+        beforeEach(async () => {
+          await run(
+            openPosition(alice, dollar(105)),
+            setPrice(fromPercent(111)),
+          );
+        });
+
+        it('should allow owner to close it', async () => {
+          await run(
+            closePositon(alice, 0),
+            balance(usd, alice, dollar(10000 + 100 + 5)),
+            balance(iUsd, liquidityPool.address, dollar(10000 - 100 - 5)),
+          );
+        });
+
+        it('should  allow liquidity pool to close it', async () => {
+          await run(
+            liquidityPoolClosePosition(0),
+            balance(usd, alice, dollar(10000 + 100 - 5)),
+            balance(iUsd, liquidityPool.address, dollar(10000 - 100 + 5)),
+          );
+        });
+
+        it('should allow others to close it and take liquidation fee', async () => {
+          await run(
+            closePositon(bob, 0),
+            balance(usd, alice, dollar(10000 + 100 - 5)),
+            balance(iUsd, liquidityPool.address, dollar(10000 - 100 - 5)),
+            balance(usd, bob, dollar(10000 + 5 + 5)),
+          );
+        });
+      });
+
+      describe('with an closed position with decreased price', () => {
+        beforeEach(async () => {
+          await run(
+            openPosition(alice, dollar(105)),
+            setPrice(fromPercent(89)),
+          );
+        });
+
+        it('should allow owner to close it', async () => {
+          await run(
+            closePositon(alice, 0),
+            balance(usd, alice, dollar(10000 - 100 + 5)),
+            balance(iUsd, liquidityPool.address, dollar(10000 + 100 - 5)),
+          );
+        });
+
+        it('should  allow liquidity pool to close it', async () => {
+          await run(
+            liquidityPoolClosePosition(0),
+            balance(usd, alice, dollar(10000 - 100 - 5)),
+            balance(iUsd, liquidityPool.address, dollar(10000 + 100 + 5)),
+          );
+        });
+
+        it('should allow others to close it and take liquidation fee', async () => {
+          await run(
+            closePositon(bob, 0),
+            balance(usd, alice, dollar(10000 - 100 - 5)),
+            balance(iUsd, liquidityPool.address, dollar(10000 + 100 - 5)),
+            balance(usd, bob, dollar(10000 + 5 + 5)),
+          );
+        });
+      });
+    });
   });
 
-  it('should be able to take lost on price decrease', async () => {
-    await run(
-      openPosition(alice, dollar(105)),
-      position(0, alice, dollar(105), fromPip(10010)),
-      setPrice(fromPercent(99)),
-      closePositon(alice, 0),
-      profit(alice, [[1, 0.99, 100]]),
-      balance(iUsd, liquidityPool.address, '10012121212121212121400')
-    );
-  });
+  describe('with 5x short leverage', () => {
+    beforeEach(async () => {
+      pair = await MarginTradingPair.new(protocol.address, moneyMarket.address, eur, -5, fromPercent(70), dollar(5));
+      await protocol.addTradingPair(pair.address);
+    });
 
-  it('should be able to have multiple positions', async () => {
-    await run(
-      openPosition(alice, dollar(105)),
-      openPosition(bob, dollar(65)),
-      position(0, alice, dollar(105), fromPip(10010)),
-      position(1, bob, dollar(65), fromPip(10010)),
-      setPrice(fromPercent(101)),
-      openPosition(bob, dollar(55)),
-      position(2, bob, dollar(55), fromPip(10110)),
-      setPrice(fromPercent(102)),
-      closePositon(alice, 0),
-      closePositon(bob, 2),
-      setPrice(fromPercent(99)),
-      closePositon(bob, 1),
-      profit(alice, [[1, 1.02, 100]]),
-      profit(bob, [[1, 0.99, 60], [1.01, 1.02, 50]]),
-      balance(iUsd, liquidityPool.address, '9985704099821746880940')
-    );
+    it('should be able to take lost on price increase', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        position(0, alice, dollar(105), fromPip(10010)),
+        setPrice(fromPercent(101)),
+        closePositon(alice, 0),
+        profit(alice, [[1, 1.01, 100]]),
+        balance(iUsd, liquidityPool.address, '10003996003996003996000')
+      );
+    });
+
+    it('should be able to make profit on price decrease', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        position(0, alice, dollar(105), fromPip(10010)),
+        setPrice(fromPercent(99)),
+        closePositon(alice, 0),
+        profit(alice, [[1, 0.99, 100]]),
+        balance(iUsd, liquidityPool.address, '9994005994005994005800')
+      );
+    });
+
+    it('should be able to have multiple positions', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        openPosition(bob, dollar(65)),
+        position(0, alice, dollar(105), fromPip(10010)),
+        position(1, bob, dollar(65), fromPip(10010)),
+        setPrice(fromPercent(101)),
+        openPosition(bob, dollar(55)),
+        position(2, bob, dollar(55), fromPip(10110)),
+        setPrice(fromPercent(102)),
+        closePositon(alice, 0),
+        closePositon(bob, 2),
+        setPrice(fromPercent(99)),
+        closePositon(bob, 1),
+        profit(alice, [[1, 1.02, 100]]),
+        profit(bob, [[1, 0.99, 60], [1.01, 1.02, 50]]),
+        balance(iUsd, liquidityPool.address, '10007372844761568796980')
+      );
+    });
   });
 });

@@ -86,7 +86,7 @@ contract MarginTradingPair is Ownable {
 
         uint bidPrice = price.sub(position.bidSpread);
 
-        (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) = _closePositionHelper(price, position, bidPrice);
+        (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) = _closePositionHelper(position, bidPrice);
 
         if (sender != owner) {
             if (sender != liquidityPool) {
@@ -107,10 +107,10 @@ contract MarginTradingPair is Ownable {
     }
 
     function _closePositionHelper(
-        uint price, Position storage position, uint bidPrice
+        Position storage position, uint bidPrice
     ) private view returns (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) {
         Percentage.Percent memory marginPercent = Percentage.fromFraction(1, leverageAbs());
-        uint maxDiff = price.mulPercent(marginPercent);
+        uint maxDiff = position.openPrice.mulPercent(marginPercent);
         uint totalMaxDiff = maxDiff * 2;   // can't overflow, maxDiff is price / X where X is >= 2
         uint safeDiff = maxDiff.mulPercent(safeMarginPercent);
 
@@ -144,9 +144,13 @@ contract MarginTradingPair is Ownable {
         }
 
         if (liquidated) {
-            uint senderAmount = iTokenLiquidationFee.mul(2); // take all the liquidation fee
+            uint senderAmount = iTokenLiquidationFee * 2; // take all the liquidation fee
 
-            moneyMarket.redeemTo(sender, senderAmount);
+            if (sender == liquidityPool) {
+                liquidityPoolAmount = liquidityPoolAmount.add(senderAmount);
+            } else {
+                moneyMarket.redeemTo(sender, senderAmount);
+            }
         } else {
             ownerAmount = ownerAmount.add(iTokenLiquidationFee);
             liquidityPoolAmount = liquidityPoolAmount.add(iTokenLiquidationFee);
