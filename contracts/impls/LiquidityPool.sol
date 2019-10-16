@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
+import "./FlowMarginProtocol.sol";
+import "./MarginTradingPair.sol";
 
 contract LiquidityPool is LiquidityPoolInterface, Ownable {
     using SafeERC20 for IERC20;
@@ -48,6 +50,14 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
     function openPosition(
         address /* tradingPair */, uint /* positionId */, address quoteToken, int leverage, uint /* baseTokenAmount */
     ) external returns (bool) {
+        // This is a view function so no need to have permission control
+        // Otherwise needs to require msg.sender is approved FlowMarginProtocol
+        return _openPosition(quoteToken, leverage);
+    }
+
+    function _openPosition(
+        address quoteToken, int leverage
+    ) private view returns (bool) {
         if (!allowedTokens[quoteToken]) {
             return false;
         }
@@ -58,6 +68,10 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
             return false;
         }
         return true;
+    }
+
+    function closeMarginPosition(FlowMarginProtocol protocol, MarginTradingPair pair, uint id) external onlyOwner {
+        protocol.closePosition(pair, id);
     }
 
     function approve(address protocol, uint amount) external onlyOwner {
