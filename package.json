@@ -6,11 +6,12 @@
   "scripts": {
     "generate": "truffle compile && typechain --target truffle './build/**/*.json' && typechain --target web3-1.0.0 './build/**/*.json'",
     "postinstall": "yarn generate",
-    "verify": "truffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network kovan",
+    "verify:kovan": "truffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network kovan",
     "lint": "solium -d contracts/ && eslint --ext .js,.ts . && tsc --noEmit --pretty",
     "test": "truffle test",
     "ganache": "ganache-cli -p 9545 -m 'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat' > /dev/null &",
-    "stop": "sudo kill `sudo lsof -t -i:9545`"
+    "stop": "sudo kill `sudo lsof -t -i:9545`",
+    "deploy:kovan": "truffle migrate --reset --network kovan && yarn verify:kovan"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.3.0",
@@ -19,11 +20,11 @@
   "devDependencies": {
     "@types/chai": "^4.2.3",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.7.12",
-    "@typescript-eslint/eslint-plugin": "^2.3.3",
-    "@typescript-eslint/parser": "^2.3.3",
+    "@types/node": "^12.11.1",
+    "@typescript-eslint/eslint-plugin": "^2.4.0",
+    "@typescript-eslint/parser": "^2.4.0",
     "chai": "^4.2.0",
-    "dotenv": "^8.1.0",
+    "dotenv": "^8.2.0",
     "eslint": "^6.5.1",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-import-resolver-typescript": "^2.0.0",
@@ -31,7 +32,7 @@
     "ethlint": "^1.2.5",
     "ganache-cli": "^6.7.0",
     "openzeppelin-test-helpers": "^0.5.1",
-    "truffle": "^5.0.39",
+    "truffle": "^5.0.40",
     "truffle-contract-size": "^1.0.1",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-typings": "^1.0.8",
