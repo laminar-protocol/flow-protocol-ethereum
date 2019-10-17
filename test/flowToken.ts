@@ -9,7 +9,7 @@ import {
 
 const FlowToken = artifacts.require('FlowToken');
 
-contract('FlowProtocol', (accounts) => {
+contract('FlowToken', (accounts) => {
   const owner = accounts[0];
   const liquidityPool = accounts[1];
   const liquidityPoolTwo = accounts[2];
@@ -34,7 +34,7 @@ contract('FlowProtocol', (accounts) => {
   describe('with some position', () => {
     beforeEach(async () => {
       await fToken.addPosition(liquidityPool, 1200, 100, 200);
-      await iUsd.transfer(fToken.address, 1200);
+      await iUsd.transfer(fToken.address, 12000);
     });
 
     it('should be able to addPosition and keep interest share rate', async () => {
@@ -46,7 +46,7 @@ contract('FlowProtocol', (accounts) => {
       expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(bn(200));
 
       await fToken.addPosition(liquidityPoolTwo, 2400, 200, 400);
-      await iUsd.transfer(fToken.address, 2400);
+      await iUsd.transfer(fToken.address, 24000);
 
       expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(3600));
@@ -59,7 +59,7 @@ contract('FlowProtocol', (accounts) => {
     it('should be able to remove position', async () => {
       expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(0));
       await fToken.removePosition(liquidityPool, 600, 50);
-      await iUsd.transferFrom(fToken.address, owner, 600);
+      await iUsd.transferFrom(fToken.address, owner, 6000);
 
       expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(600));
@@ -70,7 +70,7 @@ contract('FlowProtocol', (accounts) => {
 
       expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(0));
       await fToken.removePosition(liquidityPool, 600, 50);
-      await iUsd.transferFrom(fToken.address, owner, 600);
+      await iUsd.transferFrom(fToken.address, owner, 6000);
 
       expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(0));
@@ -95,7 +95,7 @@ contract('FlowProtocol', (accounts) => {
         expect(await fToken.removePosition.call(liquidityPool, 0, 0)).bignumber.equal(bn(240));
         await fToken.removePosition(liquidityPool, 0, 0);
         // take 240 / 1.2 iToken away
-        await iUsd.transferFrom(fToken.address, owner, 240 / 1.2);
+        await iUsd.transferFrom(fToken.address, owner, 2400 / 1.2);
 
         expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(220));
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(1200));
@@ -108,7 +108,7 @@ contract('FlowProtocol', (accounts) => {
       it('should be able to remove position', async () => {
         expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(240));
         await fToken.removePosition(liquidityPool, 600, 50);
-        await iUsd.transferFrom(fToken.address, owner, 840 / 1.2);
+        await iUsd.transferFrom(fToken.address, owner, 8400 / 1.2);
 
         expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(220));
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(600));
@@ -119,7 +119,7 @@ contract('FlowProtocol', (accounts) => {
 
         expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(0));
         await fToken.removePosition(liquidityPool, 600, 50);
-        await iUsd.transferFrom(fToken.address, owner, 600 / 1.2);
+        await iUsd.transferFrom(fToken.address, owner, 6000 / 1.2);
 
         expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(0));

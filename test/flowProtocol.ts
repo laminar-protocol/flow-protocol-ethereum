@@ -79,14 +79,14 @@ contract('FlowProtocol', (accounts) => {
       buy(alice, dollar(1001)),
       balance(fToken, alice, dollar(1000)),
       balance(usd, alice, dollar(8999)),
-      balance(iUsd, fToken.address, dollar(1100)),
-      balance(iUsd, liquidityPool.address, dollar(9901)),
+      balance(iUsd, fToken.address, dollar(11000)),
+      balance(iUsd, liquidityPool.address, dollar(99010)),
 
       sell(alice, dollar(1000)),
       balance(fToken, alice, 0),
       balance(usd, alice, dollar(9998)),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, dollar(10002)),
+      balance(iUsd, liquidityPool.address, dollar(100020)),
     );
   });
 
@@ -95,15 +95,15 @@ contract('FlowProtocol', (accounts) => {
       buy(alice, dollar(1001)),
       balance(fToken, alice, dollar(1000)),
       balance(usd, alice, dollar(8999)),
-      balance(iUsd, fToken.address, dollar(1100)),
-      balance(iUsd, liquidityPool.address, dollar(9901)),
+      balance(iUsd, fToken.address, dollar(11000)),
+      balance(iUsd, liquidityPool.address, dollar(99010)),
       setPrice(105),
 
       sell(alice, dollar(1000)),
       balance(fToken, alice, 0),
       balance(usd, alice, '10047950000000000000000'),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, '9952050000000000000000'),
+      balance(iUsd, liquidityPool.address, '99520500000000000000000'),
     );
   });
 
@@ -112,15 +112,15 @@ contract('FlowProtocol', (accounts) => {
       buy(alice, dollar(1001)),
       balance(fToken, alice, dollar(1000)),
       balance(usd, alice, dollar(8999)),
-      balance(iUsd, fToken.address, dollar(1100)),
-      balance(iUsd, liquidityPool.address, dollar(9901)),
+      balance(iUsd, fToken.address, dollar(11000)),
+      balance(iUsd, liquidityPool.address, dollar(99010)),
       setPrice(95),
 
       sell(alice, dollar(1000)),
       balance(fToken, alice, 0),
       balance(usd, alice, '9948050000000000000000'),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, '10051950000000000000000'),
+      balance(iUsd, liquidityPool.address, '100519500000000000000000'),
     );
   });
 
@@ -132,8 +132,8 @@ contract('FlowProtocol', (accounts) => {
       balance(fToken, bob, dollar(1000)),
       balance(usd, alice, dollar(8999)),
       balance(usd, bob, dollar(8999)),
-      balance(iUsd, fToken.address, dollar(2200)),
-      balance(iUsd, liquidityPool.address, dollar(9802)),
+      balance(iUsd, fToken.address, dollar(22000)),
+      balance(iUsd, liquidityPool.address, dollar(98020)),
 
       setPrice(98),
 
@@ -143,8 +143,8 @@ contract('FlowProtocol', (accounts) => {
       balance(fToken, bob, dollar(500)),
       balance(usd, alice, dollar(8019)),
       balance(usd, bob, '9488510000000000000000'),
-      balance(iUsd, fToken.address, '2693923076923076923076'),
-      balance(iUsd, liquidityPool.address, '9798566923076923076924'),
+      balance(iUsd, fToken.address, '26939230769230769230760'),
+      balance(iUsd, liquidityPool.address, '97985669230769230769240'),
 
       setPrice(100),
 
@@ -154,8 +154,8 @@ contract('FlowProtocol', (accounts) => {
       balance(fToken, bob, '1518981018981018981018'),
       balance(usd, alice, '9016002000000000000000'),
       balance(usd, bob, '8468510000000000000000'),
-      balance(iUsd, fToken.address, '2771980219780219780217'),
-      balance(iUsd, liquidityPool.address, '9743507780219780219783'),
+      balance(iUsd, fToken.address, '27719802197802197802170'),
+      balance(iUsd, liquidityPool.address, '97435077802197802197830'),
 
       setPrice(101),
 
@@ -166,7 +166,7 @@ contract('FlowProtocol', (accounts) => {
       balance(usd, alice, '10026001997982017982017'),
       balance(usd, bob, '10001146658341658341657'),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, '9972851343676323676326'),
+      balance(iUsd, liquidityPool.address, '99728513436763236763260'),
     );
   });
 
@@ -180,7 +180,7 @@ contract('FlowProtocol', (accounts) => {
         balance(fToken, alice, 0),
         balance(usd, alice, '10084989462616822430262'),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, '9915010537383177569738'),
+        balance(iUsd, liquidityPool.address, '99150105373831775697380'),
       );
     });
 
@@ -208,14 +208,14 @@ contract('FlowProtocol', (accounts) => {
 
         balance(fToken, alice, dollar(500)),
         balance(usd, alice, '9541994731308411215265'),
-        balance(iUsd, fToken.address, '549999999999999999755'),
-        balance(iUsd, liquidityPool.address, '9908005268691588784980'),
+        balance(iUsd, fToken.address, '5499999999999999997550'),
+        balance(iUsd, liquidityPool.address, '99080052686915887849800'),
 
         liquidate(alice, dollar(500)),
         balance(fToken, alice, 0),
         balance(usd, alice, '10084989462616822430261'),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, '9915010537383177569739'),
+        balance(iUsd, liquidityPool.address, '99150105373831775697390'),
       );
     });
 
