@@ -103,7 +103,7 @@ contract MarginTradingPair is Ownable {
             }
         }
 
-        uint iTokenTotal = position.amount.mul(2).sub(position.liquidationFee.mul(2));
+        uint iTokenTotal = position.amount.sub(position.liquidationFee).mul(2);
 
         _closePositionSend(positionId, liquidated, position.liquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent);
 
@@ -162,8 +162,7 @@ contract MarginTradingPair is Ownable {
         }
         moneyMarket.redeemTo(owner, ownerAmount);
 
-        uint iTokenLiquidityPoolAmount = moneyMarket.convertAmountToBase(moneyMarket.exchangeRate(), liquidityPoolAmount);
-        moneyMarket.iToken().safeTransfer(liquidityPool, iTokenLiquidityPoolAmount);
+        moneyMarket.iToken().safeTransfer(liquidityPool, liquidityPoolAmount);
 
         emit ClosePosition(owner, liquidityPool, sender, positionId, ownerAmount, liquidityPoolAmount);
     }
