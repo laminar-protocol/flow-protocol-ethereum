@@ -62,22 +62,29 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(FlowToken, 'Euro', 'EUR', moneyMarket.address, protocol.address);
     const fEUR = await FlowToken.deployed();
 
+    const fJPY = await FlowToken.new('Japanese yen', 'JPY', moneyMarket.address, protocol.address);
+
     await protocol.addFlowToken(fEUR.address);
+    await protocol.addFlowToken(fJPY.address);
 
     await deployer.deploy(LiquidityPool, moneyMarket.address, web3.utils.toWei('0.003'));
     const pool = await LiquidityPool.deployed();
 
     await pool.approve(protocol.address, web3.utils.toWei('1000000'));
     await pool.enableToken(fEUR.address);
+    await pool.enableToken(fJPY.address);
 
     await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
 
     await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
+    await oracle.setPrice(fJPY.address, web3.utils.toWei('0.0092'));
 
     // --- margin protocol
 
     await deployer.deploy(FlowMarginProtocol, oracle.address, moneyMarket.address);
     const marginProtocol = await FlowMarginProtocol.deployed();
+
+    await pool.approve(marginProtocol.address, web3.utils.toWei('1000000'));
 
     await deployer.deploy(
       MarginTradingPair,
@@ -89,10 +96,19 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('5')
     );
 
-    const marginTradingPair = await MarginTradingPair.deployed();
+    const l10USDEUR = await MarginTradingPair.deployed();
 
-    await marginProtocol.addTradingPair(marginTradingPair.address);
-    await pool.approve(marginProtocol.address, web3.utils.toWei('1000000'));
+    const s5USDJPY = await MarginTradingPair.new(
+      marginProtocol.address,
+      moneyMarket.address,
+      fJPY.address,
+      -5,
+      web3.utils.toWei('0.2'),
+      web3.utils.toWei('5')
+    );
+
+    await marginProtocol.addTradingPair(l10USDEUR.address);
+    await marginProtocol.addTradingPair(s5USDJPY.address);
 
     console.log('Deploy success', {
       moneyMarket: moneyMarket.address,
@@ -100,9 +116,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       oracle: oracle.address,
       protocol: protocol.address,
       fEUR: fEUR.address,
+      fJPY: fJPY.address,
       pool: pool.address,
       marginProtocol: marginProtocol.address,
-      marginTradingPair: marginTradingPair.address,
+      l10USDEUR: l10USDEUR.address,
+      s5USDJPY: s5USDJPY.address,
     });
   };
 };
