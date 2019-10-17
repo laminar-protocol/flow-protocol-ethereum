@@ -4,26 +4,21 @@ Table of Contents
 - [Introduction](#introduction)
 - [Overview](#overview)
 - [The Collateralized Synthetic Asset Protocol](#the-collateralized-synthetic-asset-protocol)
-  - [Liquidity Pool](#liquidity-pool)
-  - [Collateral](#collateral)
-  - [Liquidation Incentive](#liquidation-incentive)
-  - [fToken](#ftoken)
-    - [Deposit/Mint](#depositmint)
-    - [Withdraw](#withdraw)
-    - [Liquidation](#liquidation)
-    - [Exchange Rate](#exchange-rate)
-- [The Money Market Protocol](#the-money-market-protocol)
-  - [iToken](#itoken)
-  - [Interest Allocation](#interest-allocation)
-    - [Interest Share](#interest-share)
-      - [Allocation to Liquidity Provider](#allocation-to-liquidity-provider)
-      - [Allocation to fToken depositor](#allocation-to-ftoken-depositor)
-    - [Interest Share Exchange Rate](#interest-share-exchange-rate)
+    - [Liquidity Pool](#liquidity-pool)
+    - [Collateral](#collateral)
+    - [Liquidation Incentive](#liquidation-incentive)
+    - [fToken](#ftoken)
+        - [Deposit/Mint](#depositmint)
+        - [Withdraw](#withdraw)
+        - [Liquidation](#liquidation)
+        - [Exchange Rate](#exchange-rate)
 - [The Collateralized Margin Trading Protocol](#the-collateralized-margin-trading-protocol)
-- [Implementation](#implementation)
-  - [Flow Protocol Smart Contracts on Ethereum](#flow-protocol-smart-contracts-on-ethereum)
-  - [Flowchain as parachain on Polkadot](#flowchain-as-parachain-on-polkadot)
-  - [Oracle Reference Implementation](#oracle-reference-implementation)
+    - [Liquidity Pool](#liquidity-pool)
+    - [Margin Protocol](#margin-protocol)
+        - [Collateralized Position](#collateralized-position)
+    - [Trading Pair](#trading-pair)
+        - [Status of a Position](#status-of-a-position)
+        - [Profit & Loss](#profit--loss)
 
 <!-- /TOC -->
 
@@ -155,6 +150,93 @@ The exchange rate for a Forex pair is provided by a price oracle from reputable 
 bidPrice = exchangePrice - bidSpread;
 askPrice = exchangePrice + askSpread;
 ```
+## The Collateralized Margin Trading Protocol
+The collateralized margin trading protocol allows user to trade leveraged long or short fToken e.g. fEUR or fJPY against base currency - USD, in the form of USD stable-coin e.g. DAI or equivalent. There are a number of use cases for margin trading
+- as a hedge against future price fluctuation e.g. an importer, who might need to pay JPY to supplier in 2 month time, can use a 10x leverage with 10% margin hedging for the full risk expecting price fluctuating within 10%
+- as a profit amplifying instrument for traders in low-volatile market like Forex
+
+When a trader opens a long position e.g. 10x leveraged EURUSD of 1000 USD, essentially the trader puts in $1,000 margin for the price fluctuation risks of $10,000. At the same time the liquidity provider via the liquidity pool would collateralize an equivalent amount of $1,000 to secure this position. The protocol caps the potential gain and protects the loss for either party at $1,000, meaning capping price fluctuation at 10% (1/leverage). The detail mechanisms and potential fees are explained in the following sections. 
+
+[TODO] Add tokenization.
+
+### Liquidity Pool
+The margin trading protocol can use the same liquidity pool as the synthetic asset protocol. A liquidity pool can decide what tokens it supports and what leverage levels are allowed. 
+
+```
+function openPosition(address tradingPair, uint positionId, address quoteToken, int leverage, uint baseTokenAmount) returns (bool);
+```
+
+For other details of a liquidity pool, please refer to [Liquidity Pool in Synthetic Asset](#liquidity-pool).
+
+### Margin Protocol
+The `Margin Protocol` sets up the flow margin trading platform, supported trading pairs and leverages. It provides public methods for users and others programs to do margin trading such as `openPosition`, and `closePosition`.
+
+Traders are free to choose a liquidity pool to trade against based on their preferences, such as price and available liquidity. 
+
+```
+function openPosition(MarginTradingPair pair, LiquidityPoolInterface pool, uint baseTokenAmount);
+function closePosition(MarginTradingPair pair, uint positionId);
+function getPrice(address tokenAddr);
+function getAskSpread(LiquidityPoolInterface pool, address token);
+function getBidSpread(LiquidityPoolInterface pool, address token);
+function addTradingPair(address pair);
+```
+
+#### Collateralized Position
+When a trader wants to long 10x EURUSD, he/she opens a position for that particular trading pair at a given price. 
+
+Following on the previous example of $1,000 long 10x EURUSD example, the trader and the liquidity pool each contributes $1,000 to the collateral. The `Margin Protocol` would use the `Money Market` to mange these funds to earn while trading. Please see the Money Market section to see how it guarantees trading liquidity while earning interest. 
+
+### Trading Pair
+Each trading pair e.g. long 10x EURUSD or short 5x JPYUSD and associated trading rules are encapsulated in a separate contract, which can then be tokenized.
+
+```
+constructor(address marginProtocol, MoneyMarketInterface moneyMarket_, address quoteToken_, int leverage_, uint safeMarginPercent_, uint liquidationFee_)
+```
+
+At this stage, the base token for each trading pair is defaulted to USD. The *quote token* can be any asset provided there is associated oracle price feed to support trading. In our Forex implementation, the quote token is fToken e.g. fEUR or fJPY, but it can easily be set up as any other type of asset like gold or SP500 etc. 
+
+Leveraged long is defined as a positive number like 10 as 10x long leverage, whereas leveraged short is defined as a negative number like -5 as 5x short leverage.
+
+Safe margin is a threshold defined for liquidity provider to stop loss of a given position. Liquidation fee is an incentive given to anyone closed the position. More details in the next section. 
+
+#### Status of a Position
+The protocol caps the profit and loss at collateralized margin of each position to ultimately protect participating parties. To make this even safer, we define three thresholds of a position - beyond each point more parties are incentivized to monitor and close the position. 
+
+**A Position is `liquidated`**
+When a position is completely liquidated, meaning one party (either the trader or the liquidity pool) has lost the full of its collateralized margin, then *anyone* can come in and close the position with a reward aka the `Liquidation Fee`. 
+
+**A Position is `unsafe`**
+When a liquidity pool lost more than the pre-defined `Safe Margin`, then the pool can choose to close the position to stop the loss. 
+
+**A Position is `safe`**
+In any other situation, the position is deemed safe, and only person who opened the position can close it. 
+
+#### Profit & Loss
+Here we work through a simple example to demonstrate how profit and loss is calculated. As a trader, I open a long 10x EURUSD position with $105 (where $5 is liquidation fee and $100 as investment principle) 
+```
+//Psudo P&L calculation
+    const openPrice = startPrice + askSpread;
+    const closePrice = endPrice - bidSpread;
+    const diff = (closePrice - openPrice) / openPrice;
+    const leverage = await pair.leverage();
+    const leveragedDiff = diff * leverage.toNumber();
+    const expectedProfit = principal * leveragedDiff;
+```
+```
+    openPrice = 1.2 + 0.01 = 1.21
+    closePrice = 1.31 - 0.01 = 1.3 // the EURUSD price jumps up 10% in trader's favor
+    diff = (1.3 - 1.21) / 1.21 = 0.07438
+    leveraged diff = 0.07438 x 10 = 0.7438
+    profit = 100 * 0.7438 = 74.38 //wow
+```
+
+
+
+
+
+### Liquidation
+
 ## The Money Market Protocol 
 The money market protocol serves the synthetic asset and margin trading protocols to further increase liquidity on chain. It connects to chosen money markets e.g. Compound.Finance to maximize return while guaranteeing liquidity of the asset and trading protocols. Liquidity provider would earn interest on funds in liquidity pools and collaterals. Users would earn interest on deposited fTokens. Not all the funds managed by the Money Market would earn interest, as a certain amount of cash is required to ensure liquidity for trading.
 
@@ -224,9 +306,6 @@ Following on the previous example, if a user deposits 9 fEUR (=10 USD), then 10 
 
 #### Interest Share Exchange Rate
 [TODO] add more details once design finalized.
-
-## The Collateralized Margin Trading Protocol
-We will provide more details once we have a draft design.
 
 ## Implementation 
 We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading. There are also existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers, a high performance and low cost specialized trading blockchain is required to deliver the intended experience. For instance, the platform needs to be capable of handling large trading volume and frequent price fluctuations. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
