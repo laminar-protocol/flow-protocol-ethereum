@@ -209,13 +209,13 @@ contract('FlowProtocol', (accounts) => {
         balance(fToken, alice, dollar(500)),
         balance(usd, alice, '9541994731308411215265'),
         balance(iUsd, fToken.address, '549999999999999999755'),
-        balance(iUsd, liquidityPool.address, dollar(9909)),
+        balance(iUsd, liquidityPool.address, '9908005268691588784980'),
 
         liquidate(alice, dollar(500)),
         balance(fToken, alice, 0),
-        balance(usd, alice, dollar(10084)),
+        balance(usd, alice, '10084989462616822430261'),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, dollar(9916)),
+        balance(iUsd, liquidityPool.address, '9915010537383177569739'),
       );
     });
 

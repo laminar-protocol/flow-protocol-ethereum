@@ -5,7 +5,7 @@ import {
   SimplePriceOracleInstance, FlowMarginProtocolInstance, LiquidityPoolInstance, TestTokenInstance,
   MarginTradingPairInstance, MoneyMarketInstance, IERC20Instance,
 } from 'types/truffle-contracts';
-import { createTestToken, createMoneyMarket, fromPercent, messages, fromPip, dollar, bn} from './helpers';
+import { createTestToken, createMoneyMarket, fromPercent, messages, fromPip, dollar, bn } from './helpers';
 
 const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
 const LiquidityPool = artifacts.require('LiquidityPool');
