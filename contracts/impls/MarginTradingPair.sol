@@ -84,7 +84,7 @@ contract MarginTradingPair is Ownable {
 
         require(position.owner != address(0), "Invalid positionId");
 
-        uint bidPrice = price.sub(position.bidSpread);
+        uint bidPrice = price.sub(price.mul(position.bidSpread).div(1 ether));
 
         (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) = _closePositionHelper(position, bidPrice);
 

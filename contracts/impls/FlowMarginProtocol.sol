@@ -2,36 +2,29 @@ pragma solidity ^0.5.8;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../libs/Percentage.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "./MarginTradingPair.sol";
+import "./FlowProtocolBase.sol";
 
-contract FlowMarginProtocol is Ownable, ReentrancyGuard {
+contract FlowMarginProtocol is FlowProtocolBase {
     using SafeMath for uint256;
     using Percentage for uint256;
     using SafeERC20 for IERC20;
-
-    uint constant MAX_UINT = 2**256 - 1;
-
-    PriceOracleInterface public oracle;
-    MoneyMarketInterface public moneyMarket;
 
     mapping (address => bool) public tradingPairWhitelist;
 
     event NewTradingPiar(address pair);
 
-    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
-        oracle = oracle_;
-        moneyMarket = moneyMarket_;
-
-        moneyMarket.baseToken().safeApprove(address(moneyMarket), MAX_UINT);
+    constructor(
+        PriceOracleInterface oracle_,
+        MoneyMarketInterface moneyMarket_
+    ) FlowProtocolBase(oracle_, moneyMarket_) public {
     }
 
     function addTradingPair(address pair) external onlyOwner {
@@ -46,8 +39,8 @@ contract FlowMarginProtocol is Ownable, ReentrancyGuard {
 
         address quoteToken = address(pair.quoteToken());
         uint price = getPrice(quoteToken);
-        uint askPrice = price.add(pool.getAskSpread(quoteToken));
-        uint bidSpread = pool.getBidSpread(quoteToken);
+        uint askPrice = getAskPrice(pool, quoteToken, price);
+        uint bidSpread = getBidSpread(pool, quoteToken);
 
         require(
             pool.openPosition(address(pair), pair.nextPositionId(), address(pair.quoteToken()), pair.leverage(), baseTokenAmount),
@@ -70,23 +63,5 @@ contract FlowMarginProtocol is Ownable, ReentrancyGuard {
         uint price = getPrice(quoteToken);
 
         pair.closePosition(msg.sender, positionId, price);
-    }
-
-    function getPrice(address tokenAddr) internal view returns (uint) {
-        uint price = oracle.getPrice(tokenAddr);
-        require(price > 0, "no oracle price");
-        return price;
-    }
-
-    function getAskSpread(LiquidityPoolInterface pool, address token) internal view returns (uint) {
-        uint spread = pool.getAskSpread(token);
-        require(spread > 0, "Token disabled for this pool");
-        return spread;
-    }
-
-    function getBidSpread(LiquidityPoolInterface pool, address token) internal view returns (uint) {
-        uint spread = pool.getBidSpread(token);
-        require(spread > 0, "Token disabled for this pool");
-        return spread;
     }
 }

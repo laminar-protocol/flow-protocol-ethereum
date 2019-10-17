@@ -2,26 +2,20 @@ pragma solidity ^0.5.8;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../libs/Percentage.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "./FlowToken.sol";
+import "./FlowProtocolBase.sol";
 
-contract FlowProtocol is Ownable, ReentrancyGuard {
+contract FlowProtocol is FlowProtocolBase {
     using SafeMath for uint256;
     using Percentage for uint256;
     using SafeERC20 for IERC20;
-
-    uint constant MAX_UINT = 2**256 - 1;
-
-    PriceOracleInterface public oracle;
-    MoneyMarketInterface public moneyMarket;
 
     mapping (string => FlowToken) public tokens;
     mapping (address => bool) public tokenWhitelist;
@@ -35,11 +29,10 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     event FlowTokenDeposited(address indexed sender, address indexed token, uint flowTokenAmount);
     event FlowTokenWithdrew(address indexed sender, address indexed token, uint flowTokenAmount);
 
-    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
-        oracle = oracle_;
-        moneyMarket = moneyMarket_;
-
-        moneyMarket.baseToken().safeApprove(address(moneyMarket), MAX_UINT);
+    constructor(
+        PriceOracleInterface oracle_,
+        MoneyMarketInterface moneyMarket_
+    ) FlowProtocolBase(oracle_, moneyMarket_) public {
     }
 
     function addFlowToken(FlowToken token) external onlyOwner {
@@ -59,7 +52,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint askPrice = price.add(getAskSpread(pool, token));
+        uint askPrice = getAskPrice(pool, address(token), price);
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
         uint additionalCollateralAmount = _calcAdditionalCollateralAmount(flowTokenCurrentValue, token, pool, baseTokenAmount);
@@ -96,7 +89,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(getBidSpread(pool, token));
+        uint bidPrice = getBidPrice(pool, address(token), price);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -125,7 +118,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(getBidSpread(pool, token));
+        uint bidPrice = getBidPrice(pool, address(token), price);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -281,23 +274,5 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     function getAdditoinalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
         uint ratio = pool.getAdditoinalCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
-    }
-
-    function getPrice(address tokenAddr) internal view returns (uint) {
-        uint price = oracle.getPrice(tokenAddr);
-        require(price > 0, "no oracle price");
-        return price;
-    }
-
-    function getAskSpread(LiquidityPoolInterface pool, FlowToken token) internal view returns (uint) {
-        uint spread = pool.getAskSpread(address(token));
-        require(spread > 0, "Token disabled for this pool");
-        return spread;
-    }
-
-    function getBidSpread(LiquidityPoolInterface pool, FlowToken token) internal view returns (uint) {
-        uint spread = pool.getBidSpread(address(token));
-        require(spread > 0, "Token disabled for this pool");
-        return spread;
     }
 }
