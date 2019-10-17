@@ -354,4 +354,6 @@ contract('FlowMarginProtocol', (accounts) => {
       );
     });
   });
+
+  // TODO: more tests with interests i.e. when iToken rate changed
 });
