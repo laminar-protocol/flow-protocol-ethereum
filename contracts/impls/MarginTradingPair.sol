@@ -27,9 +27,9 @@ contract MarginTradingPair is Ownable {
     struct Position {
         address owner;
         address liquidityPool;
-        uint iTokenAmount; // one side amount, fee included
+        uint amount; // one side amount, fee included, in iToken
         uint openPrice;
-        uint liquidationFee; // one side fee
+        uint liquidationFee; // one side fee, in iToken
         uint bidSpread;
     }
 
@@ -72,7 +72,9 @@ contract MarginTradingPair is Ownable {
         uint positionId = nextPositionId;
         nextPositionId = nextPositionId + 1; // It is safe to have this overflow and unwrap
 
-        positions[positionId] = Position(sender, liquidityPool, iTokenAmount, price, liquidationFee, bidSpread);
+        uint iTokenLiquidationFee = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), liquidationFee);
+
+        positions[positionId] = Position(sender, liquidityPool, iTokenAmount, price, iTokenLiquidationFee, bidSpread);
 
         emit OpenPosition(sender, liquidityPool, positionId, baseTokenAmount);
 
@@ -101,10 +103,9 @@ contract MarginTradingPair is Ownable {
             }
         }
 
-        uint iTokenLiquidationFee = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), position.liquidationFee);
-        uint iTokenTotal = position.iTokenAmount.mul(2).sub(iTokenLiquidationFee.mul(2));
+        uint iTokenTotal = position.amount.mul(2).sub(position.liquidationFee.mul(2));
 
-        _closePositionSend(positionId, liquidated, iTokenLiquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent);
+        _closePositionSend(positionId, liquidated, position.liquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent);
 
         delete positions[positionId];
     }
