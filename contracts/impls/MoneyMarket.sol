@@ -165,7 +165,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function exchangeRate() public view returns (uint) {
         uint totalSupply = iToken.totalSupply();
         if (totalSupply == 0) {
-            return 1 ether;
+            return 0.1 ether;
         }
         return totalHoldings().mul(1 ether).div(totalSupply);
     }

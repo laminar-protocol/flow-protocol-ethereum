@@ -31,7 +31,7 @@ contract('MoneyMarket', (accounts) => {
     await moneyMarket.mint(dollar(1000), { from: alice });
     await expectBalances(usd, alice, dollar(9000));
     await expectBalances(usd, moneyMarket, dollar(1000));
-    await expectBalances(iToken, alice, dollar(1000));
+    await expectBalances(iToken, alice, dollar(10000));
   });
 
   it('should be able to mintTo', async () => {
@@ -39,7 +39,7 @@ contract('MoneyMarket', (accounts) => {
     await expectBalances(usd, alice, dollar(9000));
     await expectBalances(usd, moneyMarket, dollar(1000));
     await expectBalances(iToken, alice, 0);
-    await expectBalances(iToken, bob, dollar(1000));
+    await expectBalances(iToken, bob, dollar(10000));
   });
 
   describe('with iToken', () => {
@@ -48,25 +48,25 @@ contract('MoneyMarket', (accounts) => {
     });
 
     it('should be able to redeem', async () => {
-      await moneyMarket.redeem(dollar(800), { from: alice });
+      await moneyMarket.redeem(dollar(8000), { from: alice });
       await expectBalances(usd, alice, dollar(9800));
       await expectBalances(usd, moneyMarket, dollar(200));
-      await expectBalances(iToken, alice, dollar(200));
+      await expectBalances(iToken, alice, dollar(2000));
     });
 
     it('should be able to redeemTo', async () => {
-      await moneyMarket.redeemTo(bob, dollar(800), { from: alice });
+      await moneyMarket.redeemTo(bob, dollar(8000), { from: alice });
       await expectBalances(usd, alice, dollar(9000));
       await expectBalances(usd, bob, dollar(10800));
       await expectBalances(usd, moneyMarket, dollar(200));
-      await expectBalances(iToken, alice, dollar(200));
+      await expectBalances(iToken, alice, dollar(2000));
     });
 
     it('should be able to redeemBaseToken', async () => {
       await moneyMarket.redeemBaseToken(dollar(800), { from: alice });
       await expectBalances(usd, alice, dollar(9800));
       await expectBalances(usd, moneyMarket, dollar(200));
-      await expectBalances(iToken, alice, dollar(200));
+      await expectBalances(iToken, alice, dollar(2000));
     });
 
     it('should be able to redeemBaseTokenTo', async () => {
@@ -74,7 +74,7 @@ contract('MoneyMarket', (accounts) => {
       await expectBalances(usd, alice, dollar(9000));
       await expectBalances(usd, bob, dollar(10800));
       await expectBalances(usd, moneyMarket, dollar(200));
-      await expectBalances(iToken, alice, dollar(200));
+      await expectBalances(iToken, alice, dollar(2000));
     });
 
     describe('setMinLiquidity', () => {
