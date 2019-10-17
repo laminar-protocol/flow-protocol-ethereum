@@ -74,8 +74,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await pool.enableToken(fEUR.address);
     await pool.enableToken(fJPY.address);
 
-    await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
-
     await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
     await oracle.setPrice(fJPY.address, web3.utils.toWei('0.0092'));
 
@@ -109,6 +107,12 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     await marginProtocol.addTradingPair(l10USDEUR.address);
     await marginProtocol.addTradingPair(s5USDJPY.address);
+
+    // ---
+
+    await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
+    await baseToken.approve(protocol.address, web3.utils.toWei('1000000'));
+    await baseToken.approve(marginProtocol.address, web3.utils.toWei('1000000'));
 
     console.log('Deploy success', {
       moneyMarket: moneyMarket.address,
