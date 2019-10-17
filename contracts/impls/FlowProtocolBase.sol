@@ -24,7 +24,7 @@ contract FlowProtocolBase is Ownable, ReentrancyGuard {
 
     uint constant MAX_UINT = 2**256 - 1;
 
-    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
+    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) internal {
         oracle = oracle_;
         moneyMarket = moneyMarket_;
 

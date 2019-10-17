@@ -64,7 +64,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     await protocol.addFlowToken(fEUR.address);
 
-    await deployer.deploy(LiquidityPool, moneyMarket.address, web3.utils.toWei('0.0001'));
+    await deployer.deploy(LiquidityPool, moneyMarket.address, web3.utils.toWei('0.003'));
     const pool = await LiquidityPool.deployed();
 
     await pool.approve(protocol.address, web3.utils.toWei('1000000'));

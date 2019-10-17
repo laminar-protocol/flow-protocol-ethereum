@@ -29,6 +29,12 @@ contract FlowProtocol is FlowProtocolBase {
     event FlowTokenDeposited(address indexed sender, address indexed token, uint flowTokenAmount);
     event FlowTokenWithdrew(address indexed sender, address indexed token, uint flowTokenAmount);
 
+    constructor(
+        PriceOracleInterface oracle_,
+        MoneyMarketInterface moneyMarket_
+    ) FlowProtocolBase(oracle_, moneyMarket_) public {
+    }
+
     function addFlowToken(FlowToken token) external onlyOwner {
         string memory symbol = token.symbol();
         require(address(tokens[symbol]) == address(0), "already exists");

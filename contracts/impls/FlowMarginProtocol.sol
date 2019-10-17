@@ -17,12 +17,15 @@ contract FlowMarginProtocol is FlowProtocolBase {
     using Percentage for uint256;
     using SafeERC20 for IERC20;
 
-    PriceOracleInterface public oracle;
-    MoneyMarketInterface public moneyMarket;
-
     mapping (address => bool) public tradingPairWhitelist;
 
     event NewTradingPiar(address pair);
+
+    constructor(
+        PriceOracleInterface oracle_,
+        MoneyMarketInterface moneyMarket_
+    ) FlowProtocolBase(oracle_, moneyMarket_) public {
+    }
 
     function addTradingPair(address pair) external onlyOwner {
         require(!tradingPairWhitelist[pair], "Already added");
