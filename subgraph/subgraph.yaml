@@ -1,0 +1,47 @@
+specVersion: 0.0.2
+description: Flow Protocols powering synthetic asset and margin trading.
+repository: https://github.com/laminar-protocol/flow-protocol-ethereum
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: FlowProtocol
+    network: kovan
+    source:
+      address: '0x4Ed3f56009d7b65d7f2a3e83a83DB02b7Ed8C687'
+      abi: FlowProtocol
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.1.1
+      language: wasm/assemblyscript
+      entities:
+        - FlowToken
+      abis:
+        - name: FlowProtocol
+          file: ../build/contracts/FlowProtocol.json
+        - name: FlowToken
+          file: ../build/contracts/FlowToken.json
+      file: ./src/mapping.ts
+      eventHandlers:
+        - event: NewFlowToken(indexed address)
+          handler: handleNewFlowToken
+  - kind: ethereum/contract
+    name: PriceOracle
+    network: kovan
+    source:
+      address: '0xA6d465d1412c978c5644ADB47E9f34EAc7E2EE35'
+      abi: PriceOracleInterface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - Price
+      abis:
+        - name: PriceOracleInterface
+          file: ../build/contracts/PriceOracleInterface.json
+      file: ./src/mapping.ts
+      eventHandlers:
+        - event: PriceUpdated(indexed address,uint256)
+          handler: handlePriceUpdated
+

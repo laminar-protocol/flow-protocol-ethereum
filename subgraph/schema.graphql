@@ -1,0 +1,40 @@
+type Token @entity {
+    id: ID! # contract address
+    name: String!
+    symbol: String!
+}
+
+type User @entity {
+    id: ID! # user address
+    tokens: [UserTokenInfo!]! @derivedFrom(field: "user")
+}
+
+type UserTokenInfo @entity {
+    id: ID! # user address & token address
+    user: User!
+    token: Token!
+    transactions: [Transaction!]!
+}
+
+enum TransactionKind {
+    Minted
+    Redeemed
+    Liquidated
+    Deposited
+    Withdrew
+}
+
+type Transaction @entity {
+    id: ID! # tx hash
+    user: User!
+    token: Token!
+    timestamp: Int!
+    price: BigDecimal!
+    amount: BigDecimal!
+}
+
+type Price @entity {
+    id: ID! # token address
+    value: BigDecimal!
+    updatedAt: Int!
+}

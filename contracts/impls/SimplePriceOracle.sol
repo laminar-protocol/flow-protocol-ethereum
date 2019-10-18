@@ -16,8 +16,6 @@ contract SimplePriceOracle is PriceOracleConfig, PriceFeederRole, PriceOracleInt
 
     bool public constant isPriceOracle = true;
 
-    event PriceUpdated(address indexed addr, uint price);
-
     constructor(address[] memory priceFeeders) public {
         for (uint i = 0; i < priceFeeders.length; i++) {
             addPriceFeeder(priceFeeders[i]);
