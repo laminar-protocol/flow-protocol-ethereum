@@ -25,6 +25,20 @@ dataSources:
       eventHandlers:
         - event: NewFlowToken(indexed address)
           handler: handleNewFlowToken
+        - event: Minted(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleMinted
+        - event: Redeemed(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleRedeemed
+        - event: Liquidated(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleLiquidated
+        - event: CollateralAdded(indexed address,indexed address,uint256,uint256)
+          handler: handleCollateralAdded
+        - event: CollateralWithdrew(indexed address,indexed address,uint256,uint256)
+          handler: handleCollateralWithdrew
+        - event: FlowTokenDeposited(indexed address,indexed address,uint256,uint256)
+          handler: handleFlowTokenDeposited
+        - event: FlowTokenWithdrew(indexed address,indexed address,uint256,uint256)
+          handler: handleFlowTokenWithdrew
   - kind: ethereum/contract
     name: PriceOracle
     network: kovan

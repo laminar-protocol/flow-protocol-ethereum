@@ -118,7 +118,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         position.minted = position.minted.sub(mintedToRemove);
 
         totalPrincipalAmount = totalPrincipalAmount.sub(collateralsToRemove);
-        uint interestBaseTokenAmount = _burnInterestShares(exchangeRate, poolAddr, Percentage.fromFraction(mintedToRemove, prevMinted));
+        (uint interestBaseTokenAmount, ) = _burnInterestShares(exchangeRate, poolAddr, Percentage.fromFraction(mintedToRemove, prevMinted));
 
         return interestBaseTokenAmount;
     }
@@ -132,7 +132,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         interestDebits[recipient] = interestDebits[recipient].add(debits);
     }
 
-    function _burnInterestShares(uint exchangeRate, address recipient, Percentage.Percent memory percentShare) private returns (uint) {
+    function _burnInterestShares(uint exchangeRate, address recipient, Percentage.Percent memory percentShare) private returns (uint, uint) {
         uint prevShares = interestShares[recipient];
 
         uint sharesToBurn = prevShares.mulPercent(percentShare);
@@ -149,7 +149,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         interestShares[recipient] = newShares;
         interestDebits[recipient] = newDebits;
 
-        return interests;
+        return (interests, sharesToBurn);
     }
 
     function interestShareExchangeRate() public view returns (uint) {
@@ -168,7 +168,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         moneyMarket.redeemBaseTokenTo(recipient, baseTokenAmount);
     }
 
-    function deposit(address sender, uint amount, uint price) external onlyProtocol {
+    function deposit(address sender, uint amount, uint price) external onlyProtocol returns (uint) {
         uint exchangeRate = interestShareExchangeRate();
 
         deposits[sender] = deposits[sender].add(amount);
@@ -176,9 +176,10 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
         _transfer(sender, address(this), amount);
         uint shares = amount.mul(price).div(1 ether);
         _mintInterestShares(exchangeRate, sender, shares);
+        return shares;
     }
 
-    function withdraw(address sender, uint amount) external onlyProtocol {
+    function withdraw(address sender, uint amount) external onlyProtocol returns (uint) {
         uint exchangeRate = interestShareExchangeRate();
         uint senderDeposit = deposits[sender];
         deposits[sender] = senderDeposit.sub(amount);
@@ -187,7 +188,8 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
 
         _transfer(address(this), sender, amount);
 
-        uint interestBaseTokenAmount = _burnInterestShares(exchangeRate, sender, percentShare);
+        (uint interestBaseTokenAmount, uint sharesToBurn) = _burnInterestShares(exchangeRate, sender, percentShare);
         moneyMarket.redeemBaseTokenTo(sender, interestBaseTokenAmount);
+        return sharesToBurn;
     }
 }

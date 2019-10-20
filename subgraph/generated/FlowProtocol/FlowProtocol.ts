@@ -39,6 +39,10 @@ export class CollateralAdded__Params {
   get baseTokenAmount(): BigInt {
     return this._event.parameters[2].value.toBigInt();
   }
+
+  get iTokenAmount(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
 }
 
 export class CollateralWithdrew extends EthereumEvent {
@@ -65,6 +69,10 @@ export class CollateralWithdrew__Params {
   get baseTokenAmount(): BigInt {
     return this._event.parameters[2].value.toBigInt();
   }
+
+  get iTokenAmount(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
 }
 
 export class FlowTokenDeposited extends EthereumEvent {
@@ -88,8 +96,12 @@ export class FlowTokenDeposited__Params {
     return this._event.parameters[1].value.toAddress();
   }
 
-  get flowTokenAmount(): BigInt {
+  get baseTokenAmount(): BigInt {
     return this._event.parameters[2].value.toBigInt();
+  }
+
+  get flowTokenAmount(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -114,8 +126,12 @@ export class FlowTokenWithdrew__Params {
     return this._event.parameters[1].value.toAddress();
   }
 
-  get flowTokenAmount(): BigInt {
+  get baseTokenAmount(): BigInt {
     return this._event.parameters[2].value.toBigInt();
+  }
+
+  get flowTokenAmount(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -144,8 +160,12 @@ export class Liquidated__Params {
     return this._event.parameters[2].value.toAddress();
   }
 
-  get flowTokenAmount(): BigInt {
+  get baseTokenAmount(): BigInt {
     return this._event.parameters[3].value.toBigInt();
+  }
+
+  get flowTokenAmount(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
   }
 }
 
@@ -176,6 +196,10 @@ export class Minted__Params {
 
   get baseTokenAmount(): BigInt {
     return this._event.parameters[3].value.toBigInt();
+  }
+
+  get flowTokenAmount(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
   }
 }
 
@@ -244,8 +268,12 @@ export class Redeemed__Params {
     return this._event.parameters[2].value.toAddress();
   }
 
-  get flowTokenAmount(): BigInt {
+  get baseTokenAmount(): BigInt {
     return this._event.parameters[3].value.toBigInt();
+  }
+
+  get flowTokenAmount(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
   }
 }
 

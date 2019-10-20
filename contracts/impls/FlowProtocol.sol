@@ -21,13 +21,13 @@ contract FlowProtocol is FlowProtocolBase {
     mapping (address => bool) public tokenWhitelist;
 
     event NewFlowToken(address indexed token);
-    event Minted(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount);
-    event Redeemed(address indexed sender, address indexed token, address indexed liquidityPool, uint flowTokenAmount);
-    event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint flowTokenAmount);
-    event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount);
-    event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount);
-    event FlowTokenDeposited(address indexed sender, address indexed token, uint flowTokenAmount);
-    event FlowTokenWithdrew(address indexed sender, address indexed token, uint flowTokenAmount);
+    event Minted(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
+    event Redeemed(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
+    event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
+    event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
+    event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
+    event FlowTokenDeposited(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
+    event FlowTokenWithdrew(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
 
     constructor(
         PriceOracleInterface oracle_,
@@ -67,7 +67,7 @@ contract FlowProtocol is FlowProtocolBase {
         moneyMarket.iToken().safeTransferFrom(address(pool), address(token), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
 
-        emit Minted(msg.sender, address(token), address(pool), baseTokenAmount);
+        emit Minted(msg.sender, address(token), address(pool), baseTokenAmount, flowTokenAmount);
 
         return flowTokenAmount;
     }
@@ -105,7 +105,7 @@ contract FlowProtocol is FlowProtocolBase {
 
         token.burn(msg.sender, flowTokenAmount);
 
-        emit Redeemed(msg.sender, address(token), address(pool), flowTokenAmount);
+        emit Redeemed(msg.sender, address(token), address(pool), baseTokenAmount, flowTokenAmount);
 
         return baseTokenAmount;
     }
@@ -113,8 +113,6 @@ contract FlowProtocol is FlowProtocolBase {
     function liquidate(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external nonReentrant returns (uint) {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
-
-        IERC20 iToken = moneyMarket.iToken();
 
         uint price = getPrice(address(token));
 
@@ -130,12 +128,12 @@ contract FlowProtocol is FlowProtocolBase {
         refundToPool = refundToPool.add(interest);
 
         uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
-        iToken.safeTransferFrom(address(token), address(pool), refundToPoolITokenAmount);
+        moneyMarket.iToken().safeTransferFrom(address(token), address(pool), refundToPoolITokenAmount);
         token.withdrawTo(msg.sender, baseTokenAmount.add(incentive));
 
         token.burn(msg.sender, flowTokenAmount);
 
-        emit Liquidated(msg.sender, address(token), address(pool), flowTokenAmount);
+        emit Liquidated(msg.sender, address(token), address(pool), baseTokenAmount, flowTokenAmount);
 
         return baseTokenAmount;
     }
@@ -148,7 +146,7 @@ contract FlowProtocol is FlowProtocolBase {
         token.addPosition(poolAddr, baseTokenAmount, 0, baseTokenAmount);
         moneyMarket.iToken().safeTransferFrom(msg.sender, address(token), iTokenAmount);
 
-        emit CollateralAdded(address(token), poolAddr, baseTokenAmount);
+        emit CollateralAdded(address(token), poolAddr, baseTokenAmount, iTokenAmount);
     }
 
     function withdrawCollateral(FlowToken token) external nonReentrant returns (uint) {
@@ -169,7 +167,7 @@ contract FlowProtocol is FlowProtocolBase {
         uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
         iToken.safeTransferFrom(tokenAddr, msg.sender, refundToPoolITokenAmount);
 
-        emit CollateralWithdrew(address(token), msg.sender, refundToPool);
+        emit CollateralWithdrew(address(token), msg.sender, refundToPool, refundToPoolITokenAmount);
 
         return refundToPoolITokenAmount;
     }
@@ -180,17 +178,17 @@ contract FlowProtocol is FlowProtocolBase {
 
         uint price = getPrice(address(token));
 
-        token.deposit(msg.sender, flowTokenAmount, price);
+        uint baseTokenAmount = token.deposit(msg.sender, flowTokenAmount, price);
 
-        emit FlowTokenDeposited(address(token), msg.sender, flowTokenAmount);
+        emit FlowTokenDeposited(address(token), msg.sender, baseTokenAmount, flowTokenAmount);
     }
 
     function withdraw(FlowToken token, uint flowTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
-        token.withdraw(msg.sender, flowTokenAmount);
+        uint baseTokenAmount = token.withdraw(msg.sender, flowTokenAmount);
 
-        emit FlowTokenWithdrew(address(token), msg.sender, flowTokenAmount);
+        emit FlowTokenWithdrew(address(token), msg.sender, baseTokenAmount, flowTokenAmount);
     }
 
     function _calculateRemovePosition(

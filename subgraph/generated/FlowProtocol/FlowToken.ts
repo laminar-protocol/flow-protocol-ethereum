@@ -613,6 +613,54 @@ export class FlowToken extends SmartContract {
     let value = result.value;
     return CallResult.fromValue(value[0].toBigInt());
   }
+
+  deposit(sender: Address, amount: BigInt, price: BigInt): BigInt {
+    let result = super.call("deposit", [
+      EthereumValue.fromAddress(sender),
+      EthereumValue.fromUnsignedBigInt(amount),
+      EthereumValue.fromUnsignedBigInt(price)
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_deposit(
+    sender: Address,
+    amount: BigInt,
+    price: BigInt
+  ): CallResult<BigInt> {
+    let result = super.tryCall("deposit", [
+      EthereumValue.fromAddress(sender),
+      EthereumValue.fromUnsignedBigInt(amount),
+      EthereumValue.fromUnsignedBigInt(price)
+    ]);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
+
+  withdraw(sender: Address, amount: BigInt): BigInt {
+    let result = super.call("withdraw", [
+      EthereumValue.fromAddress(sender),
+      EthereumValue.fromUnsignedBigInt(amount)
+    ]);
+
+    return result[0].toBigInt();
+  }
+
+  try_withdraw(sender: Address, amount: BigInt): CallResult<BigInt> {
+    let result = super.tryCall("withdraw", [
+      EthereumValue.fromAddress(sender),
+      EthereumValue.fromUnsignedBigInt(amount)
+    ]);
+    if (result.reverted) {
+      return new CallResult();
+    }
+    let value = result.value;
+    return CallResult.fromValue(value[0].toBigInt());
+  }
 }
 
 export class ConstructorCall extends EthereumCall {
@@ -1163,6 +1211,10 @@ export class DepositCall__Outputs {
   constructor(call: DepositCall) {
     this._call = call;
   }
+
+  get value0(): BigInt {
+    return this._call.outputValues[0].value.toBigInt();
+  }
 }
 
 export class WithdrawCall extends EthereumCall {
@@ -1196,5 +1248,9 @@ export class WithdrawCall__Outputs {
 
   constructor(call: WithdrawCall) {
     this._call = call;
+  }
+
+  get value0(): BigInt {
+    return this._call.outputValues[0].value.toBigInt();
   }
 }

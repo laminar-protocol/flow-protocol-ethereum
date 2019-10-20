@@ -12,7 +12,7 @@ import {
   BigDecimal
 } from "@graphprotocol/graph-ts";
 
-export class Token extends Entity {
+export class FlowProtocolEntity extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -20,17 +20,57 @@ export class Token extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save Token entity without an ID");
+    assert(id !== null, "Cannot save FlowProtocolEntity entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save Token entity with non-string ID. " +
+      "Cannot save FlowProtocolEntity entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("Token", id.toString(), this);
+    store.set("FlowProtocolEntity", id.toString(), this);
   }
 
-  static load(id: string): Token | null {
-    return store.get("Token", id) as Token | null;
+  static load(id: string): FlowProtocolEntity | null {
+    return store.get("FlowProtocolEntity", id) as FlowProtocolEntity | null;
+  }
+
+  get id(): string {
+    let value = this.get("id");
+    return value.toString();
+  }
+
+  set id(value: string) {
+    this.set("id", Value.fromString(value));
+  }
+
+  get totalEvents(): BigInt {
+    let value = this.get("totalEvents");
+    return value.toBigInt();
+  }
+
+  set totalEvents(value: BigInt) {
+    this.set("totalEvents", Value.fromBigInt(value));
+  }
+}
+
+export class TokenEntity extends Entity {
+  constructor(id: string) {
+    super();
+    this.set("id", Value.fromString(id));
+  }
+
+  save(): void {
+    let id = this.get("id");
+    assert(id !== null, "Cannot save TokenEntity entity without an ID");
+    assert(
+      id.kind == ValueKind.STRING,
+      "Cannot save TokenEntity entity with non-string ID. " +
+        'Considering using .toHex() to convert the "id" to a string.'
+    );
+    store.set("TokenEntity", id.toString(), this);
+  }
+
+  static load(id: string): TokenEntity | null {
+    return store.get("TokenEntity", id) as TokenEntity | null;
   }
 
   get id(): string {
@@ -61,7 +101,7 @@ export class Token extends Entity {
   }
 }
 
-export class User extends Entity {
+export class EventEntity extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -69,17 +109,17 @@ export class User extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save User entity without an ID");
+    assert(id !== null, "Cannot save EventEntity entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save User entity with non-string ID. " +
+      "Cannot save EventEntity entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("User", id.toString(), this);
+    store.set("EventEntity", id.toString(), this);
   }
 
-  static load(id: string): User | null {
-    return store.get("User", id) as User | null;
+  static load(id: string): EventEntity | null {
+    return store.get("EventEntity", id) as EventEntity | null;
   }
 
   get id(): string {
@@ -91,120 +131,13 @@ export class User extends Entity {
     this.set("id", Value.fromString(value));
   }
 
-  get tokens(): Array<string> {
-    let value = this.get("tokens");
-    return value.toStringArray();
-  }
-
-  set tokens(value: Array<string>) {
-    this.set("tokens", Value.fromStringArray(value));
-  }
-}
-
-export class UserTokenInfo extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(id !== null, "Cannot save UserTokenInfo entity without an ID");
-    assert(
-      id.kind == ValueKind.STRING,
-      "Cannot save UserTokenInfo entity with non-string ID. " +
-        'Considering using .toHex() to convert the "id" to a string.'
-    );
-    store.set("UserTokenInfo", id.toString(), this);
-  }
-
-  static load(id: string): UserTokenInfo | null {
-    return store.get("UserTokenInfo", id) as UserTokenInfo | null;
-  }
-
-  get id(): string {
-    let value = this.get("id");
+  get kind(): string {
+    let value = this.get("kind");
     return value.toString();
   }
 
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get user(): string {
-    let value = this.get("user");
-    return value.toString();
-  }
-
-  set user(value: string) {
-    this.set("user", Value.fromString(value));
-  }
-
-  get token(): string {
-    let value = this.get("token");
-    return value.toString();
-  }
-
-  set token(value: string) {
-    this.set("token", Value.fromString(value));
-  }
-
-  get transactions(): Array<string> {
-    let value = this.get("transactions");
-    return value.toStringArray();
-  }
-
-  set transactions(value: Array<string>) {
-    this.set("transactions", Value.fromStringArray(value));
-  }
-}
-
-export class Transaction extends Entity {
-  constructor(id: string) {
-    super();
-    this.set("id", Value.fromString(id));
-  }
-
-  save(): void {
-    let id = this.get("id");
-    assert(id !== null, "Cannot save Transaction entity without an ID");
-    assert(
-      id.kind == ValueKind.STRING,
-      "Cannot save Transaction entity with non-string ID. " +
-        'Considering using .toHex() to convert the "id" to a string.'
-    );
-    store.set("Transaction", id.toString(), this);
-  }
-
-  static load(id: string): Transaction | null {
-    return store.get("Transaction", id) as Transaction | null;
-  }
-
-  get id(): string {
-    let value = this.get("id");
-    return value.toString();
-  }
-
-  set id(value: string) {
-    this.set("id", Value.fromString(value));
-  }
-
-  get user(): string {
-    let value = this.get("user");
-    return value.toString();
-  }
-
-  set user(value: string) {
-    this.set("user", Value.fromString(value));
-  }
-
-  get token(): string {
-    let value = this.get("token");
-    return value.toString();
-  }
-
-  set token(value: string) {
-    this.set("token", Value.fromString(value));
+  set kind(value: string) {
+    this.set("kind", Value.fromString(value));
   }
 
   get timestamp(): i32 {
@@ -216,26 +149,62 @@ export class Transaction extends Entity {
     this.set("timestamp", Value.fromI32(value));
   }
 
-  get price(): BigDecimal {
-    let value = this.get("price");
+  get txhash(): Bytes {
+    let value = this.get("txhash");
+    return value.toBytes();
+  }
+
+  set txhash(value: Bytes) {
+    this.set("txhash", Value.fromBytes(value));
+  }
+
+  get block(): i32 {
+    let value = this.get("block");
+    return value.toI32();
+  }
+
+  set block(value: i32) {
+    this.set("block", Value.fromI32(value));
+  }
+
+  get user(): Bytes {
+    let value = this.get("user");
+    return value.toBytes();
+  }
+
+  set user(value: Bytes) {
+    this.set("user", Value.fromBytes(value));
+  }
+
+  get token(): string {
+    let value = this.get("token");
+    return value.toString();
+  }
+
+  set token(value: string) {
+    this.set("token", Value.fromString(value));
+  }
+
+  get baseTokenAmount(): BigDecimal {
+    let value = this.get("baseTokenAmount");
     return value.toBigDecimal();
   }
 
-  set price(value: BigDecimal) {
-    this.set("price", Value.fromBigDecimal(value));
+  set baseTokenAmount(value: BigDecimal) {
+    this.set("baseTokenAmount", Value.fromBigDecimal(value));
   }
 
-  get amount(): BigDecimal {
-    let value = this.get("amount");
+  get flowTokenAmount(): BigDecimal {
+    let value = this.get("flowTokenAmount");
     return value.toBigDecimal();
   }
 
-  set amount(value: BigDecimal) {
-    this.set("amount", Value.fromBigDecimal(value));
+  set flowTokenAmount(value: BigDecimal) {
+    this.set("flowTokenAmount", Value.fromBigDecimal(value));
   }
 }
 
-export class Price extends Entity {
+export class PriceEntity extends Entity {
   constructor(id: string) {
     super();
     this.set("id", Value.fromString(id));
@@ -243,17 +212,17 @@ export class Price extends Entity {
 
   save(): void {
     let id = this.get("id");
-    assert(id !== null, "Cannot save Price entity without an ID");
+    assert(id !== null, "Cannot save PriceEntity entity without an ID");
     assert(
       id.kind == ValueKind.STRING,
-      "Cannot save Price entity with non-string ID. " +
+      "Cannot save PriceEntity entity with non-string ID. " +
         'Considering using .toHex() to convert the "id" to a string.'
     );
-    store.set("Price", id.toString(), this);
+    store.set("PriceEntity", id.toString(), this);
   }
 
-  static load(id: string): Price | null {
-    return store.get("Price", id) as Price | null;
+  static load(id: string): PriceEntity | null {
+    return store.get("PriceEntity", id) as PriceEntity | null;
   }
 
   get id(): string {

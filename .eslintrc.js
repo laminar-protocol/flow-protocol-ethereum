@@ -52,5 +52,13 @@ module.exports = {
         directory: './tsconfig.json'
       }
     }
-  }
+  },
+  overrides: [{
+    files: ['subgraph/**/*.ts'],
+    rules: {
+      'prefer-const': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      'no-param-reassign': 'off'
+    }
+  }]
 };
