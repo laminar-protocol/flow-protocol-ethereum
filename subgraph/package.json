@@ -1,0 +1,17 @@
+{
+  "name": "flow-protocol-subgraph",
+  "author": "Bryan Chen <bryan@laminar.one>",
+  "private": true,
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ laminar-protocol/flow-protocol-subgraph",
+    "create-local": "graph create --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
+    "remove-local": "graph remove --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 laminar-protocol/flow-protocol-subgraph"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "0.15.3",
+    "@graphprotocol/graph-ts": "0.15.0"
+  }
+}

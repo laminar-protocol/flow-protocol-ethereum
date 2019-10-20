@@ -1,0 +1,43 @@
+type FlowProtocolEntity @entity {
+    id: ID! # 0, singleton
+
+    totalEvents: BigInt!
+}
+
+type TokenEntity @entity {
+    id: ID! # contract address
+    name: String!
+    symbol: String!
+}
+
+enum EventKind {
+    Minted
+    Redeemed
+    Liquidated
+    Deposited
+    Withdrew
+    CollateralAdded
+    CollateralWithdrew
+}
+
+type EventEntity @entity {
+    id: ID! # sequence id as one tx can have multiple events
+    kind: EventKind!
+
+    timestamp: Int!
+    txhash: Bytes!
+    block: Int!
+
+    user: Bytes!
+    token: TokenEntity!
+    liquidityPool: Bytes!
+
+    baseTokenAmount: BigDecimal!
+    flowTokenAmount: BigDecimal!
+}
+
+type PriceEntity @entity {
+    id: ID! # token address
+    value: BigDecimal!
+    updatedAt: Int!
+}
