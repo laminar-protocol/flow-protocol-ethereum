@@ -4,21 +4,32 @@ Table of Contents
 - [Introduction](#introduction)
 - [Overview](#overview)
 - [The Collateralized Synthetic Asset Protocol](#the-collateralized-synthetic-asset-protocol)
-    - [Liquidity Pool](#liquidity-pool)
-    - [Collateral](#collateral)
-    - [Liquidation Incentive](#liquidation-incentive)
-    - [fToken](#ftoken)
-        - [Deposit/Mint](#depositmint)
-        - [Withdraw](#withdraw)
-        - [Liquidation](#liquidation)
-        - [Exchange Rate](#exchange-rate)
+  - [Liquidity Pool](#liquidity-pool)
+  - [Collateral](#collateral)
+  - [Liquidation Incentive](#liquidation-incentive)
+  - [fToken](#ftoken)
+    - [Deposit/Mint](#depositmint)
+    - [Withdraw](#withdraw)
+    - [Liquidation](#liquidation)
+    - [Exchange Rate](#exchange-rate)
 - [The Collateralized Margin Trading Protocol](#the-collateralized-margin-trading-protocol)
-    - [Liquidity Pool](#liquidity-pool)
-    - [Margin Protocol](#margin-protocol)
-        - [Collateralized Position](#collateralized-position)
-    - [Trading Pair](#trading-pair)
-        - [Status of a Position](#status-of-a-position)
-        - [Profit & Loss](#profit--loss)
+  - [Liquidity Pool](#liquidity-pool-1)
+  - [Margin Protocol](#margin-protocol)
+    - [Collateralized Position](#collateralized-position)
+  - [Trading Pair](#trading-pair)
+    - [Status of a Position](#status-of-a-position)
+    - [Profit & Loss](#profit--loss)
+- [The Money Market Protocol](#the-money-market-protocol)
+  - [iToken](#itoken)
+  - [Interest Allocation](#interest-allocation)
+    - [Interest Share](#interest-share)
+      - [Allocation to Liquidity Provider](#allocation-to-liquidity-provider)
+      - [Allocation to fToken depositor](#allocation-to-ftoken-depositor)
+    - [Interest Share Exchange Rate](#interest-share-exchange-rate)
+- [Implementation](#implementation)
+  - [Flow Protocol Smart Contracts on Ethereum](#flow-protocol-smart-contracts-on-ethereum)
+  - [Flowchain as parachain on Polkadot](#flowchain-as-parachain-on-polkadot)
+  - [Oracle Reference Implementation](#oracle-reference-implementation)
 
 <!-- /TOC -->
 
@@ -157,7 +168,7 @@ The collateralized margin trading protocol allows user to trade leveraged long o
 
 When a trader opens a long position e.g. 10x leveraged EURUSD of 1000 USD, essentially the trader puts in $1,000 margin for the price fluctuation risks of $10,000. At the same time the liquidity provider via the liquidity pool would collateralize an equivalent amount of $1,000 to secure this position. The protocol caps the potential gain and protects the loss for either party at $1,000, meaning capping price fluctuation at 10% (1/leverage). The detail mechanisms and potential fees are explained in the following sections. 
 
-[TODO] Add tokenization.
+[TODO] Tokenization of margin positions, partial closing a margin position and other more advanced trading techniques will be added in V2, and more details of the spec will be released as we progress.
 
 ### Liquidity Pool
 The margin trading protocol can use the same liquidity pool as the synthetic asset protocol. A liquidity pool can decide what tokens it supports and what leverage levels are allowed. 
@@ -215,7 +226,7 @@ In any other situation, the position is deemed safe, and only person who opened 
 #### Profit & Loss
 Here we work through a simple example to demonstrate how profit and loss is calculated. As a trader, I open a long 10x EURUSD position with $105 (where $5 is liquidation fee and $100 as investment principle) 
 ```
-//Psudo P&L calculation
+//Pseudo P&L calculation
     const openPrice = startPrice + askSpread;
     const closePrice = endPrice - bidSpread;
     const diff = (closePrice - openPrice) / openPrice;
@@ -224,18 +235,13 @@ Here we work through a simple example to demonstrate how profit and loss is calc
     const expectedProfit = principal * leveragedDiff;
 ```
 ```
+//Plug in the numbers
     openPrice = 1.2 + 0.01 = 1.21
     closePrice = 1.31 - 0.01 = 1.3 // the EURUSD price jumps up 10% in trader's favor
     diff = (1.3 - 1.21) / 1.21 = 0.07438
     leveraged diff = 0.07438 x 10 = 0.7438
     profit = 100 * 0.7438 = 74.38 //wow
 ```
-
-
-
-
-
-### Liquidation
 
 ## The Money Market Protocol 
 The money market protocol serves the synthetic asset and margin trading protocols to further increase liquidity on chain. It connects to chosen money markets e.g. Compound.Finance to maximize return while guaranteeing liquidity of the asset and trading protocols. Liquidity provider would earn interest on funds in liquidity pools and collaterals. Users would earn interest on deposited fTokens. Not all the funds managed by the Money Market would earn interest, as a certain amount of cash is required to ensure liquidity for trading.
@@ -311,16 +317,24 @@ Following on the previous example, if a user deposits 9 fEUR (=10 USD), then 10 
 We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading. There are also existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers, a high performance and low cost specialized trading blockchain is required to deliver the intended experience. For instance, the platform needs to be capable of handling large trading volume and frequent price fluctuations. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
 
 ### Flow Protocol Smart Contracts on Ethereum
-Simple Proof of Concept Flow Synthetic Asset Protocol on Koven. The codes in the repo are the actual protocols and have not been deployed yet.
+A reference implementation of the Flow Margin Trading Protocol, Synthetic Asset Protocol and Money Market Protocol smart contracts are deployed on Ethereum Kovan test net. The Flow Exchange DApp is under construction and will be released soon on test net.
 
 | Contracts           | Address                                      |
 | ------------------- | -------------------------------------------- | 
-| fEUR                | ['0x492D4a6EDf35Ad778cCC16007709DCe72522e98E'](https://kovan.etherscan.io/address/0x492D4a6EDf35Ad778cCC16007709DCe72522e98E) | 
-| USD (DAI equivalent)| ['0x04aECEd61E92BE42e326e5Fd34e5D611cF71f5E2'](https://kovan.etherscan.io/address/0x04aECEd61E92BE42e326e5Fd34e5D611cF71f5E2) | 
-| Factory             | ['0x67e2C2F010086CA7e202e7cA319391eb52358582'](https://kovan.etherscan.io/address/0x67e2C2F010086CA7e202e7cA319391eb52358582) |
-| Liquidity Pool      | ['0x11cC6E95ba25aDfDF3549e6D70e8dA42718A82bC'](https://kovan.etherscan.io/address/0x11cC6E95ba25aDfDF3549e6D70e8dA42718A82bC) |
-| Price Oracle        | ['0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B'](https://kovan.etherscan.io/address/0xD738B76DbC00B79bb14C7E4B485c4592D83Ca17B) |
+| fEUR (Flow Token)                | ['0xa52676717b3df67bFC1d885FE89bB91D589aBc10'](https://kovan.etherscan.io/address/0xa52676717b3df67bFC1d885FE89bB91D589aBc10) | 
+| fJPY (Flow Token)               | ['0x4344452774d1d9b9088527E3B79398A4a28Eb69D'](https://kovan.etherscan.io/address/0x4344452774d1d9b9088527E3B79398A4a28Eb69D) | 
+| Flow Synthetic Asset Protocol | ['0x4Ed3f56009d7b65d7f2a3e83a83DB02b7Ed8C687'](https://kovan.etherscan.io/address/0x4Ed3f56009d7b65d7f2a3e83a83DB02b7Ed8C687) |
+| Liquidity Pool  1    | ['0x3f9cC98f612611E83Ae9977c3f8024D762722E66'](https://kovan.etherscan.io/address/0x3f9cC98f612611E83Ae9977c3f8024D762722E66) |
+| Price Oracle        | ['0xA6d465d1412c978c5644ADB47E9f34EAc7E2EE35'](https://kovan.etherscan.io/address/0xA6d465d1412c978c5644ADB47E9f34EAc7E2EE35) |
+| Money Market        | ['0x4d461B95EC1ef26F513451c46b752b88eDDE3984f'](https://kovan.etherscan.io/address/0x4d461B95EC1ef26F513451c46b752b88eDDE3984f) |
+| iUSD (iToken)       | ['0x8C227932774fAbb06a3C16F9F9F8BBFbf6326D60'](https://kovan.etherscan.io/address/0x8C227932774fAbb06a3C16F9F9F8BBFbf6326D60) |
+| Flow Margin Protocol        | ['0x71410568db55Bb56910d5f030aB09FE39aEF82fB'](https://kovan.etherscan.io/address/0x71410568db55Bb56910d5f030aB09FE39aEF82fB) |
+| Long 10x EURUSD (MarginTradingPair)       | ['0x2298E7e796A4291662ea12d50b4802e86FA99796'](https://kovan.etherscan.io/address/0x2298E7e796A4291662ea12d50b4802e86FA99796) |
+| Short 5x USDJPY  (MarginTradingPair)       | ['0x4900f63922044C31c4B6Ba84b37Fbb564044B48b'](https://kovan.etherscan.io/address/0x4900f63922044C31c4B6Ba84b37Fbb564044B48b) |
 
+| Dependent Contracts           | Address                                      |
+| ------------------- | -------------------------------------------- | 
+| Compound DAI                | ['0xbF7A7169562078c96f0eC1A8aFD6aE50f12e5A99'](https://kovan.etherscan.io/address/0xbF7A7169562078c96f0eC1A8aFD6aE50f12e5A99) | 
 
 ### Flowchain as parachain on Polkadot 
 Assumptions:
