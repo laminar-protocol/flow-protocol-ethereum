@@ -78,7 +78,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function setPrice(address addr, uint price) public {
+    function setPrice(address addr, uint price) private {
         require(price != 0, "Invalid price");
         uint lastPrice = cachedPrices[addr];
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];

@@ -71,7 +71,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // await iToken.transfer(pool.address, web3.utils.toWei('50'));
 
-    await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
+    // await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
 
     console.log('Deploy success', {
       moneyMarket: moneyMarket.address,
