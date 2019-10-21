@@ -12,6 +12,8 @@ script:
   - yarn lint
   - yarn test
   - yarn stop
+  - cd subgraph
+  - yarn build
 
 branches:
   only:
