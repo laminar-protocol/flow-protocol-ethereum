@@ -41,3 +41,23 @@ type PriceEntity @entity {
     value: BigDecimal!
     updatedAt: Int!
 }
+
+type TradingPairEntity @entity {
+    id: ID! # contract address
+
+    quoteToken: TokenEntity!
+    leverage: Int!
+    safeMarginPercent: BigDecimal!
+    liquidationFee: BigDecimal!
+}
+
+type MarginPositionEntity @entity {
+    id: ID! # trading pair address + position ID
+
+    owner: Bytes!
+    liquidityPool: Bytes!
+    amount: BigDecimal!
+    openPrice: BigDecimal!
+    liquidationFee: BigDecimal!
+    bidSpread: BigDecimal!
+}
