@@ -13,24 +13,20 @@ library PriceOracleStructs {
     }
 }
 
-contract PriceOracleDataSource is PriceFeederRole {
+
+/// Price oracle data source. Only for inheritance.
+contract PriceOracleDataSource {
     // key => feeder => price record
     mapping(address => mapping(address => PriceOracleStructs.PriceRecord)) private priceRecords;
     // key => hasUpdate
-    mapping(address => bool) public hasUpdate;
+    mapping(address => bool) internal hasUpdate;
 
-    constructor(address[] memory priceFeeders) public {
-        for (uint i = 0; i < priceFeeders.length; i++) {
-            addPriceFeeder(priceFeeders[i]);
-        }
-    }
-
-    function feedPrice(address key, uint price) external onlyPriceFeeder {
+    function _feedPrice(address key, uint price) internal {
         priceRecords[key][msg.sender] = PriceOracleStructs.PriceRecord(price, block.timestamp);
         hasUpdate[key] = true;
     }
 
-    function findMedianPrice(address key, uint expireIn) public view returns (uint) {
+    function findMedianPrice(address key, uint expireIn, address[] storage priceFeeders) internal view returns (uint) {
         uint expireAt = block.timestamp - expireIn;
 
         // filter active price records, put them in an array with max possible length
@@ -56,29 +52,28 @@ contract PriceOracleDataSource is PriceFeederRole {
 
         return Arrays.findMedian(validPrices);
     }
-
-    function setHasUpdate(address key, bool value) public {
-        hasUpdate[key] = value;
-    }
 }
 
-contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface {
+
+contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeederRole, PriceOracleDataSource {
     mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
-
-    PriceOracleDataSource private dataSource;
 
     bool public constant isPriceOracle = true;
 
     event PriceUpdated(address indexed addr, uint price);
 
+    function feedPrice(address key, uint price) external onlyPriceFeeder {
+        _feedPrice(key, price);
+    }
+
     function getPrice(address key) external returns (uint) {
-        if (dataSource.hasUpdate(key)) {
-            uint price = dataSource.findMedianPrice(key, expireIn);
+        if (hasUpdate[key]) {
+            uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {
                 setPrice(key, price);
             }
-            dataSource.setHasUpdate(key, false);
+            hasUpdate[key] = false;
         }
         return cachedPrices[key];
     }
