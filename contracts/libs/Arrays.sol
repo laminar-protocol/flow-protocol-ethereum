@@ -2,7 +2,7 @@ pragma solidity ^0.5.8;
 
 library Arrays {
     /// Find median of an unsorted uint array. Note that items in the input array might be swapped.
-    function findMedian(uint[] storage unsorted) internal returns (uint) {
+    function findMedian(uint[] memory unsorted) internal pure returns (uint) {
         uint medianIndex = unsorted.length / 2;
         return Quick.select(unsorted, medianIndex);
     }
@@ -11,7 +11,7 @@ library Arrays {
 /// Quick select/sort.
 library Quick {
     /// Select kth smallest item.
-    function select(uint[] storage arr, uint k) internal returns (uint) {
+    function select(uint[] memory arr, uint k) internal pure returns (uint) {
         require((0 <= k) && (k < arr.length), "index out of bound");
 
         uint low = 0;
@@ -26,7 +26,7 @@ library Quick {
     }
 
     /// Partition the subarray a[low..high] so that a[low..j-1] <= a[j] <= a[j+1..high] and return j.
-    function partition(uint[] storage arr, uint low, uint high) internal returns (uint) {
+    function partition(uint[] memory arr, uint low, uint high) internal pure returns (uint) {
         uint i = low;
         uint j = high + 1;
         uint v = arr[low];

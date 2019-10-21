@@ -19,9 +19,6 @@ contract PriceOracleDataSource is PriceFeederRole {
     // key => hasUpdate
     mapping(address => bool) public hasUpdate;
 
-    // to store temp non-expired records for `findMedianPrice` method
-    uint[] private validPrices;
-
     constructor(address[] memory priceFeeders) public {
         for (uint i = 0; i < priceFeeders.length; i++) {
             addPriceFeeder(priceFeeders[i]);
@@ -33,16 +30,28 @@ contract PriceOracleDataSource is PriceFeederRole {
         hasUpdate[key] = true;
     }
 
-    function findMedianPrice(address key, uint expireIn) public returns (uint) {
+    function findMedianPrice(address key, uint expireIn) public view returns (uint) {
         uint expireAt = block.timestamp - expireIn;
 
-        // filter active price records
-        delete validPrices;
+        // filter active price records, put them in an array with max possible length
+        uint[] memory validPricesWithMaxCapacity = new uint[](priceFeeders.length);
+        uint validPricesLength = 0;
         for (uint i = 0; i < priceFeeders.length; i++) {
             PriceOracleStructs.PriceRecord storage record = priceRecords[key][priceFeeders[i]];
             if (record.timestamp > expireAt) {
-                validPrices.push(record.price);
+                validPricesWithMaxCapacity[validPricesLength] = record.price;
+                validPricesLength += 1;
             }
+        }
+
+        if (validPricesLength == 0) {
+            return 0;
+        }
+
+        // move active price records into an array just long enough to hold all records
+        uint[] memory validPrices = new uint[](validPricesLength);
+        for (uint i = 0; i < validPricesLength; i++) {
+            validPrices[i] = validPricesWithMaxCapacity[i];
         }
 
         return Arrays.findMedian(validPrices);
@@ -74,7 +83,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface {
         return cachedPrices[key];
     }
 
-    function setPrice(address addr, uint price) private {
+    function setPrice(address addr, uint price) public {
         require(price != 0, "Invalid price");
         uint lastPrice = cachedPrices[addr];
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
