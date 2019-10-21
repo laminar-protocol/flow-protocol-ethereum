@@ -41,6 +41,7 @@ export function handleMinted(event: Minted): void {
   tx.kind = 'Minted';
   tx.user = event.params.sender;
   tx.token = event.params.token.toHex();
+  tx.liquidityPool = event.params.liquidityPool;
   tx.baseTokenAmount = event.params.baseTokenAmount.toBigDecimal().div(one);
   tx.flowTokenAmount = event.params.flowTokenAmount.toBigDecimal().div(one);
 
@@ -55,6 +56,7 @@ export function handleRedeemed(event: Redeemed): void {
   tx.kind = 'Redeemed';
   tx.user = event.params.sender;
   tx.token = event.params.token.toHex();
+  tx.liquidityPool = event.params.liquidityPool;
   tx.baseTokenAmount = event.params.baseTokenAmount.toBigDecimal().div(one);
   tx.flowTokenAmount = event.params.flowTokenAmount.toBigDecimal().div(one);
 
@@ -69,6 +71,7 @@ export function handleLiquidated(event: Liquidated): void {
   tx.kind = 'Liquidated';
   tx.user = event.params.sender;
   tx.token = event.params.token.toHex();
+  tx.liquidityPool = event.params.liquidityPool;
   tx.baseTokenAmount = event.params.baseTokenAmount.toBigDecimal().div(one);
   tx.flowTokenAmount = event.params.flowTokenAmount.toBigDecimal().div(one);
 
@@ -83,6 +86,7 @@ export function handleCollateralAdded(event: CollateralAdded): void {
   tx.kind = 'CollateralAdded';
   tx.user = event.params.liquidityPool;
   tx.token = event.params.token.toHex();
+  tx.liquidityPool = event.params.liquidityPool;
   tx.baseTokenAmount = event.params.baseTokenAmount.toBigDecimal().div(one);
   tx.flowTokenAmount = event.params.iTokenAmount.toBigDecimal().div(one);
 
@@ -97,6 +101,7 @@ export function handleCollateralWithdrew(event: CollateralWithdrew): void {
   tx.kind = 'CollateralWithdrew';
   tx.user = event.params.liquidityPool;
   tx.token = event.params.token.toHex();
+  tx.liquidityPool = event.params.liquidityPool;
   tx.baseTokenAmount = event.params.baseTokenAmount.toBigDecimal().div(one);
   tx.flowTokenAmount = event.params.iTokenAmount.toBigDecimal().div(one);
 

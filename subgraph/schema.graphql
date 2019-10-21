@@ -30,7 +30,7 @@ type EventEntity @entity {
 
     user: Bytes!
     token: TokenEntity!
-    liquidityPool: Bytes!
+    liquidityPool: Bytes
 
     baseTokenAmount: BigDecimal!
     flowTokenAmount: BigDecimal!
