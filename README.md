@@ -30,6 +30,7 @@ Table of Contents
   - [Flow Protocol Smart Contracts on Ethereum](#flow-protocol-smart-contracts-on-ethereum)
   - [Flowchain as parachain on Polkadot](#flowchain-as-parachain-on-polkadot)
   - [Oracle Reference Implementation](#oracle-reference-implementation)
+    - [Oracle Server](#oracle-server)
 
 <!-- /TOC -->
 
@@ -317,24 +318,7 @@ Following on the previous example, if a user deposits 9 fEUR (=10 USD), then 10 
 We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading. There are also existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers, a high performance and low cost specialized trading blockchain is required to deliver the intended experience. For instance, the platform needs to be capable of handling large trading volume and frequent price fluctuations. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
 
 ### Flow Protocol Smart Contracts on Ethereum
-A reference implementation of the Flow Margin Trading Protocol, Synthetic Asset Protocol and Money Market Protocol smart contracts are deployed on Ethereum Kovan test net. The Flow Exchange DApp is under construction and will be released soon on test net.
-
-| Contracts           | Address                                      |
-| ------------------- | -------------------------------------------- | 
-| fEUR (Flow Token)                | ['0xa52676717b3df67bFC1d885FE89bB91D589aBc10'](https://kovan.etherscan.io/address/0xa52676717b3df67bFC1d885FE89bB91D589aBc10) | 
-| fJPY (Flow Token)               | ['0x4344452774d1d9b9088527E3B79398A4a28Eb69D'](https://kovan.etherscan.io/address/0x4344452774d1d9b9088527E3B79398A4a28Eb69D) | 
-| Flow Synthetic Asset Protocol | ['0x4Ed3f56009d7b65d7f2a3e83a83DB02b7Ed8C687'](https://kovan.etherscan.io/address/0x4Ed3f56009d7b65d7f2a3e83a83DB02b7Ed8C687) |
-| Liquidity Pool  1    | ['0x3f9cC98f612611E83Ae9977c3f8024D762722E66'](https://kovan.etherscan.io/address/0x3f9cC98f612611E83Ae9977c3f8024D762722E66) |
-| Price Oracle        | ['0xA6d465d1412c978c5644ADB47E9f34EAc7E2EE35'](https://kovan.etherscan.io/address/0xA6d465d1412c978c5644ADB47E9f34EAc7E2EE35) |
-| Money Market        | ['0x4d461B95EC1ef26F513451c46b752b88eDDE3984f'](https://kovan.etherscan.io/address/0x4d461B95EC1ef26F513451c46b752b88eDDE3984f) |
-| iUSD (iToken)       | ['0x8C227932774fAbb06a3C16F9F9F8BBFbf6326D60'](https://kovan.etherscan.io/address/0x8C227932774fAbb06a3C16F9F9F8BBFbf6326D60) |
-| Flow Margin Protocol        | ['0x71410568db55Bb56910d5f030aB09FE39aEF82fB'](https://kovan.etherscan.io/address/0x71410568db55Bb56910d5f030aB09FE39aEF82fB) |
-| Long 10x EURUSD (MarginTradingPair)       | ['0x2298E7e796A4291662ea12d50b4802e86FA99796'](https://kovan.etherscan.io/address/0x2298E7e796A4291662ea12d50b4802e86FA99796) |
-| Short 5x USDJPY  (MarginTradingPair)       | ['0x4900f63922044C31c4B6Ba84b37Fbb564044B48b'](https://kovan.etherscan.io/address/0x4900f63922044C31c4B6Ba84b37Fbb564044B48b) |
-
-| Dependent Contracts           | Address                                      |
-| ------------------- | -------------------------------------------- | 
-| Compound DAI                | ['0xbF7A7169562078c96f0eC1A8aFD6aE50f12e5A99'](https://kovan.etherscan.io/address/0xbF7A7169562078c96f0eC1A8aFD6aE50f12e5A99) | 
+A reference implementation of the Flow Margin Trading Protocol, Synthetic Asset Protocol and Money Market Protocol smart contracts are deployed on Ethereum Kovan test net. The Flow Exchange DApp is under construction and will be released soon on test net. Please refer to [the Wiki Guide](https://github.com/laminar-protocol/flow-protocol-ethereum/wiki) for using and developing on top of these contracts.
 
 ### Flowchain as parachain on Polkadot 
 Assumptions:
@@ -405,3 +389,9 @@ The difference between the new price and the last price is capped by the **`delt
 
 Pseudo cap function, for last price cap, `priceCap` is the **`delta last limit`**, and `lastPrice` is the Oracle last price; for snapshot price cap, `priceCap` is the **`delta snapshot limit`**, and `lastPrice` is the snapshot price.
 
+#### Oracle Server
+There will be multiple Oracle servers set up to feed prices into the Oracle contract onchain. For mainnet, reputable price source like Bloomberg Forex API will be fetched to the server then feed into the Oracle contract. Monitoring services will be set up to ensure server availability and price sanity. 
+
+Note: any compromised oracle server is able to influence the price to a limited degree due to the price cap function built into the Oracle contract. A K'th largest algorithm will be able to tolerate up to K compromised servers. 
+
+Again we will continue watch closely the development in the Oracle space and open to collaboration to make it more resilient for our trading platform.
