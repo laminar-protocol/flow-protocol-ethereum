@@ -44,18 +44,12 @@ library Quick {
             // check if pointer cross
             if (i >= j) break;
 
-            swap(arr, i, j);
+            (arr[i], arr[j]) = (arr[j], arr[i]);
         }
 
         // put partitioning item v at arr[j]
-        swap(arr, low, j);
+        (arr[low], arr[j]) = (arr[j], arr[low]);
 
         return j;
-    }
-
-    function swap(uint[] storage arr, uint i, uint j) private {
-        uint temp = arr[i];
-        arr[i] = arr[j];
-        arr[j] = temp;
     }
 }
