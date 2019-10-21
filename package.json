@@ -11,7 +11,7 @@
     "test": "truffle test",
     "ganache": "ganache-cli -p 9545 -m 'candy maple cake sugar pudding cream honey rich smooth crumble sweet treat' > /dev/null &",
     "stop": "sudo kill `sudo lsof -t -i:9545`",
-    "deploy:kovan": "truffle migrate --reset --network kovan && yarn verify:kovan"
+    "deploy:kovan": "truffle migrate --reset --network kovan --skip-dry-run && yarn verify:kovan"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^2.3.0",
