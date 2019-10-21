@@ -1,0 +1,61 @@
+specVersion: 0.0.2
+description: Flow Protocols powering synthetic asset and margin trading.
+repository: https://github.com/laminar-protocol/flow-protocol-ethereum
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum/contract
+    name: FlowProtocol
+    network: kovan
+    source:
+      address: '0x50A037f6D57a9F26b23ba57f6bAEb11a9B71353d'
+      abi: FlowProtocol
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - FlowToken
+      abis:
+        - name: FlowProtocol
+          file: ../build/contracts/FlowProtocol.json
+        - name: FlowToken
+          file: ../build/contracts/FlowToken.json
+      file: ./src/mapping.ts
+      eventHandlers:
+        - event: NewFlowToken(indexed address)
+          handler: handleNewFlowToken
+        - event: Minted(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleMinted
+        - event: Redeemed(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleRedeemed
+        - event: Liquidated(indexed address,indexed address,indexed address,uint256,uint256)
+          handler: handleLiquidated
+        - event: CollateralAdded(indexed address,indexed address,uint256,uint256)
+          handler: handleCollateralAdded
+        - event: CollateralWithdrew(indexed address,indexed address,uint256,uint256)
+          handler: handleCollateralWithdrew
+        - event: FlowTokenDeposited(indexed address,indexed address,uint256,uint256)
+          handler: handleFlowTokenDeposited
+        - event: FlowTokenWithdrew(indexed address,indexed address,uint256,uint256)
+          handler: handleFlowTokenWithdrew
+  - kind: ethereum/contract
+    name: PriceOracle
+    network: kovan
+    source:
+      address: '0x1a70f01ad9f5d2906Bc53CF39b995C8ae72426E2'
+      abi: PriceOracleInterface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - Price
+      abis:
+        - name: PriceOracleInterface
+          file: ../build/contracts/PriceOracleInterface.json
+      file: ./src/mapping.ts
+      eventHandlers:
+        - event: PriceUpdated(indexed address,uint256)
+          handler: handlePriceUpdated
+

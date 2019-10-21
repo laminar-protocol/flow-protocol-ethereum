@@ -1,4 +1,4 @@
-import { expectRevert } from 'openzeppelin-test-helpers';
+import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import { LiquidityPoolInstance, TestTokenInstance, MoneyMarketInstance, IERC20Instance } from 'types/truffle-contracts';
 import * as helper from './helpers';
@@ -19,7 +19,11 @@ contract('LiquidityPool', (accounts) => {
   beforeEach(async () => {
     usd = await helper.createTestToken([liquidityProvider, 10000]);
     ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
-    liquidityPool = await LiquidityPool.new(protocol, moneyMarket.address, helper.fromPip(10), [fToken], { from: liquidityProvider });
+    liquidityPool = await LiquidityPool.new(moneyMarket.address, helper.fromPip(10), { from: liquidityProvider });
+
+    await liquidityPool.approve(protocol, constants.MAX_UINT256, { from: liquidityProvider });
+    await liquidityPool.enableToken(fToken, { from: liquidityProvider });
+
     usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
   });
 
@@ -107,13 +111,13 @@ contract('LiquidityPool', (accounts) => {
     });
 
     it('should be able to withdraw by owner', async () => {
-      await liquidityPool.withdraw(500, { from: liquidityProvider });
+      await liquidityPool.withdrawLiquidity(5000, { from: liquidityProvider });
       expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(helper.bn(9500));
-      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(helper.bn(500));
+      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(helper.bn(5000));
     });
 
     it('should not be able to withdraw by others', async () => {
-      await expectRevert(liquidityPool.withdraw(500, { from: badAddress }), helper.messages.onlyOwner);
+      await expectRevert(liquidityPool.withdrawLiquidity(500, { from: badAddress }), helper.messages.onlyOwner);
     });
   });
 });

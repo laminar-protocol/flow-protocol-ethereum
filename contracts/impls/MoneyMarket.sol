@@ -45,24 +45,28 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         minLiquidity.value = minLiquidity_;
     }
 
-    function mint(uint baseTokenAmount) external {
-        mintTo(msg.sender, baseTokenAmount);
+    function mint(uint baseTokenAmount) external returns (uint) {
+        return mintTo(msg.sender, baseTokenAmount);
     }
 
-    function mintTo(address recipient, uint baseTokenAmount) public nonReentrant {
+    function mintTo(address recipient, uint baseTokenAmount) public nonReentrant returns (uint) {
         uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
 
         baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         iToken.mint(recipient, iTokenAmount);
 
         _rebalance(0);
+
+        emit Minted(recipient, baseTokenAmount, iTokenAmount);
+
+        return iTokenAmount;
     }
 
-    function redeem(uint iTokenAmount) external {
-        redeemTo(msg.sender, iTokenAmount);
+    function redeem(uint iTokenAmount) external returns (uint) {
+        return redeemTo(msg.sender, iTokenAmount);
     }
 
-    function redeemTo(address recipient, uint iTokenAmount) public nonReentrant {
+    function redeemTo(address recipient, uint iTokenAmount) public nonReentrant returns (uint) {
         uint baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
 
         iToken.burn(msg.sender, iTokenAmount);
@@ -70,6 +74,10 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         _rebalance(baseTokenAmount);
 
         baseToken.safeTransfer(recipient, baseTokenAmount);
+
+        emit Redeemed(recipient, baseTokenAmount, iTokenAmount);
+
+        return baseTokenAmount;
     }
 
     function redeemBaseToken(uint baseTokenAmount) external {
@@ -84,6 +92,8 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         _rebalance(baseTokenAmount);
 
         baseToken.safeTransfer(recipient, baseTokenAmount);
+
+        emit Redeemed(recipient, baseTokenAmount, iTokenAmount);
     }
 
     function rebalance() external nonReentrant {
@@ -155,7 +165,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function exchangeRate() public view returns (uint) {
         uint totalSupply = iToken.totalSupply();
         if (totalSupply == 0) {
-            return 1 ether;
+            return 0.1 ether;
         }
         return totalHoldings().mul(1 ether).div(totalSupply);
     }

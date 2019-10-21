@@ -33,3 +33,5 @@ package-lock.json
 .idea/
 types/truffle-contracts
 types/web3-contracts
+
+generated

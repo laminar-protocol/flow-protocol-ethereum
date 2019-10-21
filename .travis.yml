@@ -4,11 +4,16 @@ node_js:
 
 cache: yarn
 
+before_script:
+  - echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+
 script:
   - yarn ganache &
   - yarn lint
   - yarn test
   - yarn stop
+  - cd subgraph
+  - yarn build
 
 branches:
   only:

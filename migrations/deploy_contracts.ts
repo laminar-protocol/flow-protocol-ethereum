@@ -41,6 +41,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const LiquidityPool = artifacts.require('LiquidityPool');
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const IERC20 = artifacts.require('IERC20');
+  const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
+  const MarginTradingPair = artifacts.require('MarginTradingPair');
 
   return async (deployer: Truffle.Deployer, network: Network, accounts: string[]) => {
     console.log(`---- Deploying on network: ${network}`);
@@ -57,21 +59,93 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(FlowProtocol, oracle.address, moneyMarket.address);
     const protocol = await FlowProtocol.deployed();
 
-    await deployer.deploy(FlowToken, 'Euro', 'EUR', moneyMarket.address, protocol.address);
+    await deployer.deploy(FlowToken, 'Flow Euro', 'fEUR', moneyMarket.address, protocol.address);
     const fEUR = await FlowToken.deployed();
 
-    await protocol.addFlowToken(fEUR.address);
+    const fJPY = await FlowToken.new('Flow Japanese Yen', 'fJPY', moneyMarket.address, protocol.address);
 
-    await deployer.deploy(LiquidityPool, protocol.address, moneyMarket.address, web3.utils.toWei('0.01'), [fEUR.address]);
-    const pool = await LiquidityPool.deployed();
+    await protocol.addFlowToken(fEUR.address);
+    await protocol.addFlowToken(fJPY.address);
+
+    await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
+    await oracle.setPrice(fJPY.address, web3.utils.toWei('0.0092'));
+
+    // --- margin protocol
+
+    await deployer.deploy(FlowMarginProtocol, oracle.address, moneyMarket.address);
+    const marginProtocol = await FlowMarginProtocol.deployed();
+
+    await deployer.deploy(
+      MarginTradingPair,
+      marginProtocol.address,
+      moneyMarket.address,
+      fEUR.address,
+      10,
+      web3.utils.toWei('0.8'),
+      web3.utils.toWei('5')
+    );
+
+    const l10USDEUR = await MarginTradingPair.deployed();
+
+    const s10USDEUR = await MarginTradingPair.new(
+      marginProtocol.address,
+      moneyMarket.address,
+      fJPY.address,
+      -10,
+      web3.utils.toWei('0.8'),
+      web3.utils.toWei('5')
+    );
+
+    const l20USDJPY = await MarginTradingPair.new(
+      marginProtocol.address,
+      moneyMarket.address,
+      fJPY.address,
+      -20,
+      web3.utils.toWei('0.8'),
+      web3.utils.toWei('5')
+    );
+
+    const s20USDJPY = await MarginTradingPair.new(
+      marginProtocol.address,
+      moneyMarket.address,
+      fJPY.address,
+      -20,
+      web3.utils.toWei('0.8'),
+      web3.utils.toWei('5')
+    );
+
+    await marginProtocol.addTradingPair(l10USDEUR.address);
+    await marginProtocol.addTradingPair(s10USDEUR.address);
+    await marginProtocol.addTradingPair(l20USDJPY.address);
+    await marginProtocol.addTradingPair(s20USDJPY.address);
+
+    // approve default account
 
     await baseToken.approve(moneyMarket.address, web3.utils.toWei('1000000'));
+    await baseToken.approve(protocol.address, web3.utils.toWei('1000000'));
+    await baseToken.approve(marginProtocol.address, web3.utils.toWei('1000000'));
 
-    // await moneyMarket.mint(web3.utils.toWei('50'));
+    // liquidity pool
 
-    // await iToken.transfer(pool.address, web3.utils.toWei('50'));
+    await deployer.deploy(LiquidityPool, moneyMarket.address, web3.utils.toWei('0.003'));
+    const pool = await LiquidityPool.deployed();
 
-    // await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
+    await pool.approve(protocol.address, web3.utils.toWei('1000000'));
+    await pool.approve(marginProtocol.address, web3.utils.toWei('1000000'));
+    await pool.enableToken(fEUR.address);
+    await pool.enableToken(fJPY.address);
+
+    const pool2 = await LiquidityPool.new(moneyMarket.address, web3.utils.toWei('0.0031'));
+
+    await pool2.approve(protocol.address, web3.utils.toWei('1000000'));
+    await pool2.approve(marginProtocol.address, web3.utils.toWei('1000000'));
+    await pool2.enableToken(fEUR.address);
+    await pool2.enableToken(fJPY.address);
+
+    // topup liquidity pool
+
+    await moneyMarket.mintTo(pool.address, web3.utils.toWei('100'));
+    await moneyMarket.mintTo(pool2.address, web3.utils.toWei('100'));
 
     console.log('Deploy success', {
       moneyMarket: moneyMarket.address,
@@ -79,7 +153,14 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       oracle: oracle.address,
       protocol: protocol.address,
       fEUR: fEUR.address,
+      fJPY: fJPY.address,
+      marginProtocol: marginProtocol.address,
+      l10USDEUR: l10USDEUR.address,
+      s10USDEUR: s10USDEUR.address,
+      l20USDJPY: l20USDJPY.address,
+      s20USDJPY: s20USDJPY.address,
       pool: pool.address,
+      pool2: pool2.address,
     });
   };
 };

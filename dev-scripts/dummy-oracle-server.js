@@ -47,7 +47,7 @@ module.exports = async (callback) => {
     const newtworkType = await web3.eth.net.getNetworkType();
     const time = ({
       private: 1000,
-    })[newtworkType] || 10000;
+    })[newtworkType] || 20000;
     await main(time);
   } catch (err) {
     console.error(err);

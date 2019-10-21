@@ -2,44 +2,37 @@ pragma solidity ^0.5.8;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../libs/Percentage.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "./FlowToken.sol";
+import "./FlowProtocolBase.sol";
 
-contract FlowProtocol is Ownable, ReentrancyGuard {
+contract FlowProtocol is FlowProtocolBase {
     using SafeMath for uint256;
     using Percentage for uint256;
     using SafeERC20 for IERC20;
-
-    uint constant MAX_UINT = 2**256 - 1;
-
-    PriceOracleInterface public oracle;
-    MoneyMarketInterface public moneyMarket;
 
     mapping (string => FlowToken) public tokens;
     mapping (address => bool) public tokenWhitelist;
 
     event NewFlowToken(address indexed token);
-    event Minted(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount);
-    event Redeemed(address indexed sender, address indexed token, address indexed liquidityPool, uint flowTokenAmount);
-    event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint flowTokenAmount);
-    event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount);
-    event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount);
-    event FlowTokenDeposited(address indexed sender, address indexed token, uint flowTokenAmount);
-    event FlowTokenWithdrew(address indexed sender, address indexed token, uint flowTokenAmount);
+    event Minted(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
+    event Redeemed(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
+    event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
+    event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
+    event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
+    event FlowTokenDeposited(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
+    event FlowTokenWithdrew(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
 
-    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) public {
-        oracle = oracle_;
-        moneyMarket = moneyMarket_;
-
-        moneyMarket.baseToken().safeApprove(address(moneyMarket), MAX_UINT);
+    constructor(
+        PriceOracleInterface oracle_,
+        MoneyMarketInterface moneyMarket_
+    ) FlowProtocolBase(oracle_, moneyMarket_) public {
     }
 
     function addFlowToken(FlowToken token) external onlyOwner {
@@ -59,7 +52,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint askPrice = price.add(pool.getAskSpread(address(token)));
+        uint askPrice = getAskPrice(pool, address(token), price);
         uint flowTokenAmount = baseTokenAmount.mul(1 ether).div(askPrice);
         uint flowTokenCurrentValue = flowTokenAmount.mul(price).div(1 ether);
         uint additionalCollateralAmount = _calcAdditionalCollateralAmount(flowTokenCurrentValue, token, pool, baseTokenAmount);
@@ -74,7 +67,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         moneyMarket.iToken().safeTransferFrom(address(pool), address(token), additionalCollateralITokenAmount);
         token.mint(msg.sender, flowTokenAmount);
 
-        emit Minted(msg.sender, address(token), address(pool), baseTokenAmount);
+        emit Minted(msg.sender, address(token), address(pool), baseTokenAmount, flowTokenAmount);
 
         return flowTokenAmount;
     }
@@ -96,7 +89,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(pool.getBidSpread(address(token)));
+        uint bidPrice = getBidPrice(pool, address(token), price);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -112,7 +105,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         token.burn(msg.sender, flowTokenAmount);
 
-        emit Redeemed(msg.sender, address(token), address(pool), flowTokenAmount);
+        emit Redeemed(msg.sender, address(token), address(pool), baseTokenAmount, flowTokenAmount);
 
         return baseTokenAmount;
     }
@@ -121,11 +114,9 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
-        IERC20 iToken = moneyMarket.iToken();
-
         uint price = getPrice(address(token));
 
-        uint bidPrice = price.sub(pool.getBidSpread(address(token)));
+        uint bidPrice = getBidPrice(pool, address(token), price);
         uint baseTokenAmount = flowTokenAmount.mul(bidPrice).div(1 ether);
 
         uint collateralsToRemove;
@@ -137,12 +128,12 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         refundToPool = refundToPool.add(interest);
 
         uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
-        iToken.safeTransferFrom(address(token), address(pool), refundToPoolITokenAmount);
+        moneyMarket.iToken().safeTransferFrom(address(token), address(pool), refundToPoolITokenAmount);
         token.withdrawTo(msg.sender, baseTokenAmount.add(incentive));
 
         token.burn(msg.sender, flowTokenAmount);
 
-        emit Liquidated(msg.sender, address(token), address(pool), flowTokenAmount);
+        emit Liquidated(msg.sender, address(token), address(pool), baseTokenAmount, flowTokenAmount);
 
         return baseTokenAmount;
     }
@@ -155,7 +146,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         token.addPosition(poolAddr, baseTokenAmount, 0, baseTokenAmount);
         moneyMarket.iToken().safeTransferFrom(msg.sender, address(token), iTokenAmount);
 
-        emit CollateralAdded(address(token), poolAddr, baseTokenAmount);
+        emit CollateralAdded(address(token), poolAddr, baseTokenAmount, iTokenAmount);
     }
 
     function withdrawCollateral(FlowToken token) external nonReentrant returns (uint) {
@@ -176,7 +167,7 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
         uint refundToPoolITokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), refundToPool);
         iToken.safeTransferFrom(tokenAddr, msg.sender, refundToPoolITokenAmount);
 
-        emit CollateralWithdrew(address(token), msg.sender, refundToPool);
+        emit CollateralWithdrew(address(token), msg.sender, refundToPool, refundToPoolITokenAmount);
 
         return refundToPoolITokenAmount;
     }
@@ -187,17 +178,17 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
 
         uint price = getPrice(address(token));
 
-        token.deposit(msg.sender, flowTokenAmount, price);
+        uint baseTokenAmount = token.deposit(msg.sender, flowTokenAmount, price);
 
-        emit FlowTokenDeposited(address(token), msg.sender, flowTokenAmount);
+        emit FlowTokenDeposited(address(token), msg.sender, baseTokenAmount, flowTokenAmount);
     }
 
     function withdraw(FlowToken token, uint flowTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
-        token.withdraw(msg.sender, flowTokenAmount);
+        uint baseTokenAmount = token.withdraw(msg.sender, flowTokenAmount);
 
-        emit FlowTokenWithdrew(address(token), msg.sender, flowTokenAmount);
+        emit FlowTokenWithdrew(address(token), msg.sender, baseTokenAmount, flowTokenAmount);
     }
 
     function _calculateRemovePosition(
@@ -281,11 +272,5 @@ contract FlowProtocol is Ownable, ReentrancyGuard {
     function getAdditoinalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
         uint ratio = pool.getAdditoinalCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
-    }
-
-    function getPrice(address tokenAddr) internal returns (uint) {
-        uint price = oracle.getPrice(tokenAddr);
-        require(price > 0, "no oracle price");
-        return price;
     }
 }
