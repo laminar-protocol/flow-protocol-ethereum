@@ -8,21 +8,21 @@ import { TokenEntity, PriceEntity, EventEntity, FlowProtocolEntity } from '../ge
 
 let one = BigDecimal.fromString('1000000000000000000');
 
-function getFlowProtocol() {
+function getFlowProtocol(): FlowProtocolEntity {
   let flow = FlowProtocolEntity.load('0');
   if (flow == null) {
     flow = new FlowProtocolEntity('0');
     flow.totalEvents = BigInt.fromI32(0);
   }
-  return flow;
+  return flow as FlowProtocolEntity;
 }
 
-function createNewEventEntity(flow: FlowProtocolEntity, event: EthereumEvent) {
+function createNewEventEntity(flow: FlowProtocolEntity, event: EthereumEvent): EventEntity {
   flow.totalEvents = flow.totalEvents.plus(BigInt.fromI32(1));
   let evt = new EventEntity(flow.totalEvents.toHex());
   evt.timestamp = event.block.timestamp.toI32();
   evt.txhash = event.block.hash;
-  evt.block = event.block.number;
+  evt.block = event.block.number.toI32();
   return evt;
 }
 
