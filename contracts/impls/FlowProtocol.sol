@@ -26,8 +26,8 @@ contract FlowProtocol is FlowProtocolBase {
     event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
     event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
     event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
-    event FlowTokenDeposited(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
-    event FlowTokenWithdrew(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
+    event FlowTokenDeposited(address indexed token, address indexed sender, uint baseTokenAmount, uint flowTokenAmount);
+    event FlowTokenWithdrew(address indexed token, address indexed sender, uint baseTokenAmount, uint flowTokenAmount);
 
     constructor(
         PriceOracleInterface oracle_,
