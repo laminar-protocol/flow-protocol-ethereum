@@ -79,7 +79,7 @@ contract('FlowMarginProtocol', (accounts) => {
   };
   const balance = (token: IERC20Instance, addr: string, amount: any) => async () =>
     expect(await token.balanceOf(addr)).bignumber.equal(bn(amount));
-  const setPrice = (price: number) => () => oracle.feedPrice(eur, price, {from: owner});
+  const setPrice = (price: number) => () => oracle.feedPrice(eur, price, { from: owner });
   const profit = (user: string, positions: Array<[number, number, number]>) => async () => {
     let totalProfit = 0;
     for (const [startPrice, endPrice, principal] of positions) {

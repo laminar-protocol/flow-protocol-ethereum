@@ -1,8 +1,9 @@
 import { expectRevert, time } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import { SimplePriceOracleInstance } from 'types/truffle-contracts';
+import BN from 'bn.js';
+
 import * as helper from './helpers';
-import BigNumber from 'bignumber.js';
 
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
@@ -22,13 +23,13 @@ contract('SimplePriceOracle', (accounts) => {
   });
 
   // Send a `SimplePriceOracle.getPrice` tx and get the call return value.
-  const getPrice = async (oracle: SimplePriceOracleInstance, key: string): Promise<BigNumber> => {
-    await oracle.getPrice(key);
-    const price = await oracle.getPrice.call(key);
-    return price;
-  }
+  const getPrice = async (priceOracle: SimplePriceOracleInstance, key: string): Promise<BN> => {
+    await priceOracle.getPrice(key);
+    const price = await priceOracle.getPrice.call(key);
+    return web3.utils.toBN(price);
+  };
 
-  describe('feed and get price', async () => {
+  describe('feed and get price', () => {
     it('should get 0 for unavailable token', async () => {
       expect(await getPrice(oracle, badAddress)).bignumber.equal(helper.ZERO);
     });
@@ -74,10 +75,10 @@ contract('SimplePriceOracle', (accounts) => {
   });
 
   // Feed a price by owner as feeder, send a `SimplePriceOracle.getPrice` and return updated price.
-  const setPriceByOwner = async (oracle: SimplePriceOracleInstance, key: string, price: number): Promise<BigNumber> =>  {
-    await oracle.feedPrice(key, price);
-    return getPrice(oracle, key);
-  }
+  const setPriceByOwner = async (priceOracle: SimplePriceOracleInstance, key: string, price: number): Promise<BN> => {
+    await priceOracle.feedPrice(key, price);
+    return getPrice(priceOracle, key);
+  };
 
   describe('price cap', () => {
     describe('last price', () => {
