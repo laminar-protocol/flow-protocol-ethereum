@@ -57,18 +57,18 @@ contract('LiquidityPool', (accounts) => {
 
   describe('collateral ratio', () => {
     it('should get 0 for disabled token', async () => {
-      const ratio = await liquidityPool.getAdditoinalCollateralRatio(badAddress);
+      const ratio = await liquidityPool.getAdditionalCollateralRatio(badAddress);
       expect(ratio).bignumber.equal(helper.ZERO);
     });
 
     it('should get default value', async () => {
-      const ratio = await liquidityPool.getAdditoinalCollateralRatio(fToken);
+      const ratio = await liquidityPool.getAdditionalCollateralRatio(fToken);
       expect(ratio).bignumber.equal(helper.ZERO);
     });
 
     it('should be able to set and get new value', async () => {
       await liquidityPool.setCollateralRatio(helper.fromPercent(20), { from: liquidityProvider });
-      const ratio = await liquidityPool.getAdditoinalCollateralRatio(fToken);
+      const ratio = await liquidityPool.getAdditionalCollateralRatio(fToken);
       expect(ratio).bignumber.equal(helper.fromPercent(20));
     });
 
