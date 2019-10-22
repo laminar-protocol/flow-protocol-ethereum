@@ -19,7 +19,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     mapping (address => bool) public tradingPairWhitelist;
 
-    event NewTradingPiar(address pair);
+    event NewTradingPair(address pair);
 
     constructor(
         PriceOracleInterface oracle_,
@@ -31,7 +31,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         require(!tradingPairWhitelist[pair], "Already added");
         tradingPairWhitelist[pair] = true;
 
-        emit NewTradingPiar(pair);
+        emit NewTradingPair(pair);
     }
 
     function openPosition(MarginTradingPair pair, LiquidityPoolInterface pool, uint baseTokenAmount) external nonReentrant returns (uint) {

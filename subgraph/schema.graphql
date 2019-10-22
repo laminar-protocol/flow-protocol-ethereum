@@ -54,10 +54,18 @@ type TradingPairEntity @entity {
 type MarginPositionEntity @entity {
     id: ID! # trading pair address + position ID
 
+    pair: TradingPairEntity!
+    positionId: Int!
+
     owner: Bytes!
     liquidityPool: Bytes!
     amount: BigDecimal!
     openPrice: BigDecimal!
-    liquidationFee: BigDecimal!
     bidSpread: BigDecimal!
+    liquidationFee: BigDecimal!
+
+    closePrice: BigDecimal
+    liquidator: Bytes
+    closeOwnerAmount: BigDecimal
+    closeLiquidityPoolAmount: BigDecimal
 }
