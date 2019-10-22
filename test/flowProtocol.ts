@@ -27,7 +27,8 @@ contract('FlowProtocol', (accounts) => {
   let moneyMarket: MoneyMarketInstance;
 
   before(async () => {
-    oracle = await SimplePriceOracle.new([owner]);
+    oracle = await SimplePriceOracle.new();
+    await oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
   });
@@ -52,7 +53,7 @@ contract('FlowProtocol', (accounts) => {
     await moneyMarket.mintTo(liquidityPool.address, dollar(10000), { from: liquidityProvider });
     await moneyMarket.mint(dollar(10000), { from: liquidityProvider });
 
-    await oracle.setPrice(fToken.address, fromPercent(100));
+    await oracle.feedPrice(fToken.address, fromPercent(100), { from: owner });
   });
 
   it('requires owner to create new token', async () => {
@@ -69,7 +70,7 @@ contract('FlowProtocol', (accounts) => {
   const sell = (addr: string, amount: any) => () => protocol.redeem(fToken.address, liquidityPool.address, amount, { from: addr });
   const balance = (token: IERC20Instance, addr: string, amount: any) => async () =>
     expect(await token.balanceOf(addr)).bignumber.equal(bn(amount));
-  const setPrice = (price: number) => () => oracle.setPrice(fToken.address, fromPercent(price));
+  const setPrice = (price: number) => () => oracle.feedPrice(fToken.address, fromPercent(price), { from: owner });
   const liquidate = (addr: string, amount: number) => () => protocol.liquidate(fToken.address, liquidityPool.address, amount, { from: addr });
   const addCollateral = (from: string, token: string, pool: string, amount: number) => () => protocol.addCollateral(token, pool, amount, { from });
   const revert = (fn: () => Promise<any>, msg: string) => () => expectRevert(fn(), msg);
