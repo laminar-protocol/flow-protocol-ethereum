@@ -42,7 +42,7 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
         return 0;
     }
 
-    function getAdditoinalCollateralRatio(address fToken) external view returns (uint) {
+    function getAdditionalCollateralRatio(address fToken) external view returns (uint) {
         if (allowedTokens[fToken]) {
             return collateralRatio;
         }

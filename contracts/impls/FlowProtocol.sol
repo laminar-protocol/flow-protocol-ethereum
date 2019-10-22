@@ -26,8 +26,8 @@ contract FlowProtocol is FlowProtocolBase {
     event Liquidated(address indexed sender, address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint flowTokenAmount);
     event CollateralAdded(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
     event CollateralWithdrew(address indexed token, address indexed liquidityPool, uint baseTokenAmount, uint iTokenAmount);
-    event FlowTokenDeposited(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
-    event FlowTokenWithdrew(address indexed sender, address indexed token, uint baseTokenAmount, uint flowTokenAmount);
+    event FlowTokenDeposited(address indexed token, address indexed sender, uint baseTokenAmount, uint flowTokenAmount);
+    event FlowTokenWithdrew(address indexed token, address indexed sender, uint baseTokenAmount, uint flowTokenAmount);
 
     constructor(
         PriceOracleInterface oracle_,
@@ -78,7 +78,7 @@ contract FlowProtocol is FlowProtocolBase {
         LiquidityPoolInterface pool,
         uint baseTokenAmount
     ) private view returns (uint) {
-        return flowTokenCurrentValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).add(flowTokenCurrentValue).sub(baseTokenAmount);
+        return flowTokenCurrentValue.mulPercent(getAdditionalCollateralRatio(token, pool)).add(flowTokenCurrentValue).sub(baseTokenAmount);
     }
 
     function redeem(FlowToken token, LiquidityPoolInterface pool, uint flowTokenAmount) external nonReentrant returns (uint) {
@@ -207,7 +207,7 @@ contract FlowProtocol is FlowProtocolBase {
         uint mintedAfter = minted.sub(flowTokenAmount);
 
         uint mintedValue = mintedAfter.mul(price).div(1 ether);
-        uint requiredCollaterals = mintedValue.mulPercent(getAdditoinalCollateralRatio(token, pool)).add(mintedValue);
+        uint requiredCollaterals = mintedValue.mulPercent(getAdditionalCollateralRatio(token, pool)).add(mintedValue);
         collateralsToRemove = baseTokenAmount;
         refundToPool = 0;
         if (requiredCollaterals <= collaterals) {
@@ -269,8 +269,8 @@ contract FlowProtocol is FlowProtocolBase {
         return (baseTokenAmount, 0, 0);
     }
 
-    function getAdditoinalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
-        uint ratio = pool.getAdditoinalCollateralRatio(address(token));
+    function getAdditionalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) internal view returns (Percentage.Percent memory) {
+        uint ratio = pool.getAdditionalCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }
 }
