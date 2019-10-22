@@ -19,6 +19,7 @@ contract PriceOracleConfig is Ownable {
         oracleDeltaLastLimit = Percentage.fromFraction(10, 100);
         oracleDeltaSnapshotLimit = Percentage.fromFraction(15, 100);
         oracleDeltaSnapshotTime = 1 hours;
+        expireIn = 10 minutes;
     }
 
     function setOracleDeltaLastLimit(uint limit) public onlyOwner {
