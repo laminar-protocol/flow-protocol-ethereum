@@ -6,6 +6,7 @@ import { FlowToken } from '../generated/FlowProtocol/FlowToken';
 import { NewTradingPair } from '../generated/FlowMarginProtocol/FlowMarginProtocol';
 import { PriceUpdated } from '../generated/PriceOracle/PriceOracleInterface';
 import { MarginTradingPair, OpenPosition, ClosePosition } from '../generated/templates/MarginTradingPair/MarginTradingPair';
+import { MarginTradingPair as MarginTradingPairTemplate } from '../generated/templates';
 import { TokenEntity, PriceEntity, EventEntity, FlowProtocolEntity, TradingPairEntity, MarginPositionEntity } from '../generated/schema';
 
 let one = BigDecimal.fromString('1000000000000000000');
@@ -154,6 +155,8 @@ export function handleNewTradingPiar(event: NewTradingPair): void {
   entity.safeMarginPercent = pair.safeMarginPercent().toBigDecimal().div(one);
   entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
   entity.save();
+
+  MarginTradingPairTemplate.create(event.params.pair);
 }
 
 export function handleOpenPosition(event: OpenPosition): void {
