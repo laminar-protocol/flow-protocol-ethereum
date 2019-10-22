@@ -53,7 +53,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const iToken = await IERC20.at(await moneyMarket.iToken());
 
     // TODO: make price feeder configurable
-    await deployer.deploy(SimplePriceOracle, [network === 'development' ? accounts[0] : '0xD98C58B8a7cc6FFC44105E4A93253798D1D3f472']);
+    await deployer.deploy(SimplePriceOracle);
     const oracle = await SimplePriceOracle.deployed();
 
     await deployer.deploy(FlowProtocol, oracle.address, moneyMarket.address);
@@ -67,8 +67,12 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await protocol.addFlowToken(fEUR.address);
     await protocol.addFlowToken(fJPY.address);
 
-    await oracle.setPrice(fEUR.address, web3.utils.toWei('1.2'));
-    await oracle.setPrice(fJPY.address, web3.utils.toWei('0.0092'));
+    // set feeder and price
+    const kovanDeployerAddr = '0xD98C58B8a7cc6FFC44105E4A93253798D1D3f472';
+    const priceFeeder = network === 'development' ? accounts[0] : kovanDeployerAddr;
+    await oracle.addPriceFeeder(priceFeeder);
+    await oracle.feedPrice(fEUR.address, web3.utils.toWei('1.2'), { from: priceFeeder });
+    await oracle.feedPrice(fJPY.address, web3.utils.toWei('0.0092'), { from: priceFeeder });
 
     // --- margin protocol
 
