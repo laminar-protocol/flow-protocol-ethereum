@@ -5,6 +5,25 @@ schema:
   file: ./schema.graphql
 dataSources:
   - kind: ethereum/contract
+    name: PriceOracle
+    network: kovan
+    source:
+      address: '0x1a70f01ad9f5d2906Bc53CF39b995C8ae72426E2'
+      abi: PriceOracleInterface
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      entities:
+        - Price
+      abis:
+        - name: PriceOracleInterface
+          file: ../build/contracts/PriceOracleInterface.json
+      file: ./src/mapping.ts
+      eventHandlers:
+        - event: PriceUpdated(indexed address,uint256)
+          handler: handlePriceUpdated
+  - kind: ethereum/contract
     name: FlowProtocol
     network: kovan
     source:
@@ -40,11 +59,11 @@ dataSources:
         - event: FlowTokenWithdrew(indexed address,indexed address,uint256,uint256)
           handler: handleFlowTokenWithdrew
   - kind: ethereum/contract
-    name: PriceOracle
+    name: FlowMarginProtocol
     network: kovan
     source:
-      address: '0x1a70f01ad9f5d2906Bc53CF39b995C8ae72426E2'
-      abi: PriceOracleInterface
+      address: '0x188D9bdC82E94A7091Fb1295e5DCa7c775C7a9C3'
+      abi: FlowMarginProtocol
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -52,10 +71,30 @@ dataSources:
       entities:
         - Price
       abis:
-        - name: PriceOracleInterface
-          file: ../build/contracts/PriceOracleInterface.json
+        - name: FlowMarginProtocol
+          file: ../build/contracts/FlowMarginProtocol.json
       file: ./src/mapping.ts
       eventHandlers:
-        - event: PriceUpdated(indexed address,uint256)
-          handler: handlePriceUpdated
-
+        - event: NewTradingPair(address)
+          handler: handleNewTradingPair
+templates:
+  - name: MarginTradingPair
+    kind: ethereum/contract
+    network: kovan
+    source:
+      abi: MarginTradingPair
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.3
+      language: wasm/assemblyscript
+      file: ./src/mapping.ts
+      entities:
+        - MarginTradingPair
+      abis:
+        - name: MarginTradingPair
+          file: ../build/contracts/MarginTradingPair.json
+      eventHandlers:
+        - event: OpenPosition(indexed address,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleOpenPosition
+        - event: ClosePosition(indexed address,indexed address,indexed address,uint256,uint256,uint256,uint256)
+          handler: handleClosePosition

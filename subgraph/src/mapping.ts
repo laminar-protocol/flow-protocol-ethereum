@@ -3,8 +3,10 @@ import {
   NewFlowToken, Minted, Redeemed, Liquidated, CollateralAdded, CollateralWithdrew, FlowTokenWithdrew, FlowTokenDeposited,
 } from '../generated/FlowProtocol/FlowProtocol';
 import { FlowToken } from '../generated/FlowProtocol/FlowToken';
+import { NewTradingPair } from '../generated/FlowMarginProtocol/FlowMarginProtocol';
 import { PriceUpdated } from '../generated/PriceOracle/PriceOracleInterface';
-import { TokenEntity, PriceEntity, EventEntity, FlowProtocolEntity } from '../generated/schema';
+import { MarginTradingPair, OpenPosition, ClosePosition } from '../generated/templates/MarginTradingPair/MarginTradingPair';
+import { TokenEntity, PriceEntity, EventEntity, FlowProtocolEntity, TradingPairEntity, MarginPositionEntity } from '../generated/schema';
 
 let one = BigDecimal.fromString('1000000000000000000');
 
@@ -137,10 +139,42 @@ export function handleFlowTokenWithdrew(event: FlowTokenWithdrew): void {
   flow.save();
 }
 
-
 export function handlePriceUpdated(event: PriceUpdated): void {
   let price = new PriceEntity(event.params.addr.toHex());
   price.value = event.params.price.divDecimal(one);
   price.updatedAt = event.block.timestamp.toI32();
   price.save();
+}
+
+export function handleNewTradingPiar(event: NewTradingPair): void {
+  let entity = new TradingPairEntity(event.params.pair.toHex());
+  let pair = MarginTradingPair.bind(event.params.pair);
+  entity.quoteToken = pair.quoteToken().toHex();
+  entity.leverage = pair.leverage().toI32();
+  entity.safeMarginPercent = pair.safeMarginPercent().toBigDecimal().div(one);
+  entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
+  entity.save();
+}
+
+export function handleOpenPosition(event: OpenPosition): void {
+  let entity = new MarginPositionEntity(event.address.toHex() + event.params.positionId.toString());
+  let pair = MarginTradingPair.bind(event.address);
+  entity.pair = event.address.toHex();
+  entity.positionId = event.params.positionId.toI32();
+  entity.owner = event.params.sender;
+  entity.liquidityPool = event.params.liquidityPool;
+  entity.amount = event.params.baseTokenAmount.toBigDecimal().div(one);
+  entity.openPrice = event.params.openPrice.toBigDecimal().div(one);
+  entity.bidSpread = event.params.bidSpread.toBigDecimal().div(one);
+  entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
+  entity.save();
+}
+
+export function handleClosePosition(event: ClosePosition): void {
+  let entity = new MarginPositionEntity(event.address.toHex() + event.params.positionId.toString());
+  entity.closePrice = event.params.closePrice.toBigDecimal().div(one);
+  entity.liquidator = event.params.liquidator;
+  entity.closeOwnerAmount = event.params.ownerAmount.toBigDecimal().div(one);
+  entity.closeLiquidityPoolAmount = event.params.liquidityPoolAmount.toBigDecimal().div(one);
+  entity.save();
 }

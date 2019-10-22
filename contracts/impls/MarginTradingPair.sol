@@ -36,10 +36,12 @@ contract MarginTradingPair is Ownable {
     mapping (uint => Position) public positions;
     uint public nextPositionId;
 
-    event OpenPosition(address indexed sender, address indexed liquidityPool, uint positionId, uint baseTokenAmount);
+    event OpenPosition(
+        address indexed sender, address indexed liquidityPool, uint positionId, uint baseTokenAmount, uint openPrice, uint bidSpread
+    );
     event ClosePosition(
         address indexed owner, address indexed liquidityPool, address indexed liquidator,
-        uint positionId, uint ownerAmount, uint liquidityPoolAmount
+        uint positionId, uint closePrice, uint ownerAmount, uint liquidityPoolAmount
     );
 
     constructor(
@@ -76,7 +78,7 @@ contract MarginTradingPair is Ownable {
 
         positions[positionId] = Position(sender, liquidityPool, iTokenAmount, price, iTokenLiquidationFee, bidSpread);
 
-        emit OpenPosition(sender, liquidityPool, positionId, baseTokenAmount);
+        emit OpenPosition(sender, liquidityPool, positionId, baseTokenAmount, price, bidSpread);
 
         return positionId;
     }
@@ -105,7 +107,7 @@ contract MarginTradingPair is Ownable {
 
         uint iTokenTotal = position.amount.sub(position.liquidationFee).mul(2);
 
-        _closePositionSend(positionId, liquidated, position.liquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent);
+        _closePositionSend(positionId, liquidated, position.liquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent, bidPrice);
 
         delete positions[positionId];
     }
@@ -139,7 +141,7 @@ contract MarginTradingPair is Ownable {
 
     function _closePositionSend(
         uint positionId, bool liquidated, uint iTokenLiquidationFee, address sender, address owner, address liquidityPool,
-        uint iTokenTotal, Percentage.Percent memory profitPercent
+        uint iTokenTotal, Percentage.Percent memory profitPercent, uint bidPrice
     ) private {
         uint ownerAmount = iTokenTotal.mulPercent(profitPercent);
         uint liquidityPoolAmount = iTokenTotal.sub(ownerAmount);
@@ -164,7 +166,7 @@ contract MarginTradingPair is Ownable {
 
         moneyMarket.iToken().safeTransfer(liquidityPool, liquidityPoolAmount);
 
-        emit ClosePosition(owner, liquidityPool, sender, positionId, ownerAmount, liquidityPoolAmount);
+        emit ClosePosition(owner, liquidityPool, sender, positionId, bidPrice, ownerAmount, liquidityPoolAmount);
     }
 
     function leverageAbs() private view returns (uint) {
