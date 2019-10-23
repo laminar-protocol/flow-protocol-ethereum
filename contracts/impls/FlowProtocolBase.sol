@@ -37,7 +37,7 @@ contract FlowProtocolBase is Ownable, ReentrancyGuard {
         maxSpread = value;
     }
 
-    function getPrice(address token) internal view returns (uint) {
+    function getPrice(address token) internal returns (uint) {
         uint price = oracle.getPrice(token);
         require(price > 0, "no oracle price");
         return price;

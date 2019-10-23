@@ -10,7 +10,12 @@ contract PriceFeederRole is Ownable {
     event PriceFeederAdded(address indexed account);
     event PriceFeederRemoved(address indexed account);
 
-    Roles.Role private _priceFeeders;
+    Roles.Role private _priceFeederRole;
+
+    // store all price feeders to support traverse etc
+    address[] internal priceFeeders;
+    // addr => index in `priceFeeders`
+    mapping (address => uint) internal priceFeederIndices;
 
     modifier onlyPriceFeeder() {
         require(isPriceFeeder(msg.sender), "PriceFeederRole: caller does not have the PriceFeeder role");
@@ -18,7 +23,7 @@ contract PriceFeederRole is Ownable {
     }
 
     function isPriceFeeder(address account) public view returns (bool) {
-        return _priceFeeders.has(account);
+        return _priceFeederRole.has(account);
     }
 
     function addPriceFeeder(address account) public onlyOwner {
@@ -34,12 +39,30 @@ contract PriceFeederRole is Ownable {
     }
 
     function _addPriceFeeder(address account) internal {
-        _priceFeeders.add(account);
+        // role
+        _priceFeederRole.add(account);
+
+        // push and record index
+        priceFeeders.push(account);
+        priceFeederIndices[account] = priceFeeders.length - 1;
+
         emit PriceFeederAdded(account);
     }
 
     function _removePriceFeeder(address account) internal {
-        _priceFeeders.remove(account);
+        // role
+        _priceFeederRole.remove(account);
+
+        // if not last index, swap with last element
+        uint index = priceFeederIndices[account];
+        uint lastIndex = priceFeeders.length - 1;
+        if (index != lastIndex) {
+            priceFeeders[index] = priceFeeders[lastIndex];
+        }
+        // delete last element and its index
+        priceFeeders.pop();
+        delete priceFeederIndices[account];
+
         emit PriceFeederRemoved(account);
     }
 }

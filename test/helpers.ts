@@ -1,4 +1,8 @@
 import BN from 'bn.js';
+import chai from 'chai';
+import chaiBN from 'chai-bn';
+
+chai.use(chaiBN(web3.utils.BN));
 
 const TestToken = artifacts.require('TestToken');
 const TestCToken = artifacts.require('TestCToken');
