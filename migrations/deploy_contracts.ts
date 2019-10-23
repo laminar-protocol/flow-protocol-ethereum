@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+
 const deployTokens = async (artifacts: Truffle.Artifacts, deployer: Truffle.Deployer) => {
   const TestToken = artifacts.require('TestToken');
   const TestCToken = artifacts.require('TestCToken');
@@ -32,6 +35,11 @@ const getTokensByNetwork = {
   'ropsten-fork': getTokens('0xb5e5d0f8c0cba267cd3d7035d6adc8eba7df7cdd', '0x2b536482a01e620ee111747f8334b395a42a555e'),
 };
 
+const save = (obj: any, filePath: string[]) => {
+  const finalPath = path.join(...filePath);
+  fs.writeFileSync(finalPath, JSON.stringify(obj, null, 2));
+};
+
 type Network = keyof typeof getTokensByNetwork;
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
@@ -43,6 +51,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const IERC20 = artifacts.require('IERC20');
   const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
   const MarginTradingPair = artifacts.require('MarginTradingPair');
+  const PriceOracleInterface = artifacts.require('PriceOracleInterface');
+  const ERC20Detailed = artifacts.require('ERC20Detailed');
+  const LiquidityPoolInterface = artifacts.require('LiquidityPoolInterface');
 
   return async (deployer: Truffle.Deployer, network: Network, accounts: string[]) => {
     console.log(`---- Deploying on network: ${network}`);
@@ -147,20 +158,42 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await moneyMarket.mintTo(pool.address, web3.utils.toWei('100'));
     await moneyMarket.mintTo(pool2.address, web3.utils.toWei('100'));
 
-    console.log('Deploy success', {
-      moneyMarket: moneyMarket.address,
-      iToken: iToken.address,
-      oracle: oracle.address,
-      protocol: protocol.address,
-      fEUR: fEUR.address,
-      fJPY: fJPY.address,
-      marginProtocol: marginProtocol.address,
-      l10USDEUR: l10USDEUR.address,
-      s10USDEUR: s10USDEUR.address,
-      l20USDJPY: l20USDJPY.address,
-      s20USDJPY: s20USDJPY.address,
-      pool: pool.address,
-      pool2: pool2.address,
-    });
+    const deployment = {
+      moneyMarket: [moneyMarket, MoneyMarket],
+      iToken: [iToken, ERC20Detailed],
+      oracle: [oracle, PriceOracleInterface],
+      protocol: [protocol, FlowProtocol],
+      fEUR: [fEUR, FlowToken],
+      fJPY: [fJPY, FlowToken],
+      marginProtocol: [marginProtocol, FlowMarginProtocol],
+      l10USDEUR: [l10USDEUR, MarginTradingPair],
+      s10USDEUR: [s10USDEUR, MarginTradingPair],
+      l20USDJPY: [l20USDJPY, MarginTradingPair],
+      s20USDJPY: [s20USDJPY, MarginTradingPair],
+      pool: [pool, LiquidityPoolInterface],
+      pool2: [pool2, LiquidityPoolInterface],
+    };
+
+    console.log('Deploy success');
+    for (const [key, [value]] of Object.entries(deployment)) {
+      console.log(key, value.address);
+    }
+
+    if (network === 'kovan') {
+      // save artifacts
+      const addresses: any = {};
+      for (const [key, [value, contract]] of Object.entries(deployment)) {
+        save((contract as any).abi, ['artifacts', 'abi', `${(contract as any).contractName}.json`]);
+        addresses[key] = value.address;
+      }
+      let existing: any = {};
+      try {
+        existing = JSON.parse(fs.readFileSync(path.join('artifacts', 'deployment.json')).toString());
+      } catch (e) {
+        // ignore
+      }
+      existing[network] = addresses;
+      save(existing, ['artifacts', 'deployment.json']);
+    }
   };
 };
