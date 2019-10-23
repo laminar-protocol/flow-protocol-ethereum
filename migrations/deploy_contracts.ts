@@ -181,7 +181,10 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     if (network === 'kovan') {
       // save artifacts
-      const addresses: any = {};
+      const addresses: any = {
+        baseToken: baseToken.address,
+        cToken: cToken.address,
+      };
       for (const [key, [value, contract]] of Object.entries(deployment)) {
         save((contract as any).abi, ['artifacts', 'abi', `${(contract as any).contractName}.json`]);
         addresses[key] = value.address;

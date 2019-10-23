@@ -1,5 +1,7 @@
 {
   "kovan": {
+    "baseToken": "0xbf7a7169562078c96f0ec1a8afd6ae50f12e5a99",
+    "cToken": "0x0a1e4d0b5c71b955c0a5993023fc48ba6e380496",
     "moneyMarket": "0xc814dfc7Fea6dcc037852199bfFEf0B9272F646F",
     "iToken": "0x580507c1cFC635023BcFD95477D8c49601eCb595",
     "oracle": "0x94641e594996eb7E0475e233ecA53a3E9D424190",
