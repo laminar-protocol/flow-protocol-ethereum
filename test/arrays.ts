@@ -1,8 +1,8 @@
 import { expect } from 'chai';
 import { expectRevert } from 'openzeppelin-test-helpers';
-import { bn } from './helpers';
-
 import { QuickImplInstance, ArraysImplInstance } from 'types/truffle-contracts';
+
+import { bn } from './helpers';
 
 const QuickImpl = artifacts.require('QuickImpl');
 
@@ -29,7 +29,7 @@ contract('QuickImpl', () => {
     it('with some repeat items', async () => {
       expect(await quick.select([2, 2, 3], 1)).bignumber.equal(bn(2));
       expect(await quick.select([3, 2, 3, 1, 2, 4, 5, 5, 6], 5)).bignumber.equal(bn(4));
-    })
+    });
   });
 });
 
@@ -40,7 +40,7 @@ contract('ArrayImpl', () => {
 
   beforeEach(async () => {
     arrays = await ArraysImpl.new();
-  })
+  });
 
   describe('Find median', () => {
     it('empty array fails', async () => {

@@ -11,3 +11,8 @@ declare namespace Chai {
     bignumber: Assertion;
   }
 }
+
+declare module 'chai-bn' {
+  const f: (bn: any) => (chai: any, utils: any) => null;
+  export = f;
+}
