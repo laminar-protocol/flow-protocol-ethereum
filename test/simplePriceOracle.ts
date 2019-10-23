@@ -50,6 +50,42 @@ contract('SimplePriceOracle', (accounts) => {
     });
   });
 
+  describe('get median non-expired price', () => {
+    it('multiple feeds', async () => {
+      await oracle.addPriceFeeder(owner);
+      await oracle.addPriceFeeder(priceFeederTwo);
+      await oracle.feedPrice(fToken, 99);
+      await oracle.feedPrice(fToken, 101, { from: priceFeederTwo });
+      await oracle.feedPrice(fToken, 103, { from: priceFeeder });
+
+      expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(101));
+    });
+
+    it('should return price 0 if all prices expired', async () => {
+      await oracle.setExpireIn(2);
+      await oracle.feedPrice(fToken, 100, { from: priceFeeder });
+      await oracle.addPriceFeeder(priceFeederTwo);
+      await oracle.feedPrice(fToken, 100, { from: priceFeederTwo });
+
+      time.increase(2);
+      expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(0));
+    });
+
+    it('should filter out expired price', async () => {
+      await oracle.setExpireIn(2);
+      await oracle.addPriceFeeder(owner);
+      await oracle.addPriceFeeder(priceFeederTwo);
+
+      await oracle.feedPrice(fToken, 99);
+      time.increase(2);
+
+      await oracle.feedPrice(fToken, 103, { from: priceFeederTwo });
+      await oracle.feedPrice(fToken, 101, { from: priceFeeder });
+
+      expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(103));
+    });
+  });
+
   describe('oracle config', () => {
     it('should be able to set config', async () => {
       await oracle.setOracleDeltaLastLimit(123);

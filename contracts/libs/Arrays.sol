@@ -1,7 +1,8 @@
 pragma solidity ^0.5.8;
 
 library Arrays {
-    /// Find median of an unsorted uint array. Note that items in the input array might be swapped.
+    /// Find median of an unsorted uint array. Median: item at index `length/2`(floor) of sorted array.
+    /// Note that items in the input array might be swapped.
     function findMedian(uint[] memory unsorted) internal pure returns (uint) {
         require(unsorted.length > 0, "empty array has no median");
 
