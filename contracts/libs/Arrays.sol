@@ -10,7 +10,7 @@ library Arrays {
 
 /// Quick select/sort.
 library Quick {
-    /// Select kth smallest item.
+    /// Select kth smallest item, where k starts from 0.
     function select(uint[] memory arr, uint k) internal pure returns (uint) {
         require((0 <= k) && (k < arr.length), "index out of bound");
 
