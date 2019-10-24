@@ -147,7 +147,7 @@ export function handlePriceUpdated(event: PriceUpdated): void {
   price.save();
 }
 
-export function handleNewTradingPiar(event: NewTradingPair): void {
+export function handleNewTradingPair(event: NewTradingPair): void {
   let entity = new TradingPairEntity(event.params.pair.toHex());
   let pair = MarginTradingPair.bind(event.params.pair);
   entity.quoteToken = pair.quoteToken().toHex();
