@@ -65,6 +65,8 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
 
     function feedPrice(address key, uint price) external onlyPriceFeeder {
         _feedPrice(key, price);
+
+        emit PriceFeeded(key, msg.sender, price);
     }
 
     function getPrice(address key) external returns (uint) {
@@ -78,20 +80,36 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function setPrice(address addr, uint price) private {
+    function readPrice(address key) external view returns (uint) {
+        if (hasUpdate[key]) {
+            uint price = findMedianPrice(key, expireIn, priceFeeders);
+            if (price > 0) {
+                return calculateCapPrice(key, price);
+            }
+        }
+        return cachedPrices[key];
+    }
+
+    function calculateCapPrice(address addr, uint price) private view returns (uint) {
         require(price != 0, "Invalid price");
         uint lastPrice = cachedPrices[addr];
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
         uint price2 = capPrice(price, lastPrice, oracleDeltaLastLimit);
         uint price3 = capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
+        return price3;
+    }
+
+    function setPrice(address addr, uint price) private {
+        uint finalPrice = calculateCapPrice(addr, price);
+        PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
         if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < block.timestamp) {
-            snapshotPrice.price = price3;
+            snapshotPrice.price = finalPrice;
             snapshotPrice.timestamp = block.timestamp;
         }
 
-        cachedPrices[addr] = price3;
+        cachedPrices[addr] = finalPrice;
 
-        emit PriceUpdated(addr, price3);
+        emit PriceUpdated(addr, finalPrice);
     }
 
     function capPrice(uint current, uint last, Percentage.Percent storage limit) private pure returns (uint) {
