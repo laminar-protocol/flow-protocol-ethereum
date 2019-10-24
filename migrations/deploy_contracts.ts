@@ -189,6 +189,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         baseToken: baseToken.address,
         cToken: cToken.address,
       };
+      save((SimplePriceOracle as any).abi, ['artifacts', 'abi', `${(SimplePriceOracle as any).contractName}.json`]);
       for (const [key, [value, contract]] of Object.entries(deployment)) {
         save((contract as any).abi, ['artifacts', 'abi', `${(contract as any).contractName}.json`]);
         addresses[key] = value.address;
