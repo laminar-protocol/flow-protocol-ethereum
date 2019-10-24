@@ -73,6 +73,8 @@ dataSources:
       abis:
         - name: FlowMarginProtocol
           file: ../build/contracts/FlowMarginProtocol.json
+        - name: MarginTradingPair
+          file: ../build/contracts/MarginTradingPair.json
       file: ./src/mapping.ts
       eventHandlers:
         - event: NewTradingPair(address)
