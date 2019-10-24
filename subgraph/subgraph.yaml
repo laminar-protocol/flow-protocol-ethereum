@@ -8,7 +8,7 @@ dataSources:
     name: PriceOracle
     network: kovan
     source:
-      address: '0xd0155a36Ef9b6f5FdCD92585c660eAD161588567'
+      address: '0x9Ba64118D9Be036ca1828B8cDC2F2724CE4E9dA1'
       abi: PriceOracleInterface
     mapping:
       kind: ethereum/events
@@ -27,7 +27,7 @@ dataSources:
     name: FlowProtocol
     network: kovan
     source:
-      address: '0x206452Ab1FC57957703362b976a9d449C36d3578'
+      address: '0xbEE09281f6B8064873ED18a1cBF3526122CDF894'
       abi: FlowProtocol
     mapping:
       kind: ethereum/events
@@ -62,7 +62,7 @@ dataSources:
     name: FlowMarginProtocol
     network: kovan
     source:
-      address: '0xB5b9EE90E338E20C533c0909414aE626c3d4e2c3'
+      address: '0xd1Ed33c7dF1C872ABFb2C21DEE69363F8a6eBdBa'
       abi: FlowMarginProtocol
     mapping:
       kind: ethereum/events

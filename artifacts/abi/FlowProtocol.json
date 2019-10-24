@@ -87,13 +87,13 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "token",
+        "name": "sender",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "sender",
+        "name": "token",
         "type": "address"
       },
       {
@@ -119,13 +119,13 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "token",
+        "name": "sender",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "sender",
+        "name": "token",
         "type": "address"
       },
       {

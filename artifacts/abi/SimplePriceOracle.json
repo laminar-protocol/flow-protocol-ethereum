@@ -25,6 +25,32 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "addr",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
+    ],
+    "name": "PriceFeeded",
+    "type": "event",
+    "signature": "0x3105faf42de9614e0ddc10fabac5d5aaf57cc1632093d5e3e42e89a505edb7c8"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "account",
         "type": "address"
       }
@@ -375,5 +401,27 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x41976e09"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key",
+        "type": "address"
+      }
+    ],
+    "name": "readPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function",
+    "signature": "0x033d497a"
   }
 ]
