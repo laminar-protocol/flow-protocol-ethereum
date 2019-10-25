@@ -5,9 +5,9 @@ type FlowProtocolEntity @entity {
 }
 
 type TokenEntity @entity {
-    id: ID! # contract address
-    name: String!
-    symbol: String!
+    id: ID!                         # Token contract address
+    name: String!                   # Name of the token
+    symbol: String!                 # Symbol of the token
 }
 
 enum EventKind {
@@ -21,51 +21,52 @@ enum EventKind {
 }
 
 type EventEntity @entity {
-    id: ID! # sequence id as one tx can have multiple events
-    kind: EventKind!
+    id: ID!                         # Sequence ID since a tx can have multiple events
+    kind: EventKind!                # EventKind enum: Minted, Redeemed, Liquidated, Deposited, Withdrew
+                                    #                 CollateralAdded, CollateralWithdrew
 
-    timestamp: Int!
-    txhash: Bytes!
-    block: Int!
+    timestamp: Int!                 # Timestamp in seconds
+    txhash: Bytes!                  # Transaction hash
+    block: Int!                     # Block number that the transaction is recorded
 
-    user: Bytes!
-    token: TokenEntity!
-    liquidityPool: Bytes
+    user: Bytes!                    # Address of sender
+    token: TokenEntity!             # Token Entity
+    liquidityPool: Bytes            # Address of liquidity pool
 
-    baseTokenAmount: BigDecimal!
-    flowTokenAmount: BigDecimal!
+    baseTokenAmount: BigDecimal!    # Base token amount, e.g. 10 DAI
+    flowTokenAmount: BigDecimal!    # Flow Token amount, e.g. 9 fEUR
 }
 
 type PriceEntity @entity {
-    id: ID! # token address
-    value: BigDecimal!
-    updatedAt: Int!
+    id: ID!                 # Synthetic Asset (Token) Address
+    value: BigDecimal!      # Market Price from Price Oracle
+    updatedAt: Int!         # Timestamp in seconds
 }
 
 type TradingPairEntity @entity {
-    id: ID! # contract address
+    id: ID!                         # Margin Trading Pair Contract Address, e.g. l20EURUSD as long 20x EURUSD
 
-    quoteToken: TokenEntity!
-    leverage: Int!
-    safeMarginPercent: BigDecimal!
-    liquidationFee: BigDecimal!
+    quoteToken: TokenEntity!        # Asset in trade, e.g. Forex fToken fEUR, or any other assets
+    leverage: Int!                  # The leverage, positive is long, negative is short
+    safeMarginPercent: BigDecimal!  # Max amount to lose before liquidity pool can close position voluntariy 
+    liquidationFee: BigDecimal!     # The reward both trader and liquidity pool chip in for liquidators
 }
 
 type MarginPositionEntity @entity {
-    id: ID! # trading pair address + position ID
+    id: ID!                                 # Margin Trading Pair Contract Address + Position ID
 
-    pair: TradingPairEntity!
-    positionId: Int!
+    pair: TradingPairEntity!                # The Trading Pair Entity 
+    positionId: Int!                        # Position ID is returned upon opening a position
 
-    owner: Bytes!
-    liquidityPool: Bytes!
-    amount: BigDecimal!
-    openPrice: BigDecimal!
-    bidSpread: BigDecimal!
-    liquidationFee: BigDecimal!
+    owner: Bytes!                           # Address of the position owner, who opens this position
+    liquidityPool: Bytes!                   # Address of the liquidity pool
+    amount: BigDecimal!                     # Amount in DAI for opening the position, including liquidity fee
+    openPrice: BigDecimal!                  # Price when opening this position, accounted for spread
+    bidSpread: BigDecimal!          
+    liquidationFee: BigDecimal!             # The reward both trader and liquidity pool chip in for liquidators
 
-    closePrice: BigDecimal
-    liquidator: Bytes
-    closeOwnerAmount: BigDecimal
-    closeLiquidityPoolAmount: BigDecimal
+    closePrice: BigDecimal                  # Price when closing this position, accounted for spread
+    liquidator: Bytes                       # Address of the liquidator who closes this position
+    closeOwnerAmount: BigDecimal            # Amount in DAI returns to owner when closing position
+    closeLiquidityPoolAmount: BigDecimal    # Amount in DAI returns to liquidity pool when closing position
 }
