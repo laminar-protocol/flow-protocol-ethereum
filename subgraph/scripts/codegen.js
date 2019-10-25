@@ -19,6 +19,12 @@ console.log('subgraph.yaml updated');
 
 const generatedDeploy = Object.entries(deployment[network]).map(([key, value]) => `export const ${key} = '${value}';`).join('\n');
 
+try {
+  fs.mkdirSync(path.join(__dirname, '../generated'), { rescursive: true });
+} catch {
+  // ignore mkdir error
+}
+
 fs.writeFileSync(path.join(__dirname, '../generated/deployment.ts'), generatedDeploy);
 
 console.log('generated/deployment.ts updated');
