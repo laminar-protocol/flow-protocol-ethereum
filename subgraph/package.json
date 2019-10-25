@@ -3,7 +3,7 @@
   "author": "Bryan Chen <bryan@laminar.one>",
   "private": true,
   "scripts": {
-    "codegen": "graph codegen",
+    "codegen": "./scripts/codegen.js && graph codegen",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ laminar-protocol/flow-protocol-subgraph",
     "create-local": "graph create --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
@@ -13,5 +13,8 @@
   "dependencies": {
     "@graphprotocol/graph-cli": "0.15.3",
     "@graphprotocol/graph-ts": "0.15.0"
+  },
+  "devDependencies": {
+    "lodash.template": "^4.5.0"
   }
 }

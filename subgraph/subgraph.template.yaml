@@ -6,9 +6,9 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: PriceOracle
-    network: kovan
+    network: ${ network }
     source:
-      address: '0x9Ba64118D9Be036ca1828B8cDC2F2724CE4E9dA1'
+      address: '${ deployment.oracle }'
       abi: PriceOracleInterface
     mapping:
       kind: ethereum/events
@@ -21,13 +21,13 @@ dataSources:
           file: ../build/contracts/PriceOracleInterface.json
       file: ./src/mapping.ts
       eventHandlers:
-        - event: PriceUpdated(indexed address,uint256)
-          handler: handlePriceUpdated
+        - event: PriceFeeded(indexed address,indexed address,uint256)
+          handler: handlePriceFeeded
   - kind: ethereum/contract
     name: FlowProtocol
-    network: kovan
+    network: ${ network }
     source:
-      address: '0xbEE09281f6B8064873ED18a1cBF3526122CDF894'
+      address: '${ deployment.protocol }'
       abi: FlowProtocol
     mapping:
       kind: ethereum/events
@@ -60,9 +60,9 @@ dataSources:
           handler: handleFlowTokenWithdrew
   - kind: ethereum/contract
     name: FlowMarginProtocol
-    network: kovan
+    network: ${ network }
     source:
-      address: '0xd1Ed33c7dF1C872ABFb2C21DEE69363F8a6eBdBa'
+      address: '${ deployment.marginProtocol }'
       abi: FlowMarginProtocol
     mapping:
       kind: ethereum/events
@@ -75,6 +75,8 @@ dataSources:
           file: ../build/contracts/FlowMarginProtocol.json
         - name: MarginTradingPair
           file: ../build/contracts/MarginTradingPair.json
+        - name: MoneyMarket
+          file: ../build/contracts/MoneyMarket.json
       file: ./src/mapping.ts
       eventHandlers:
         - event: NewTradingPair(address)
@@ -82,7 +84,7 @@ dataSources:
 templates:
   - name: MarginTradingPair
     kind: ethereum/contract
-    network: kovan
+    network: ${ network }
     source:
       abi: MarginTradingPair
     mapping:

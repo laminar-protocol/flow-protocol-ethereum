@@ -35,3 +35,4 @@ types/truffle-contracts
 types/web3-contracts
 
 generated
+subgraph.yaml
