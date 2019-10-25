@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 
+/* eslint-disable import/no-extraneous-dependencies, @typescript-eslint/no-var-requires */
+
 const fs = require('fs');
 const path = require('path');
 const template = require('lodash.template');
 
 const deployment = JSON.parse(fs.readFileSync(path.join(__dirname, '../../artifacts/deployment.json')).toString());
 
-const subgraphTemplate = fs.readFileSync(path.join(__dirname, '../subgraph.template.yaml')).toString()
+const subgraphTemplate = fs.readFileSync(path.join(__dirname, '../subgraph.template.yaml')).toString();
 
 const network = 'kovan'; // TODO: support multiple networks
 console.log(`Network: ${network}`);
