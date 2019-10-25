@@ -78,5 +78,26 @@
     "payable": false,
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "constant": true,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key",
+        "type": "address"
+      }
+    ],
+    "name": "readPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "payable": false,
+    "stateMutability": "view",
+    "type": "function"
   }
 ]
