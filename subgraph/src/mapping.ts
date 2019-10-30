@@ -26,7 +26,7 @@ function createNewEventEntity(flow: FlowProtocolEntity, event: EthereumEvent): E
   flow.totalEvents = flow.totalEvents.plus(BigInt.fromI32(1));
   let evt = new EventEntity(flow.totalEvents.toHex());
   evt.timestamp = event.block.timestamp.toI32();
-  evt.txhash = event.block.hash;
+  evt.txhash = event.transaction.hash;
   evt.block = event.block.number.toI32();
   return evt;
 }
