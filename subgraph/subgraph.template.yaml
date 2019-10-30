@@ -97,6 +97,8 @@ templates:
       abis:
         - name: MarginTradingPair
           file: ../build/contracts/MarginTradingPair.json
+        - name: MoneyMarket
+          file: ../build/contracts/MoneyMarket.json
       eventHandlers:
         - event: OpenPosition(indexed address,indexed address,uint256,uint256,uint256,uint256)
           handler: handleOpenPosition
