@@ -166,16 +166,14 @@ export function handleNewTradingPair(event: NewTradingPair): void {
 export function handleOpenPosition(event: OpenPosition): void {
   let entity = new MarginPositionEntity(event.address.toHex() + event.params.positionId.toString());
   let pair = MarginTradingPair.bind(event.address);
-  let moneyMarket = MoneyMarket.bind(Address.fromString(deployment.moneyMarket));
-  let iTokenRate = moneyMarket.exchangeRate().toBigDecimal().div(one);
   entity.pair = event.address.toHex();
   entity.positionId = event.params.positionId.toI32();
   entity.owner = event.params.sender;
   entity.liquidityPool = event.params.liquidityPool;
-  entity.amount = event.params.baseTokenAmount.toBigDecimal().div(one).times(iTokenRate);
+  entity.amount = event.params.baseTokenAmount.toBigDecimal().div(one);
   entity.openPrice = event.params.openPrice.toBigDecimal().div(one);
   entity.bidSpread = event.params.bidSpread.toBigDecimal().div(one);
-  entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one).times(iTokenRate);
+  entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
   entity.save();
 }
 
