@@ -123,7 +123,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "bidSpread",
+        "name": "closeSpread",
         "type": "uint256"
       }
     ],
@@ -285,7 +285,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "bidSpread",
+        "name": "closeSpread",
         "type": "uint256"
       }
     ],
@@ -382,7 +382,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "bidSpread",
+        "name": "closeSpread",
         "type": "uint256"
       }
     ],
