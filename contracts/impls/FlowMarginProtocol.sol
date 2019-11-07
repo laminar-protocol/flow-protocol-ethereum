@@ -38,20 +38,32 @@ contract FlowMarginProtocol is FlowProtocolBase {
         require(tradingPairWhitelist[address(pair)], "Invalid trading pair");
 
         address quoteToken = address(pair.quoteToken());
-        uint price = getPrice(quoteToken);
-        uint askPrice = getAskPrice(pool, quoteToken, price);
-        uint bidSpread = getBidSpread(pool, quoteToken);
+        int leverage = pair.leverage();
 
         require(
-            pool.openPosition(address(pair), pair.nextPositionId(), address(pair.quoteToken()), pair.leverage(), baseTokenAmount),
+            pool.openPosition(address(pair), pair.nextPositionId(), quoteToken, leverage, baseTokenAmount),
             "Cannot open position with liquidity pool"
         );
+
+        uint price = getPrice(quoteToken);
+        uint openPrice;
+        uint closeSpread;
+
+        if (leverage > 0) {
+            // long
+            openPrice = getAskPrice(pool, quoteToken, price);
+            closeSpread = getBidSpread(pool, quoteToken);
+        } else {
+            // short
+            openPrice = getBidPrice(pool, quoteToken, price);
+            closeSpread = getAskSpread(pool, quoteToken);
+        }
 
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), baseTokenAmount);
         uint iTokenAmount = moneyMarket.mintTo(address(pair), baseTokenAmount);
         moneyMarket.iToken().safeTransferFrom(address(pool), address(pair), iTokenAmount);
 
-        uint id = pair.openPosition(msg.sender, address(pool), baseTokenAmount, iTokenAmount, askPrice, bidSpread);
+        uint id = pair.openPosition(msg.sender, address(pool), baseTokenAmount, iTokenAmount, openPrice, closeSpread);
 
         return id;
     }

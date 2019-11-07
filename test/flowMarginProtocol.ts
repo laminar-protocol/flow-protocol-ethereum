@@ -83,12 +83,13 @@ contract('FlowMarginProtocol', (accounts) => {
   const profit = (user: string, positions: Array<[number, number, number]>) => async () => {
     let totalProfit = 0;
     for (const [startPrice, endPrice, principal] of positions) {
-      const spread = 0.001;
+      const spreadVal = 0.001;
+      const leverage = (await pair.leverage()).toNumber();
+      const spread = leverage > 0 ? spreadVal : -spreadVal;
       const openPrice = startPrice * (1 + spread);
       const closePrice = endPrice * (1 - spread);
       const diff = (closePrice - openPrice) / openPrice;
-      const leverage = await pair.leverage();
-      const leveragedDiff = diff * leverage.toNumber();
+      const leveragedDiff = diff * leverage;
       const expectedProfit = principal * leveragedDiff;
       totalProfit += expectedProfit;
     }
@@ -313,25 +314,35 @@ contract('FlowMarginProtocol', (accounts) => {
       await protocol.addTradingPair(pair.address);
     });
 
+    it('should have lost if price not changed', async () => {
+      await run(
+        openPosition(alice, dollar(105)),
+        position(0, alice, dollar(1050), fromPip(9990)),
+        closePositon(alice, 0),
+        profit(alice, [[1, 1, 100]]),
+        balance(iUsd, liquidityPool.address, '100010010010010010010000')
+      );
+    });
+
     it('should be able to take lost on price increase', async () => {
       await run(
         openPosition(alice, dollar(105)),
-        position(0, alice, dollar(1050), fromPip(10010)),
+        position(0, alice, dollar(1050), fromPip(9990)),
         setPrice(fromPercent(101)),
         closePositon(alice, 0),
         profit(alice, [[1, 1.01, 100]]),
-        balance(iUsd, liquidityPool.address, '100039910089910089910000')
+        balance(iUsd, liquidityPool.address, '100060110110110110110000')
       );
     });
 
     it('should be able to make profit on price decrease', async () => {
       await run(
         openPosition(alice, dollar(105)),
-        position(0, alice, dollar(1050), fromPip(10010)),
+        position(0, alice, dollar(1050), fromPip(9990)),
         setPrice(fromPercent(99)),
         closePositon(alice, 0),
         profit(alice, [[1, 0.99, 100]]),
-        balance(iUsd, liquidityPool.address, '99940109890109890108000')
+        balance(iUsd, liquidityPool.address, '99959909909909909908000')
       );
     });
 
@@ -339,11 +350,11 @@ contract('FlowMarginProtocol', (accounts) => {
       await run(
         openPosition(alice, dollar(105)),
         openPosition(bob, dollar(65)),
-        position(0, alice, dollar(1050), fromPip(10010)),
-        position(1, bob, dollar(650), fromPip(10010)),
+        position(0, alice, dollar(1050), fromPip(9990)),
+        position(1, bob, dollar(650), fromPip(9990)),
         setPrice(fromPercent(101)),
         openPosition(bob, dollar(55)),
-        position(2, bob, dollar(550), '1011010000000000000'),
+        position(2, bob, dollar(550), '1008990000000000000'),
         setPrice(fromPercent(102)),
         closePositon(alice, 0),
         closePositon(bob, 2),
@@ -351,7 +362,7 @@ contract('FlowMarginProtocol', (accounts) => {
         closePositon(bob, 1),
         profit(alice, [[1, 1.02, 100]]),
         profit(bob, [[1, 0.99, 60], [1.01, 1.02, 50]]),
-        balance(iUsd, liquidityPool.address, '100073584138633643582800')
+        balance(iUsd, liquidityPool.address, '100115963190913685961800')
       );
     });
   });

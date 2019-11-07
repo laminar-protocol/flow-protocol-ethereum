@@ -30,14 +30,14 @@ contract MarginTradingPair is Ownable {
         uint amount; // one side amount, fee included, in iToken
         uint openPrice;
         uint liquidationFee; // one side fee, in iToken
-        uint bidSpread;
+        uint closeSpread;
     }
 
     mapping (uint => Position) public positions;
     uint public nextPositionId;
 
     event OpenPosition(
-        address indexed sender, address indexed liquidityPool, uint positionId, uint baseTokenAmount, uint openPrice, uint bidSpread
+        address indexed sender, address indexed liquidityPool, uint positionId, uint baseTokenAmount, uint openPrice, uint closeSpread
     );
     event ClosePosition(
         address indexed owner, address indexed liquidityPool, address indexed liquidator,
@@ -67,7 +67,7 @@ contract MarginTradingPair is Ownable {
     }
 
     function openPosition(
-        address sender, address liquidityPool, uint baseTokenAmount, uint iTokenAmount, uint price, uint bidSpread
+        address sender, address liquidityPool, uint baseTokenAmount, uint iTokenAmount, uint price, uint closeSpread
     ) public onlyOwner returns (uint) {
         require(baseTokenAmount > liquidationFee, "Not enough to pay for liquidation fee");
 
@@ -76,9 +76,9 @@ contract MarginTradingPair is Ownable {
 
         uint iTokenLiquidationFee = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), liquidationFee);
 
-        positions[positionId] = Position(sender, liquidityPool, iTokenAmount, price, iTokenLiquidationFee, bidSpread);
+        positions[positionId] = Position(sender, liquidityPool, iTokenAmount, price, iTokenLiquidationFee, closeSpread);
 
-        emit OpenPosition(sender, liquidityPool, positionId, baseTokenAmount, price, bidSpread);
+        emit OpenPosition(sender, liquidityPool, positionId, baseTokenAmount, price, closeSpread);
 
         return positionId;
     }
@@ -91,9 +91,16 @@ contract MarginTradingPair is Ownable {
 
         require(position.owner != address(0), "Invalid positionId");
 
-        uint bidPrice = price.sub(price.mul(position.bidSpread).div(1 ether));
+        uint closePrice;
+        if (leverage > 0) {
+            // long
+            closePrice = price.sub(price.mul(position.closeSpread).div(1 ether));
+        } else {
+            // short
+            closePrice = price.add(price.mul(position.closeSpread).div(1 ether));
+        }
 
-        (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) = _closePositionHelper(position, bidPrice);
+        (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) = _closePositionHelper(position, closePrice);
 
         if (sender != owner) {
             if (sender != liquidityPool) {
@@ -107,13 +114,13 @@ contract MarginTradingPair is Ownable {
 
         uint iTokenTotal = position.amount.sub(position.liquidationFee).mul(2);
 
-        _closePositionSend(positionId, liquidated, position.liquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent, bidPrice);
+        _closePositionSend(positionId, liquidated, position.liquidationFee, sender, owner, liquidityPool, iTokenTotal, profitPercent, closePrice);
 
         delete positions[positionId];
     }
 
     function _closePositionHelper(
-        Position storage position, uint bidPrice
+        Position storage position, uint closePrice
     ) private view returns (bool liquidated, bool isUnsafe, Percentage.Percent memory profitPercent) {
         Percentage.Percent memory marginPercent = Percentage.fromFraction(1, leverageAbs());
         uint maxDiff = position.openPrice.mulPercent(marginPercent);
@@ -123,11 +130,11 @@ contract MarginTradingPair is Ownable {
         uint bottomPrice = position.openPrice.sub(maxDiff);
         uint diff;
 
-        if (bidPrice < bottomPrice) {
+        if (closePrice < bottomPrice) {
             diff = 0;
             liquidated = true;
         } else {
-            diff = bidPrice - bottomPrice; // can't underflow, checked above
+            diff = closePrice - bottomPrice; // can't underflow, checked above
             if (diff > totalMaxDiff) {
                 diff = totalMaxDiff;
                 liquidated = true;
@@ -141,7 +148,7 @@ contract MarginTradingPair is Ownable {
 
     function _closePositionSend(
         uint positionId, bool liquidated, uint iTokenLiquidationFee, address sender, address owner, address liquidityPool,
-        uint iTokenTotal, Percentage.Percent memory profitPercent, uint bidPrice
+        uint iTokenTotal, Percentage.Percent memory profitPercent, uint closePrice
     ) private {
         uint ownerAmount = iTokenTotal.mulPercent(profitPercent);
         uint liquidityPoolAmount = iTokenTotal.sub(ownerAmount);
@@ -166,7 +173,7 @@ contract MarginTradingPair is Ownable {
 
         moneyMarket.iToken().safeTransfer(liquidityPool, liquidityPoolAmount);
 
-        emit ClosePosition(owner, liquidityPool, sender, positionId, bidPrice, ownerAmount, liquidityPoolAmount);
+        emit ClosePosition(owner, liquidityPool, sender, positionId, closePrice, ownerAmount, liquidityPoolAmount);
     }
 
     function leverageAbs() private view returns (uint) {
