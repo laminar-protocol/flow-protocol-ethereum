@@ -85,6 +85,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const kovanDeployerAddr = '0xD98C58B8a7cc6FFC44105E4A93253798D1D3f472';
     const priceFeeder = network === 'development' ? accounts[0] : kovanDeployerAddr;
     await oracle.addPriceFeeder(priceFeeder);
+    await oracle.addPriceFeeder('0x481c00e62cC701925a676BC713E0E71C692aC46d'); // kovan oracle server
     await oracle.setExpireIn(172800); // 2 days for now
     await oracle.feedPrice(fEUR.address, web3.utils.toWei('1.2'), { from: priceFeeder });
     await oracle.feedPrice(fJPY.address, web3.utils.toWei('0.0092'), { from: priceFeeder });
