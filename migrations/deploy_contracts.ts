@@ -54,6 +54,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const PriceOracleInterface = artifacts.require('PriceOracleInterface');
   const ERC20Detailed = artifacts.require('ERC20Detailed');
   const LiquidityPoolInterface = artifacts.require('LiquidityPoolInterface');
+  const FaucetInterface = artifacts.require('FaucetInterface');
 
   return async (deployer: Truffle.Deployer, network: Network, accounts: string[]) => {
     console.log(`---- Deploying on network: ${network}`);
@@ -251,6 +252,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         save((contract as any).abi, ['artifacts', 'abi', `${(contract as any).contractName}.json`]);
         addresses[key] = value.address;
       }
+      save((FaucetInterface as any).abi, ['artifacts', 'abi', `${(FaucetInterface as any).contractName}.json`]);
       let existing: any = {};
       try {
         existing = JSON.parse(fs.readFileSync(path.join('artifacts', 'deployment.json')).toString());
