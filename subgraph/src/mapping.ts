@@ -174,6 +174,9 @@ export function handleOpenPosition(event: OpenPosition): void {
   entity.openPrice = event.params.openPrice.toBigDecimal().div(one);
   entity.bidSpread = event.params.bidSpread.toBigDecimal().div(one);
   entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
+  entity.openTime = event.block.timestamp.toI32();
+  entity.openTxhash = event.transaction.hash;
+  entity.openBlock = event.block.number.toI32();
   entity.save();
 }
 
@@ -185,5 +188,8 @@ export function handleClosePosition(event: ClosePosition): void {
   entity.liquidator = event.params.liquidator;
   entity.closeOwnerAmount = event.params.ownerAmount.toBigDecimal().div(one).times(iTokenRate);
   entity.closeLiquidityPoolAmount = event.params.liquidityPoolAmount.toBigDecimal().div(one).times(iTokenRate);
+  entity.closeTime = event.block.timestamp.toI32();
+  entity.closeTxhash = event.transaction.hash;
+  entity.closeBlock = event.block.number.toI32();
   entity.save();
 }

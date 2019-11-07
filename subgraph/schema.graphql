@@ -65,8 +65,16 @@ type MarginPositionEntity @entity {
     bidSpread: BigDecimal!
     liquidationFee: BigDecimal!             # The reward both trader and liquidity pool chip in for liquidators
 
+    openTime: Int!                          # Position open timestamp in seconds
+    openTxhash: Bytes!                      # Position open transaction hash
+    openBlock: Int!                         # Position open block number
+
     closePrice: BigDecimal                  # Price when closing this position, accounted for spread
     liquidator: Bytes                       # Address of the liquidator who closes this position
     closeOwnerAmount: BigDecimal            # Amount in DAI returns to owner when closing position
     closeLiquidityPoolAmount: BigDecimal    # Amount in DAI returns to liquidity pool when closing position
+
+    closeTime: Int                          # Position close timestamp in seconds
+    closeTxhash: Bytes                      # Position close transaction hash
+    closeBlock: Int                         # Position close block number
 }
