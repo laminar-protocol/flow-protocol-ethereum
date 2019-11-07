@@ -112,7 +112,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const s10USDEUR = await MarginTradingPair.new(
       marginProtocol.address,
       moneyMarket.address,
-      fJPY.address,
+      fEUR.address,
       -10,
       web3.utils.toWei('0.8'),
       web3.utils.toWei('1')
