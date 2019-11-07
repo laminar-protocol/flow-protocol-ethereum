@@ -62,7 +62,7 @@ type MarginPositionEntity @entity {
     liquidityPool: Bytes!                   # Address of the liquidity pool
     amount: BigDecimal!                     # Amount in DAI for opening the position, including liquidity fee
     openPrice: BigDecimal!                  # Price when opening this position, accounted for spread
-    bidSpread: BigDecimal!
+    closeSpread: BigDecimal!
     liquidationFee: BigDecimal!             # The reward both trader and liquidity pool chip in for liquidators
 
     openTime: Int!                          # Position open timestamp in seconds
