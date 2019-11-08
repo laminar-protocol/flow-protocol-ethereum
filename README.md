@@ -318,7 +318,15 @@ Following on the previous example, if a user deposits 9 fEUR (=10 USD), then 10 
 We have been R&D our protocol on Ethereum, where the network is highly secure with valuable assets as basis for trading. There are also existing DeFi community and DeFi building blocks such as stablecoin. However for our target protocol participants - traders and liquidity providers, a high performance and low cost specialized trading blockchain is required to deliver the intended experience. For instance, the platform needs to be capable of handling large trading volume and frequent price fluctuations. Hence we extend our R&D to Polkadot and substrate, to develop the Flowchain parachain.
 
 ### Flow Protocol Smart Contracts on Ethereum
-A reference implementation of the Flow Margin Trading Protocol, Synthetic Asset Protocol and Money Market Protocol smart contracts are deployed on Ethereum Kovan test net. The Flow Exchange DApp is under construction and will be released soon on test net. Please refer to [the Wiki Guide](https://github.com/laminar-protocol/flow-protocol-ethereum/wiki) for using and developing on top of these contracts.
+A reference implementation of the Flow Margin Trading Protocol, Synthetic Asset Protocol and Money Market Protocol smart contracts are deployed on Ethereum Kovan test net. 
+
+[The Flow Exchange Web App](https://flow.laminar.one/) gives people a friendly and easy way to test the functionalities of the protocols. It is still work in progress, so please kindly excuse bugs and provide feedback to help us improve.
+
+[The Laminar Flow Protocol Subgraph](https://thegraph.com/explorer/subgraph/laminar-protocol/flow-protocol-subgraph) provides an easy way to query the synthetic assets, margin positions, liquidity pools, and other useful information off the blockchain.
+
+We will continue to develop and improve the protocols, and new contracts would be deployed as we progress. Find the latest deployed contracts [here](https://github.com/laminar-protocol/flow-protocol-ethereum/blob/master/artifacts/deployment.json).
+
+Please refer to [the Wiki Guide](https://github.com/laminar-protocol/flow-protocol-ethereum/wiki) for using and developing on top of these contracts.
 
 ### Flowchain as parachain on Polkadot 
 Assumptions:
