@@ -155,7 +155,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1')
     );
 
-    const l5USDAPPL = await MarginTradingPair.new(
+    const l5USDAAPL = await MarginTradingPair.new(
       marginProtocol.address,
       moneyMarket.address,
       fAAPL.address,
@@ -164,7 +164,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1')
     );
 
-    const s5USDAPPL = await MarginTradingPair.new(
+    const s5USDAAPL = await MarginTradingPair.new(
       marginProtocol.address,
       moneyMarket.address,
       fAAPL.address,
@@ -179,8 +179,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await marginProtocol.addTradingPair(s20USDJPY.address);
     await marginProtocol.addTradingPair(l20USDXAU.address);
     await marginProtocol.addTradingPair(s20USDXAU.address);
-    await marginProtocol.addTradingPair(l5USDAPPL.address);
-    await marginProtocol.addTradingPair(s5USDAPPL.address);
+    await marginProtocol.addTradingPair(l5USDAAPL.address);
+    await marginProtocol.addTradingPair(s5USDAAPL.address);
 
     // approve default account
 
@@ -230,8 +230,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       s20USDJPY: [s20USDJPY, MarginTradingPair],
       l20USDXAU: [l20USDXAU, MarginTradingPair],
       s20USDXAU: [s20USDXAU, MarginTradingPair],
-      l5USDAPPL: [l5USDAPPL, MarginTradingPair],
-      s5USDAPPL: [s5USDAPPL, MarginTradingPair],
+      l5USDAAPL: [l5USDAAPL, MarginTradingPair],
+      s5USDAAPL: [s5USDAAPL, MarginTradingPair],
       pool: [pool, LiquidityPoolInterface],
       pool2: [pool2, LiquidityPoolInterface],
     };
