@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "codegen": "./scripts/codegen.js && graph codegen",
+    "codegen:development": "NETWORK=development yarn codegen",
+    "codegen:kovan": "NETWORK=kovan yarn codegen",
+    "codegen:mainnet": "NETWORK=mainnet yarn codegen",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ laminar-protocol/flow-protocol-subgraph",
     "create-local": "graph create --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",

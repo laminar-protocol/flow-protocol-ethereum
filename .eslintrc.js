@@ -5,60 +5,61 @@ module.exports = {
     mocha: true
   },
   extends: [
-    'airbnb-base',
-    'plugin:@typescript-eslint/eslint-recommended',
-    'plugin:@typescript-eslint/recommended',
-    'plugin:@typescript-eslint/recommended-requiring-type-checking',
-    'plugin:import/typescript',
+    "airbnb-base",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "plugin:import/typescript",
+    "plugin:prettier/recommended"
   ],
   globals: {
-    artifacts: 'readonly',
-    contract: 'readonly',
-    assert: 'readonly',
-    web3: 'readonly'
+    artifacts: "readonly",
+    contract: "readonly",
+    assert: "readonly",
+    web3: "readonly"
   },
-  parser: '@typescript-eslint/parser',
+  parser: "@typescript-eslint/parser",
   parserOptions: {
     warnOnUnsupportedTypeScriptVersion: false,
-    project: [
-      './tsconfig.json',
-      './tsconfig.eslint.json'
-    ]
+    project: ["./tsconfig.json", "./tsconfig.eslint.json"]
   },
-  plugins: ['@typescript-eslint', 'import'],
+  plugins: ["@typescript-eslint", "import", "prettier"],
   rules: {
-    '@typescript-eslint/indent': ['error', 2],
-    indent: 'off', // required as 'off' by @typescript-eslint/indent
-    'no-console': 'off',
-    'no-restricted-syntax': 'off',
-    'max-len': ['error', { code: 150 }],
-    'comma-dangle': ['error', 'always-multiline'],
-    'no-mixed-operators': 'off',
-    'object-curly-newline': 'off',
-    '@typescript-eslint/explicit-function-return-type': 'off',
-    '@typescript-eslint/await-thenable': 'off', // not accurate for many web3 types
-    'no-await-in-loop': 'off',
-    'implicit-arrow-linebreak': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-    'no-loop-func': 'off',
-    'no-underscore-dangle': 'off',
-    'no-unused-expressions': 'off',
-    'no-empty-character-class': 'off', // causing linter to crash
-    'no-regex-spaces': 'off', // causing linter to crash
+    "@typescript-eslint/indent": ["error", 2],
+    indent: "off", // required as 'off' by @typescript-eslint/indent
+    "no-console": "off",
+    "no-restricted-syntax": "off",
+    "max-len": ["error", { code: 150 }],
+    "comma-dangle": ["error", "always-multiline"],
+    "no-mixed-operators": "off",
+    "object-curly-newline": "off",
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/await-thenable": "off", // not accurate for many web3 types
+    "no-await-in-loop": "off",
+    "implicit-arrow-linebreak": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "no-loop-func": "off",
+    "no-underscore-dangle": "off",
+    "no-unused-expressions": "off",
+    "no-empty-character-class": "off", // causing linter to crash
+    "no-regex-spaces": "off", // causing linter to crash
+    "prettier/prettier": "error"
   },
   settings: {
-    'import/resolver': {
+    "import/resolver": {
       typescript: {
-        directory: './tsconfig.json'
+        directory: "./tsconfig.json"
       }
     }
   },
-  overrides: [{
-    files: ['subgraph/**/*.ts'],
-    rules: {
-      'prefer-const': 'off',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-      'no-param-reassign': 'off'
+  overrides: [
+    {
+      files: ["subgraph/**/*.ts"],
+      rules: {
+        "prefer-const": "off",
+        "@typescript-eslint/no-unnecessary-type-assertion": "off",
+        "no-param-reassign": "off"
+      }
     }
-  }]
+  ]
 };
