@@ -38,3 +38,6 @@ generated
 subgraph.yaml
 
 artifacts/abi/development/*
+
+# Docker data
+data
