@@ -19,7 +19,6 @@ services:
       postgres_db: graph-node
       ipfs: 'ipfs:5001'
       ethereum: 'development:http://ganache:8545'
-      RUST_LOG: info
   ipfs:
     image: ipfs/go-ipfs
     ports:
