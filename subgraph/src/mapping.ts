@@ -1,14 +1,40 @@
-import { BigDecimal, BigInt, EthereumEvent, Address } from '@graphprotocol/graph-ts';
 import {
-  NewFlowToken, Minted, Redeemed, Liquidated, CollateralAdded, CollateralWithdrew, FlowTokenWithdrew, FlowTokenDeposited,
+  BigDecimal,
+  BigInt,
+  EthereumEvent,
+  Address,
+} from '@graphprotocol/graph-ts';
+import {
+  NewFlowToken,
+  Minted,
+  Redeemed,
+  Liquidated,
+  CollateralAdded,
+  CollateralWithdrew,
+  FlowTokenWithdrew,
+  FlowTokenDeposited,
 } from '../generated/FlowProtocol/FlowProtocol';
 import { FlowToken } from '../generated/FlowProtocol/FlowToken';
 import { NewTradingPair } from '../generated/FlowMarginProtocol/FlowMarginProtocol';
-import { PriceFeeded, PriceOracleInterface } from '../generated/PriceOracle/PriceOracleInterface';
+import {
+  PriceFeeded,
+  PriceOracleInterface,
+} from '../generated/PriceOracle/PriceOracleInterface';
 import { MoneyMarket } from '../generated/FlowMarginProtocol/MoneyMarket';
-import { MarginTradingPair, OpenPosition, ClosePosition } from '../generated/templates/MarginTradingPair/MarginTradingPair';
+import {
+  MarginTradingPair,
+  OpenPosition,
+  ClosePosition,
+} from '../generated/templates/MarginTradingPair/MarginTradingPair';
 import { MarginTradingPair as MarginTradingPairTemplate } from '../generated/templates';
-import { TokenEntity, PriceEntity, EventEntity, FlowProtocolEntity, TradingPairEntity, MarginPositionEntity } from '../generated/schema';
+import {
+  TokenEntity,
+  PriceEntity,
+  EventEntity,
+  FlowProtocolEntity,
+  TradingPairEntity,
+  MarginPositionEntity,
+} from '../generated/schema';
 import * as deployment from '../generated/deployment';
 
 let one = BigDecimal.fromString('1000000000000000000');
@@ -22,7 +48,10 @@ function getFlowProtocol(): FlowProtocolEntity {
   return flow as FlowProtocolEntity;
 }
 
-function createNewEventEntity(flow: FlowProtocolEntity, event: EthereumEvent): EventEntity {
+function createNewEventEntity(
+  flow: FlowProtocolEntity,
+  event: EthereumEvent,
+): EventEntity {
   flow.totalEvents = flow.totalEvents.plus(BigInt.fromI32(1));
   let evt = new EventEntity(flow.totalEvents.toHex());
   evt.timestamp = event.block.timestamp.toI32();
@@ -156,15 +185,23 @@ export function handleNewTradingPair(event: NewTradingPair): void {
   let pair = MarginTradingPair.bind(event.params.pair);
   entity.quoteToken = pair.quoteToken().toHex();
   entity.leverage = pair.leverage().toI32();
-  entity.safeMarginPercent = pair.safeMarginPercent().toBigDecimal().div(one);
-  entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
+  entity.safeMarginPercent = pair
+    .safeMarginPercent()
+    .toBigDecimal()
+    .div(one);
+  entity.liquidationFee = pair
+    .liquidationFee()
+    .toBigDecimal()
+    .div(one);
   entity.save();
 
   MarginTradingPairTemplate.create(event.params.pair);
 }
 
 export function handleOpenPosition(event: OpenPosition): void {
-  let entity = new MarginPositionEntity(event.address.toHex() + event.params.positionId.toString());
+  let entity = new MarginPositionEntity(
+    event.address.toHex() + event.params.positionId.toString(),
+  );
   let pair = MarginTradingPair.bind(event.address);
   entity.pair = event.address.toHex();
   entity.positionId = event.params.positionId.toI32();
@@ -173,7 +210,10 @@ export function handleOpenPosition(event: OpenPosition): void {
   entity.amount = event.params.baseTokenAmount.toBigDecimal().div(one);
   entity.openPrice = event.params.openPrice.toBigDecimal().div(one);
   entity.closeSpread = event.params.closeSpread.toBigDecimal().div(one);
-  entity.liquidationFee = pair.liquidationFee().toBigDecimal().div(one);
+  entity.liquidationFee = pair
+    .liquidationFee()
+    .toBigDecimal()
+    .div(one);
   entity.openTime = event.block.timestamp.toI32();
   entity.openTxhash = event.transaction.hash;
   entity.openBlock = event.block.number.toI32();
@@ -181,13 +221,26 @@ export function handleOpenPosition(event: OpenPosition): void {
 }
 
 export function handleClosePosition(event: ClosePosition): void {
-  let entity = new MarginPositionEntity(event.address.toHex() + event.params.positionId.toString());
-  let moneyMarket = MoneyMarket.bind(Address.fromString(deployment.moneyMarket));
-  let iTokenRate = moneyMarket.exchangeRate().toBigDecimal().div(one);
+  let entity = new MarginPositionEntity(
+    event.address.toHex() + event.params.positionId.toString(),
+  );
+  let moneyMarket = MoneyMarket.bind(
+    Address.fromString(deployment.moneyMarket),
+  );
+  let iTokenRate = moneyMarket
+    .exchangeRate()
+    .toBigDecimal()
+    .div(one);
   entity.closePrice = event.params.closePrice.toBigDecimal().div(one);
   entity.liquidator = event.params.liquidator;
-  entity.closeOwnerAmount = event.params.ownerAmount.toBigDecimal().div(one).times(iTokenRate);
-  entity.closeLiquidityPoolAmount = event.params.liquidityPoolAmount.toBigDecimal().div(one).times(iTokenRate);
+  entity.closeOwnerAmount = event.params.ownerAmount
+    .toBigDecimal()
+    .div(one)
+    .times(iTokenRate);
+  entity.closeLiquidityPoolAmount = event.params.liquidityPoolAmount
+    .toBigDecimal()
+    .div(one)
+    .times(iTokenRate);
   entity.closeTime = event.block.timestamp.toI32();
   entity.closeTxhash = event.transaction.hash;
   entity.closeBlock = event.block.number.toI32();

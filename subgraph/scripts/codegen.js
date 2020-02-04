@@ -9,7 +9,7 @@ const template = require('lodash.template');
 const deployment = JSON.parse(
   fs
     .readFileSync(path.join(__dirname, '../../artifacts/deployment.json'))
-    .toString()
+    .toString(),
 );
 
 const subgraphTemplate = fs
@@ -21,7 +21,7 @@ console.log(`Network: ${network}`);
 
 const subgraph = template(subgraphTemplate)({
   deployment: deployment[network],
-  network
+  network,
 });
 
 fs.writeFileSync(path.join(__dirname, '../subgraph.yaml'), subgraph);
@@ -40,7 +40,7 @@ try {
 
 fs.writeFileSync(
   path.join(__dirname, '../generated/deployment.ts'),
-  generatedDeploy
+  generatedDeploy,
 );
 
 console.log('generated/deployment.ts updated');
