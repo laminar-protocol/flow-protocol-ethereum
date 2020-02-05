@@ -40,12 +40,13 @@ services:
     image: trufflesuite/ganache-cli
     ports:
       - '8545:8545'
-    command: [
+    command:
+      [
+        '-d',
         '-i 1337',
-        '-l 8000000',
-        # '--db=/data/ganache', // not working
+        '--db=/tmp',
         '-m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat"',
-        '--debug',
+        '-q',
       ]
     volumes:
-      - ./data/ganache:/data/ganache
+      - ./data/ganache:/tmp
