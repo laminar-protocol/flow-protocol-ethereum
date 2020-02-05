@@ -16,13 +16,13 @@ console.log(`Network: ${network}`);
 const deployment = JSON.parse(
   fs
     .readFileSync(
-      path.join(__dirname, `../../artifacts/abi/${network}/deployment.json`),
+      path.join(__dirname, `../../artifacts/${network}/deployment.json`),
     )
     .toString(),
 );
 
 const subgraph = template(subgraphTemplate)({
-  deployment: deployment,
+  deployment,
   network,
 });
 

@@ -56,7 +56,7 @@ const save = (obj: any, filePath: string[]) => {
   const finalPath = path.join(...filePath);
   var dirname = path.dirname(finalPath);
   if (!fs.existsSync(dirname)) {
-    return fs.mkdirSync(dirname);
+    fs.mkdirSync(dirname, { recursive: true });
   }
   const dirPath = fs.writeFileSync(finalPath, JSON.stringify(obj, null, 2));
 };
@@ -335,25 +335,25 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     };
     save((SimplePriceOracle as any).abi, [
       'artifacts',
-      'abi',
       network,
+      'abi',
       `${(SimplePriceOracle as any).contractName}.json`,
     ]);
     for (const [key, [value, contract]] of Object.entries(deployment)) {
       save((contract as any).abi, [
         'artifacts',
-        'abi',
         network,
+        'abi',
         `${(contract as any).contractName}.json`,
       ]);
       addresses[key] = value.address;
     }
     save((FaucetInterface as any).abi, [
       'artifacts',
-      'abi',
       network,
+      'abi',
       `${(FaucetInterface as any).contractName}.json`,
     ]);
-    save(addresses, ['artifacts', 'abi', network, 'deployment.json']);
+    save(addresses, ['artifacts', network, 'deployment.json']);
   };
 };
