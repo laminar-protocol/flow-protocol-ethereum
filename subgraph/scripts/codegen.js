@@ -6,12 +6,6 @@ const fs = require('fs');
 const path = require('path');
 const template = require('lodash.template');
 
-const deployment = JSON.parse(
-  fs
-    .readFileSync(path.join(__dirname, '../../artifacts/deployment.json'))
-    .toString(),
-);
-
 const subgraphTemplate = fs
   .readFileSync(path.join(__dirname, '../subgraph.template.yaml'))
   .toString();
@@ -19,8 +13,16 @@ const subgraphTemplate = fs
 const network = process.env.NETWORK;
 console.log(`Network: ${network}`);
 
+const deployment = JSON.parse(
+  fs
+    .readFileSync(
+      path.join(__dirname, `../../artifacts/abi/${network}/deployment.json`),
+    )
+    .toString(),
+);
+
 const subgraph = template(subgraphTemplate)({
-  deployment: deployment[network],
+  deployment: deployment,
   network,
 });
 
