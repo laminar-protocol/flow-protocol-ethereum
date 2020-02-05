@@ -30,7 +30,7 @@ fs.writeFileSync(path.join(__dirname, '../subgraph.yaml'), subgraph);
 
 console.log('subgraph.yaml updated');
 
-const generatedDeploy = Object.entries(deployment[network])
+const generatedDeploy = Object.entries(deployment)
   .map(([key, value]) => `export const ${key} = '${value}';`)
   .join('\n');
 

@@ -20,12 +20,6 @@ interface LiquidityPoolInterface {
         uint256 baseTokenAmount
     ) external returns (bool);
 
-    // deposit liquidity into this pool
-    function depositLiquidity(uint256 amount) external;
-
-    // withdraw liquidity from this pool
-    function withdrawLiquidity(uint256 amount) external;
-
     event SpreadUpdated();
     event AdditoinalCollateralRatioUpdated();
 }
