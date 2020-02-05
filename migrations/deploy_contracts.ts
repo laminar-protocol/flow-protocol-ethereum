@@ -54,8 +54,11 @@ const getTokensByNetwork = {
 
 const save = (obj: any, filePath: string[]) => {
   const finalPath = path.join(...filePath);
-
-  fs.writeFileSync(finalPath, JSON.stringify(obj, null, 2));
+  var dirname = path.dirname(finalPath);
+  if (!fs.existsSync(dirname)) {
+    return fs.mkdirSync(dirname);
+  }
+  const dirPath = fs.writeFileSync(finalPath, JSON.stringify(obj, null, 2));
 };
 
 type Network = keyof typeof getTokensByNetwork;
@@ -351,15 +354,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       network,
       `${(FaucetInterface as any).contractName}.json`,
     ]);
-    let existing: any = {};
-    try {
-      existing = JSON.parse(
-        fs.readFileSync(path.join('artifacts', 'deployment.json')).toString(),
-      );
-    } catch (e) {
-      // ignore
-    }
-    existing[network] = addresses;
-    save(existing, ['artifacts', 'deployment.json']);
+    save(addresses, ['artifacts', 'abi', network, 'deployment.json']);
   };
 };
