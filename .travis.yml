@@ -9,6 +9,7 @@ before_script:
 
 script:
   - yarn ganache &
+  - yarn prepare
   - yarn lint
   - yarn test
   - yarn stop
@@ -17,4 +18,4 @@ script:
 
 branches:
   only:
-  - master
+    - master
