@@ -37,13 +37,12 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
   ganache:
-    image: trufflesuite/ganache-cli
+    image: trufflesuite/ganache-cli:latest
     ports:
       - '8545:8545'
     command:
       [
         '-d',
-        '-i 1337',
         '--db=/tmp',
         '-m "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat"',
         '-q',
