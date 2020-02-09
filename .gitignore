@@ -36,3 +36,8 @@ types/web3-contracts
 
 generated
 subgraph.yaml
+
+artifacts/development
+
+# Docker data
+data

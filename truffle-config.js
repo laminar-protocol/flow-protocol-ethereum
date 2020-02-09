@@ -1,7 +1,7 @@
 /* eslint-disable */
 
 require('ts-node').register({
-  files: true,
+  files: true
 });
 
 const HDWalletProvider = require('truffle-hdwallet-provider');
@@ -12,20 +12,37 @@ const isProd = process.env.ENV === 'PROD';
 
 module.exports = {
   networks: {
-    development: {
-      host: 'localhost',
-      port: 9545,
-      network_id: '*', // Match any network id,
+    mainnet: {
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
+        ),
+      network_id: 1
     },
     ropsten: {
-      provider: () => new HDWalletProvider(process.env.MNEMONIC, `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`),
-      network_id: 3,
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`
+        ),
+      network_id: 3
     },
     kovan: {
-      provider: () => new HDWalletProvider(process.env.MNEMONIC, `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`),
+      provider: () =>
+        new HDWalletProvider(
+          process.env.MNEMONIC,
+          `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`
+        ),
       network_id: 42,
-      gasPrice: '1000000000',
+      gasPrice: '1000000000'
     },
+    development: {
+      host: 'localhost',
+      port: 8545,
+      network_id: '*', // Match any network id,
+      gas: 4712388
+    }
   },
   compilers: {
     solc: {
@@ -33,16 +50,13 @@ module.exports = {
       settings: {
         optimizer: {
           enabled: isProd,
-          runs: 200,
-        },
-      },
-    },
+          runs: 200
+        }
+      }
+    }
   },
-  plugins: [
-    'truffle-contract-size',
-    'truffle-plugin-verify',
-  ],
+  plugins: ['truffle-contract-size', 'truffle-plugin-verify'],
   api_keys: {
-    etherscan: process.env.ETHERSCAN_API_KEY,
-  },
+    etherscan: process.env.ETHERSCAN_API_KEY
+  }
 };

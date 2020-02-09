@@ -2,7 +2,7 @@ module.exports = {
   env: {
     es6: true,
     node: true,
-    mocha: true
+    mocha: true,
   },
   extends: [
     'airbnb-base',
@@ -10,22 +10,21 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:@typescript-eslint/recommended-requiring-type-checking',
     'plugin:import/typescript',
+    'plugin:prettier/recommended',
+    'prettier/@typescript-eslint',
   ],
   globals: {
     artifacts: 'readonly',
     contract: 'readonly',
     assert: 'readonly',
-    web3: 'readonly'
+    web3: 'readonly',
   },
   parser: '@typescript-eslint/parser',
   parserOptions: {
     warnOnUnsupportedTypeScriptVersion: false,
-    project: [
-      './tsconfig.json',
-      './tsconfig.eslint.json'
-    ]
+    project: ['./tsconfig.json', './tsconfig.eslint.json'],
   },
-  plugins: ['@typescript-eslint', 'import'],
+  plugins: ['@typescript-eslint', 'import', 'prettier'],
   rules: {
     '@typescript-eslint/indent': ['error', 2],
     indent: 'off', // required as 'off' by @typescript-eslint/indent
@@ -45,20 +44,23 @@ module.exports = {
     'no-unused-expressions': 'off',
     'no-empty-character-class': 'off', // causing linter to crash
     'no-regex-spaces': 'off', // causing linter to crash
+    'prettier/prettier': 'error',
   },
   settings: {
     'import/resolver': {
       typescript: {
-        directory: './tsconfig.json'
-      }
-    }
+        directory: './tsconfig.json',
+      },
+    },
   },
-  overrides: [{
-    files: ['subgraph/**/*.ts'],
-    rules: {
-      'prefer-const': 'off',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-      'no-param-reassign': 'off'
-    }
-  }]
+  overrides: [
+    {
+      files: ['subgraph/**/*.ts'],
+      rules: {
+        'prefer-const': 'off',
+        '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+        'no-param-reassign': 'off',
+      },
+    },
+  ],
 };
