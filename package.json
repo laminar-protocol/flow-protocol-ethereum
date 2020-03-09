@@ -7,7 +7,7 @@
     "generate": "yarn truffle compile && yarn typechain --target truffle \"./build/**/*.json\" && yarn typechain --target web3-v1 \"./build/**/*.json\"",
     "prepare": "yarn generate && cd subgraph && yarn && cross-env NETWORK=kovan yarn codegen",
     "verify": "if [ $NETWORK != 'development' ]\nthen\ntruffle run verify MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network $NETWORK\nfi",
-    "lint": "solium -d contracts/ && eslint --ext .js,.ts subgraph && tsc --noEmit --pretty",
+    "lint": "yarn solium -d contracts/ && yarn eslint --ext .js,.ts subgraph && yarn tsc --noEmit --pretty",
     "test": "bash ./run_tests.sh",
     "graph-node": "docker-compose up",
     "deploy-local": "sh deploy-local.sh",
