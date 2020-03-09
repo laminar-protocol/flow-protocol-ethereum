@@ -39,9 +39,9 @@ start_ganache() {
   )
 
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    npx ganache-cli-coverage --emitFreeLogs true --allowUnlimitedContractSize true --gasLimit 0x1fffffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
+    yarn ganache-cli-coverage --emitFreeLogs true --allowUnlimitedContractSize true --gasLimit 0x1fffffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
   else
-    npx ganache-cli --gasLimit 0x1fffffffffffff --gasPrice 0x1 --port "$ganache_port" --accounts 70 > /dev/null &
+    yarn ganache-cli --gasLimit 0x1fffffffffffff --gasPrice 0x1 --port "$ganache_port" --accounts 70 > /dev/null &
   fi
 
   ganache_pid=$!
@@ -70,11 +70,11 @@ fi
 truffle version
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  npx solidity-coverage
+  yarn solidity-coverage
 
   if [ "$CONTINUOUS_INTEGRATION" = true ]; then
     cat coverage/lcov.info | npx coveralls
   fi
 else
-  npx truffle test "$@"
+  yarn truffle test "$@"
 fi
