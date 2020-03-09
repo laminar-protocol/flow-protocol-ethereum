@@ -7,7 +7,7 @@ import * as helper from './helpers';
 
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
-contract('SimplePriceOracle', (accounts) => {
+contract('SimplePriceOracle', accounts => {
   const owner = accounts[0];
   const priceFeeder = accounts[1];
   const priceFeederTwo = accounts[2];
@@ -23,7 +23,10 @@ contract('SimplePriceOracle', (accounts) => {
   });
 
   // Send a `SimplePriceOracle.getPrice` tx and get the call return value.
-  const getPrice = async (priceOracle: SimplePriceOracleInstance, key: string): Promise<BN> => {
+  const getPrice = async (
+    priceOracle: SimplePriceOracleInstance,
+    key: string,
+  ): Promise<BN> => {
     await priceOracle.getPrice(key);
     const price = await priceOracle.getPrice.call(key);
     return web3.utils.toBN(price);
@@ -45,8 +48,14 @@ contract('SimplePriceOracle', (accounts) => {
     });
 
     it('requires price feeder role to feed price', async () => {
-      await expectRevert(oracle.feedPrice(fToken, 100, { from: owner }), helper.messages.onlyPriceFeeder);
-      await expectRevert(oracle.feedPrice(fToken, 100, { from: badAddress }), helper.messages.onlyPriceFeeder);
+      await expectRevert(
+        oracle.feedPrice(fToken, 100, { from: owner }),
+        helper.messages.onlyPriceFeeder,
+      );
+      await expectRevert(
+        oracle.feedPrice(fToken, 100, { from: badAddress }),
+        helper.messages.onlyPriceFeeder,
+      );
     });
   });
 
@@ -89,29 +98,57 @@ contract('SimplePriceOracle', (accounts) => {
   describe('oracle config', () => {
     it('should be able to set config', async () => {
       await oracle.setOracleDeltaLastLimit(123);
-      expect(await oracle.oracleDeltaLastLimit()).bignumber.equal(helper.bn(123));
+      expect(await oracle.oracleDeltaLastLimit()).bignumber.equal(
+        helper.bn(123),
+      );
 
       await oracle.setOracleDeltaSnapshotLimit(456);
-      expect(await oracle.oracleDeltaSnapshotLimit()).bignumber.equal(helper.bn(456));
+      expect(await oracle.oracleDeltaSnapshotLimit()).bignumber.equal(
+        helper.bn(456),
+      );
 
       await oracle.setOracleDeltaSnapshotTime(789);
-      expect(await oracle.oracleDeltaSnapshotTime()).bignumber.equal(helper.bn(789));
+      expect(await oracle.oracleDeltaSnapshotTime()).bignumber.equal(
+        helper.bn(789),
+      );
     });
 
     it('requires owner to set config', async () => {
-      await expectRevert(oracle.setOracleDeltaLastLimit(123, { from: badAddress }), helper.messages.onlyOwner);
-      await expectRevert(oracle.setOracleDeltaLastLimit(123, { from: priceFeeder }), helper.messages.onlyOwner);
+      await expectRevert(
+        oracle.setOracleDeltaLastLimit(123, { from: badAddress }),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.setOracleDeltaLastLimit(123, { from: priceFeeder }),
+        helper.messages.onlyOwner,
+      );
 
-      await expectRevert(oracle.setOracleDeltaSnapshotLimit(456, { from: badAddress }), helper.messages.onlyOwner);
-      await expectRevert(oracle.setOracleDeltaSnapshotLimit(456, { from: priceFeeder }), helper.messages.onlyOwner);
+      await expectRevert(
+        oracle.setOracleDeltaSnapshotLimit(456, { from: badAddress }),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.setOracleDeltaSnapshotLimit(456, { from: priceFeeder }),
+        helper.messages.onlyOwner,
+      );
 
-      await expectRevert(oracle.setOracleDeltaSnapshotTime(789, { from: badAddress }), helper.messages.onlyOwner);
-      await expectRevert(oracle.setOracleDeltaSnapshotTime(789, { from: priceFeeder }), helper.messages.onlyOwner);
+      await expectRevert(
+        oracle.setOracleDeltaSnapshotTime(789, { from: badAddress }),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.setOracleDeltaSnapshotTime(789, { from: priceFeeder }),
+        helper.messages.onlyOwner,
+      );
     });
   });
 
   // Feed a price by owner as feeder, send a `SimplePriceOracle.getPrice` and return updated price.
-  const setPriceByOwner = async (priceOracle: SimplePriceOracleInstance, key: string, price: number): Promise<BN> => {
+  const setPriceByOwner = async (
+    priceOracle: SimplePriceOracleInstance,
+    key: string,
+    price: number,
+  ): Promise<BN> => {
     await priceOracle.feedPrice(key, price);
     return getPrice(priceOracle, key);
   };
@@ -126,23 +163,39 @@ contract('SimplePriceOracle', (accounts) => {
       });
 
       it('should allow increase less than cap', async () => {
-        expect(await setPriceByOwner(oracle, fToken, 1099)).bignumber.equal(helper.bn(1099));
-        expect(await setPriceByOwner(oracle, fToken, 1207)).bignumber.equal(helper.bn(1207));
+        expect(await setPriceByOwner(oracle, fToken, 1099)).bignumber.equal(
+          helper.bn(1099),
+        );
+        expect(await setPriceByOwner(oracle, fToken, 1207)).bignumber.equal(
+          helper.bn(1207),
+        );
       });
 
       it('should allow decrease less than cap', async () => {
-        expect(await setPriceByOwner(oracle, fToken, 901)).bignumber.equal(helper.bn(901));
-        expect(await setPriceByOwner(oracle, fToken, 811)).bignumber.equal(helper.bn(811));
+        expect(await setPriceByOwner(oracle, fToken, 901)).bignumber.equal(
+          helper.bn(901),
+        );
+        expect(await setPriceByOwner(oracle, fToken, 811)).bignumber.equal(
+          helper.bn(811),
+        );
       });
 
       it('should cap increase', async () => {
-        expect(await setPriceByOwner(oracle, fToken, 1101)).bignumber.equal(helper.bn(1100));
-        expect(await setPriceByOwner(oracle, fToken, 1211)).bignumber.equal(helper.bn(1210));
+        expect(await setPriceByOwner(oracle, fToken, 1101)).bignumber.equal(
+          helper.bn(1100),
+        );
+        expect(await setPriceByOwner(oracle, fToken, 1211)).bignumber.equal(
+          helper.bn(1210),
+        );
       });
 
       it('should cap decrease', async () => {
-        expect(await setPriceByOwner(oracle, fToken, 899)).bignumber.equal(helper.bn(900));
-        expect(await setPriceByOwner(oracle, fToken, 798)).bignumber.equal(helper.bn(810));
+        expect(await setPriceByOwner(oracle, fToken, 899)).bignumber.equal(
+          helper.bn(900),
+        );
+        expect(await setPriceByOwner(oracle, fToken, 798)).bignumber.equal(
+          helper.bn(810),
+        );
       });
     });
 
@@ -157,24 +210,36 @@ contract('SimplePriceOracle', (accounts) => {
 
       it('should allow increase less than cap', async () => {
         await setPriceByOwner(oracle, fToken, 950);
-        expect(await setPriceByOwner(oracle, fToken, 1099)).bignumber.equal(helper.bn(1099));
+        expect(await setPriceByOwner(oracle, fToken, 1099)).bignumber.equal(
+          helper.bn(1099),
+        );
       });
 
       it('should allow decrease less than cap', async () => {
         await setPriceByOwner(oracle, fToken, 1050);
-        expect(await setPriceByOwner(oracle, fToken, 901)).bignumber.equal(helper.bn(901));
+        expect(await setPriceByOwner(oracle, fToken, 901)).bignumber.equal(
+          helper.bn(901),
+        );
       });
 
       it('should cap increase', async () => {
         await setPriceByOwner(oracle, fToken, 1050);
-        expect(await setPriceByOwner(oracle, fToken, 1101)).bignumber.equal(helper.bn(1100));
-        expect(await setPriceByOwner(oracle, fToken, 1102)).bignumber.equal(helper.bn(1100));
+        expect(await setPriceByOwner(oracle, fToken, 1101)).bignumber.equal(
+          helper.bn(1100),
+        );
+        expect(await setPriceByOwner(oracle, fToken, 1102)).bignumber.equal(
+          helper.bn(1100),
+        );
       });
 
       it('should cap decrease', async () => {
         await setPriceByOwner(oracle, fToken, 950);
-        expect(await setPriceByOwner(oracle, fToken, 899)).bignumber.equal(helper.bn(900));
-        expect(await setPriceByOwner(oracle, fToken, 898)).bignumber.equal(helper.bn(900));
+        expect(await setPriceByOwner(oracle, fToken, 899)).bignumber.equal(
+          helper.bn(900),
+        );
+        expect(await setPriceByOwner(oracle, fToken, 898)).bignumber.equal(
+          helper.bn(900),
+        );
       });
 
       it('should take new snapshot', async () => {
@@ -184,12 +249,18 @@ contract('SimplePriceOracle', (accounts) => {
         await time.increase(2);
         await setPriceByOwner(oracle, fToken, 900); // this is the new snapshot
 
-        expect(await setPriceByOwner(oracle, fToken, 1000)).bignumber.equal(helper.bn(990));
+        expect(await setPriceByOwner(oracle, fToken, 1000)).bignumber.equal(
+          helper.bn(990),
+        );
 
         await time.increase(31);
-        expect(await setPriceByOwner(oracle, fToken, 1001)).bignumber.equal(helper.bn(990)); // new snapshot
+        expect(await setPriceByOwner(oracle, fToken, 1001)).bignumber.equal(
+          helper.bn(990),
+        ); // new snapshot
 
-        expect(await setPriceByOwner(oracle, fToken, 1100)).bignumber.equal(helper.bn(1089));
+        expect(await setPriceByOwner(oracle, fToken, 1100)).bignumber.equal(
+          helper.bn(1089),
+        );
       });
     });
   });
@@ -217,10 +288,22 @@ contract('SimplePriceOracle', (accounts) => {
     });
 
     it('should only allow owner to change price feeder', async () => {
-      await expectRevert(oracle.addPriceFeeder(badAddress, { from: priceFeeder }), helper.messages.onlyOwner);
-      await expectRevert(oracle.addPriceFeeder(badAddress, { from: badAddress }), helper.messages.onlyOwner);
-      await expectRevert(oracle.removePriceFeeder(priceFeeder, { from: priceFeeder }), helper.messages.onlyOwner);
-      await expectRevert(oracle.removePriceFeeder(priceFeeder, { from: badAddress }), helper.messages.onlyOwner);
+      await expectRevert(
+        oracle.addPriceFeeder(badAddress, { from: priceFeeder }),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.addPriceFeeder(badAddress, { from: badAddress }),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.removePriceFeeder(priceFeeder, { from: priceFeeder }),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.removePriceFeeder(priceFeeder, { from: badAddress }),
+        helper.messages.onlyOwner,
+      );
     });
   });
 });

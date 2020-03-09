@@ -54,7 +54,7 @@ const getTokensByNetwork = {
 
 const save = (obj: any, filePath: string[]) => {
   const finalPath = path.join(...filePath);
-  var dirname = path.dirname(finalPath);
+  const dirname = path.dirname(finalPath);
   if (!fs.existsSync(dirname)) {
     fs.mkdirSync(dirname, { recursive: true });
   }

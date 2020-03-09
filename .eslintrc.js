@@ -45,6 +45,16 @@ module.exports = {
     'no-empty-character-class': 'off', // causing linter to crash
     'no-regex-spaces': 'off', // causing linter to crash
     'prettier/prettier': 'error',
+    'import/extensions': [
+      'error',
+      'ignorePackages',
+      {
+        'js': 'never',
+        'jsx': 'never',
+        'ts': 'never',
+        'tsx': 'never'
+      }
+   ]
   },
   settings: {
     'import/resolver': {

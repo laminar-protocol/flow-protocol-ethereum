@@ -1,15 +1,16 @@
 import { constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import {
-  TestTokenInstance, FlowTokenInstance, MoneyMarketInstance, IERC20Instance,
+  TestTokenInstance,
+  FlowTokenInstance,
+  MoneyMarketInstance,
+  IERC20Instance,
 } from 'types/truffle-contracts';
-import {
-  createTestToken, createMoneyMarket, fromPercent, bn,
-} from './helpers';
+import { createTestToken, createMoneyMarket, fromPercent, bn } from './helpers';
 
 const FlowToken = artifacts.require('FlowToken');
 
-contract('FlowToken', (accounts) => {
+contract('FlowToken', accounts => {
   const owner = accounts[0];
   const liquidityPool = accounts[1];
   const liquidityPoolTwo = accounts[2];
@@ -22,7 +23,10 @@ contract('FlowToken', (accounts) => {
 
   beforeEach(async () => {
     usd = await createTestToken();
-    ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(usd.address, fromPercent(100)));
+    ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(
+      usd.address,
+      fromPercent(100),
+    ));
 
     fToken = await FlowToken.new('Euro', 'EUR', moneyMarket.address, owner);
 
@@ -38,41 +42,65 @@ contract('FlowToken', (accounts) => {
     });
 
     it('should be able to addPosition and keep interest share rate', async () => {
-      expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
+      expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+        fromPercent(100),
+      );
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(1200));
       expect(await fToken.totalInterestShares()).bignumber.equal(bn(200));
       expect(await fToken.totalInterestDebits()).bignumber.equal(bn(200));
-      expect(await fToken.interestShares(liquidityPool)).bignumber.equal(bn(200));
-      expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(bn(200));
+      expect(await fToken.interestShares(liquidityPool)).bignumber.equal(
+        bn(200),
+      );
+      expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(
+        bn(200),
+      );
 
       await fToken.addPosition(liquidityPoolTwo, 2400, 200, 400);
       await iUsd.transfer(fToken.address, 24000);
 
-      expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
+      expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+        fromPercent(100),
+      );
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(3600));
       expect(await fToken.totalInterestShares()).bignumber.equal(bn(600));
       expect(await fToken.totalInterestDebits()).bignumber.equal(bn(600));
-      expect(await fToken.interestShares(liquidityPoolTwo)).bignumber.equal(bn(400));
-      expect(await fToken.interestDebits(liquidityPoolTwo)).bignumber.equal(bn(400));
+      expect(await fToken.interestShares(liquidityPoolTwo)).bignumber.equal(
+        bn(400),
+      );
+      expect(await fToken.interestDebits(liquidityPoolTwo)).bignumber.equal(
+        bn(400),
+      );
     });
 
     it('should be able to remove position', async () => {
-      expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(0));
+      expect(
+        await fToken.removePosition.call(liquidityPool, 600, 50),
+      ).bignumber.equal(bn(0));
       await fToken.removePosition(liquidityPool, 600, 50);
       await iUsd.transferFrom(fToken.address, owner, 6000);
 
-      expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
+      expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+        fromPercent(100),
+      );
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(600));
       expect(await fToken.totalInterestShares()).bignumber.equal(bn(100));
       expect(await fToken.totalInterestDebits()).bignumber.equal(bn(100));
-      expect(await fToken.interestShares(liquidityPool)).bignumber.equal(bn(100));
-      expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(bn(100));
+      expect(await fToken.interestShares(liquidityPool)).bignumber.equal(
+        bn(100),
+      );
+      expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(
+        bn(100),
+      );
 
-      expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(0));
+      expect(
+        await fToken.removePosition.call(liquidityPool, 600, 50),
+      ).bignumber.equal(bn(0));
       await fToken.removePosition(liquidityPool, 600, 50);
       await iUsd.transferFrom(fToken.address, owner, 6000);
 
-      expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
+      expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+        fromPercent(100),
+      );
       expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(0));
       expect(await fToken.totalInterestShares()).bignumber.equal(bn(0));
       expect(await fToken.totalInterestDebits()).bignumber.equal(bn(0));
@@ -88,45 +116,71 @@ contract('FlowToken', (accounts) => {
 
       it('should be able to earn interest and withdraw it', async () => {
         // 20% interest * 1200 pricipal / 200 shares = 120% return = 220
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100 * 0.2 * 1200 / 200 + 100));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent((100 * 0.2 * 1200) / 200 + 100),
+        );
 
         // only withdraw interests
         // 1200 pricipal * 20% interest = 240
-        expect(await fToken.removePosition.call(liquidityPool, 0, 0)).bignumber.equal(bn(240));
+        expect(
+          await fToken.removePosition.call(liquidityPool, 0, 0),
+        ).bignumber.equal(bn(240));
         await fToken.removePosition(liquidityPool, 0, 0);
         // take 240 / 1.2 iToken away
         await iUsd.transferFrom(fToken.address, owner, 2400 / 1.2);
 
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(220));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent(220),
+        );
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(1200));
         expect(await fToken.totalInterestShares()).bignumber.equal(bn(200));
         expect(await fToken.totalInterestDebits()).bignumber.equal(bn(440));
-        expect(await fToken.interestShares(liquidityPool)).bignumber.equal(bn(200));
-        expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(bn(440));
+        expect(await fToken.interestShares(liquidityPool)).bignumber.equal(
+          bn(200),
+        );
+        expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(
+          bn(440),
+        );
       });
 
       it('should be able to remove position', async () => {
-        expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(240));
+        expect(
+          await fToken.removePosition.call(liquidityPool, 600, 50),
+        ).bignumber.equal(bn(240));
         await fToken.removePosition(liquidityPool, 600, 50);
         await iUsd.transferFrom(fToken.address, owner, 8400 / 1.2);
 
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(220));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent(220),
+        );
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(600));
         expect(await fToken.totalInterestShares()).bignumber.equal(bn(100));
         expect(await fToken.totalInterestDebits()).bignumber.equal(bn(220));
-        expect(await fToken.interestShares(liquidityPool)).bignumber.equal(bn(100));
-        expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(bn(220));
+        expect(await fToken.interestShares(liquidityPool)).bignumber.equal(
+          bn(100),
+        );
+        expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(
+          bn(220),
+        );
 
-        expect(await fToken.removePosition.call(liquidityPool, 600, 50)).bignumber.equal(bn(0));
+        expect(
+          await fToken.removePosition.call(liquidityPool, 600, 50),
+        ).bignumber.equal(bn(0));
         await fToken.removePosition(liquidityPool, 600, 50);
         await iUsd.transferFrom(fToken.address, owner, 6000 / 1.2);
 
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(100));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent(100),
+        );
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(0));
         expect(await fToken.totalInterestShares()).bignumber.equal(bn(0));
         expect(await fToken.totalInterestDebits()).bignumber.equal(bn(0));
-        expect(await fToken.interestShares(liquidityPool)).bignumber.equal(bn(0));
-        expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(bn(0));
+        expect(await fToken.interestShares(liquidityPool)).bignumber.equal(
+          bn(0),
+        );
+        expect(await fToken.interestDebits(liquidityPool)).bignumber.equal(
+          bn(0),
+        );
       });
 
       it('should be able to deposit and withdraw', async () => {
@@ -135,10 +189,16 @@ contract('FlowToken', (accounts) => {
 
         expect(await fToken.balanceOf(alice)).bignumber.equal(bn(0));
 
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(220));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent(220),
+        );
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(1200));
-        expect(await fToken.totalInterestShares()).bignumber.equal(bn(200 + 200));
-        expect(await fToken.totalInterestDebits()).bignumber.equal(bn(200 + 200 * 2.2));
+        expect(await fToken.totalInterestShares()).bignumber.equal(
+          bn(200 + 200),
+        );
+        expect(await fToken.totalInterestDebits()).bignumber.equal(
+          bn(200 + 200 * 2.2),
+        );
         expect(await fToken.interestShares(alice)).bignumber.equal(bn(200));
         expect(await fToken.interestDebits(alice)).bignumber.equal(bn(440));
 
@@ -146,16 +206,22 @@ contract('FlowToken', (accounts) => {
         await usd.transfer(moneyMarket.address, bn(2000));
 
         // 20% interest * 1200 pricipal / 400 shares = 60% return -> 60 + 220 = 280
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(280));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent(280),
+        );
 
         await fToken.withdraw(alice, 100);
         expect(await fToken.balanceOf(alice)).bignumber.equal(bn(100));
         // half of the 240 total interest
         expect(await usd.balanceOf(alice)).bignumber.equal(bn(240 / 2));
         // half of the 240 total interest and 240 interest before alice deposit
-        expect(await fToken.removePosition.call(liquidityPool, 0, 0)).bignumber.equal(bn(240 + 240 / 2));
+        expect(
+          await fToken.removePosition.call(liquidityPool, 0, 0),
+        ).bignumber.equal(bn(240 + 240 / 2));
 
-        expect(await fToken.interestShareExchangeRate()).bignumber.equal(fromPercent(280));
+        expect(await fToken.interestShareExchangeRate()).bignumber.equal(
+          fromPercent(280),
+        );
         expect(await fToken.totalPrincipalAmount()).bignumber.equal(bn(1200));
         expect(await fToken.totalInterestShares()).bignumber.equal(bn(200));
         expect(await fToken.totalInterestDebits()).bignumber.equal(bn(200));
@@ -178,10 +244,17 @@ contract('FlowToken', (accounts) => {
     ];
 
     for (const [extreme, liquidation, current, incentive] of data) {
-      it(`calculates incentive ratio with ${JSON.stringify({ extreme, liquidation, current, incentive })}`, async () => {
+      it(`calculates incentive ratio with ${JSON.stringify({
+        extreme,
+        liquidation,
+        current,
+        incentive,
+      })}`, async () => {
         await fToken.setExtremeCollateralRatio(fromPercent(extreme));
         await fToken.setLiquidationCollateralRatio(fromPercent(liquidation));
-        expect(await fToken.incentiveRatio(fromPercent(current))).bignumber.equal(fromPercent(incentive));
+        expect(
+          await fToken.incentiveRatio(fromPercent(current)),
+        ).bignumber.equal(fromPercent(incentive));
       });
     }
   });

@@ -28,7 +28,9 @@ contract('QuickImpl', () => {
 
     it('with some repeat items', async () => {
       expect(await quick.select([2, 2, 3], 1)).bignumber.equal(bn(2));
-      expect(await quick.select([3, 2, 3, 1, 2, 4, 5, 5, 6], 5)).bignumber.equal(bn(4));
+      expect(
+        await quick.select([3, 2, 3, 1, 2, 4, 5, 5, 6], 5),
+      ).bignumber.equal(bn(4));
     });
   });
 });
@@ -50,9 +52,15 @@ contract('ArrayImpl', () => {
     it('odd length', async () => {
       expect(await arrays.findMedian([1])).bignumber.equal(bn(1));
       expect(await arrays.findMedian([2, 1, 3])).bignumber.equal(bn(2));
-      expect(await arrays.findMedian([4, 5, 2, 1, 6, 3, 7])).bignumber.equal(bn(4));
-      expect(await arrays.findMedian([7, 5, 2, 6, 1, 3, 4])).bignumber.equal(bn(4));
-      expect(await arrays.findMedian([7, 5, 4, 6, 1, 3, 2])).bignumber.equal(bn(4));
+      expect(await arrays.findMedian([4, 5, 2, 1, 6, 3, 7])).bignumber.equal(
+        bn(4),
+      );
+      expect(await arrays.findMedian([7, 5, 2, 6, 1, 3, 4])).bignumber.equal(
+        bn(4),
+      );
+      expect(await arrays.findMedian([7, 5, 4, 6, 1, 3, 2])).bignumber.equal(
+        bn(4),
+      );
     });
 
     it('even length', async () => {
