@@ -2,6 +2,7 @@ import { expectRevert, time } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import { SimplePriceOracleInstance } from 'types/truffle-contracts';
 import BN from 'bn.js';
+import web3 from 'web3';
 
 import * as helper from './helpers';
 
@@ -29,7 +30,7 @@ contract('SimplePriceOracle', accounts => {
   ): Promise<BN> => {
     await priceOracle.getPrice(key);
     const price = await priceOracle.getPrice.call(key);
-    return web3.utils.toBN(price);
+    return web3.utils.toBN(price.toString());
   };
 
   describe('feed and get price', () => {

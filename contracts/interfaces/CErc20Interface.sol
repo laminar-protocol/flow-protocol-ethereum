@@ -1,3 +1,4 @@
+// solium-disable linebreak-style
 pragma solidity >=0.4.21 <0.6.0;
 
 interface CErc20Interface {

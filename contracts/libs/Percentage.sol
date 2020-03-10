@@ -1,3 +1,4 @@
+// solium-disable linebreak-style
 pragma solidity ^0.5.8;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
