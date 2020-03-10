@@ -1,6 +1,4 @@
-// solium-disable linebreak-style
-pragma solidity ^0.5.8;
-
+pragma solidity ^0.6.3;
 contract Migrations {
   address public owner;
   uint256 public last_completed_migration;

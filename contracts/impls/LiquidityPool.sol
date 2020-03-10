@@ -1,6 +1,4 @@
-// solium-disable linebreak-style
-pragma solidity ^0.5.8;
-
+pragma solidity ^0.6.3;
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -29,21 +27,21 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
         collateralRatio = 0; // use fToken default
     }
 
-    function getBidSpread(address fToken) external view returns (uint) {
+    function getBidSpread(address fToken) external view override returns (uint) {
         if (allowedTokens[fToken]) {
             return spread;
         }
         return 0;
     }
 
-    function getAskSpread(address fToken) external view returns (uint) {
+    function getAskSpread(address fToken) external view override returns (uint) {
         if (allowedTokens[fToken]) {
             return spread;
         }
         return 0;
     }
 
-    function getAdditionalCollateralRatio(address fToken) external view returns (uint) {
+    function getAdditionalCollateralRatio(address fToken) external view override returns (uint) {
         if (allowedTokens[fToken]) {
             return collateralRatio;
         }
@@ -52,7 +50,7 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
 
     function openPosition(
         address /* tradingPair */, uint /* positionId */, address quoteToken, int leverage, uint /* baseTokenAmount */
-    ) external returns (bool) {
+    ) external override returns (bool) {
         // This is a view function so no need to have permission control
         // Otherwise needs to require msg.sender is approved FlowMarginProtocol
         return _openPosition(quoteToken, leverage);
@@ -90,7 +88,7 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
     function setCollateralRatio(uint value) external onlyOwner {
         collateralRatio = value;
 
-        emit AdditoinalCollateralRatioUpdated();
+        emit AdditionalCollateralRatioUpdated();
     }
 
     function enableToken(address token) external onlyOwner {

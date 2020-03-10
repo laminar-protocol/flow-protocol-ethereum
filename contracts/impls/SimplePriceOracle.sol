@@ -1,6 +1,4 @@
-// solium-disable linebreak-style
-pragma solidity ^0.5.8;
-
+pragma solidity ^0.6.3;
 import "../interfaces/PriceOracleInterface.sol";
 import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
@@ -60,7 +58,9 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
     mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
-    bool public constant isPriceOracle = true;
+    function isPriceOracle() external pure override returns (bool) {
+        return true;
+    }
 
     event PriceUpdated(address indexed addr, uint price);
 
@@ -70,7 +70,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         emit PriceFeeded(key, msg.sender, price);
     }
 
-    function getPrice(address key) external returns (uint) {
+    function getPrice(address key) external override returns (uint) {
         if (hasUpdate[key]) {
             uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {
@@ -81,7 +81,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function readPrice(address key) external view returns (uint) {
+    function readPrice(address key) external view override returns (uint) {
         if (hasUpdate[key]) {
             uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {

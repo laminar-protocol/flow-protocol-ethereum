@@ -1,6 +1,4 @@
-// solium-disable linebreak-style
-pragma solidity ^0.5.8;
-
+pragma solidity ^0.6.3;
 interface LiquidityPoolInterface {
     // return 0 means not available for this trade
     function getBidSpread(address fToken) external view returns (uint256);
@@ -22,5 +20,5 @@ interface LiquidityPoolInterface {
     ) external returns (bool);
 
     event SpreadUpdated();
-    event AdditoinalCollateralRatioUpdated();
+    event AdditionalCollateralRatioUpdated();
 }

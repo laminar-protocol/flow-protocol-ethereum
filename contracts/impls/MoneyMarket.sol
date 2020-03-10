@@ -1,6 +1,4 @@
-// solium-disable linebreak-style
-pragma solidity ^0.5.8;
-
+pragma solidity ^0.6.3;
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -19,11 +17,19 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    uint constant MAX_UINT = 2**256 - 1;
+    uint constant private MAX_UINT = 2**256 - 1;
 
-    IERC20 public baseToken;
+    function baseToken() external view override returns (IERC20) {
+        return _baseToken;
+    }
+
+    function iToken() external view override returns (IERC20) {
+        return _iToken;
+    }
+
+    IERC20 private _baseToken;
+    IERC20 private _iToken;
     CErc20Interface public cToken;
-    MintableToken public iToken;
 
     Percentage.Percent public minLiquidity;
 
@@ -36,9 +42,9 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         string memory iTokenSymbol
     ) public {
         cToken = cToken_;
-        baseToken = IERC20(cToken_.underlying());
-        iToken = new MintableToken(iTokenName, iTokenSymbol);
-        baseToken.safeApprove(address(cToken), MAX_UINT);
+        _baseToken = IERC20(cToken_.underlying());
+        _iToken = IERC20(new MintableToken(iTokenName, iTokenSymbol));
+        _baseToken.safeApprove(address(cToken), MAX_UINT);
 
         // TODO: do we need to make this configurable and what should be the default value?
         insignificantPercent = Percentage.fromFraction(5, 100); // 5%
@@ -46,55 +52,55 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         minLiquidity.value = minLiquidity_;
     }
 
-    function mint(uint baseTokenAmount) external returns (uint) {
-        return mintTo(msg.sender, baseTokenAmount);
+    function mint(uint _baseTokenAmount) external override returns (uint) {
+        return mintTo(msg.sender, _baseTokenAmount);
     }
 
-    function mintTo(address recipient, uint baseTokenAmount) public nonReentrant returns (uint) {
-        uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
+    function mintTo(address recipient, uint _baseTokenAmount) public nonReentrant override returns (uint) {
+        uint iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
 
-        baseToken.safeTransferFrom(msg.sender, address(this), baseTokenAmount);
-        iToken.mint(recipient, iTokenAmount);
+        _baseToken.safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
+        MintableToken(address(_iToken)).mint(recipient, iTokenAmount);
 
         _rebalance(0);
 
-        emit Minted(recipient, baseTokenAmount, iTokenAmount);
+        emit Minted(recipient, _baseTokenAmount, iTokenAmount);
 
         return iTokenAmount;
     }
 
-    function redeem(uint iTokenAmount) external returns (uint) {
+    function redeem(uint iTokenAmount) external override returns (uint) {
         return redeemTo(msg.sender, iTokenAmount);
     }
 
-    function redeemTo(address recipient, uint iTokenAmount) public nonReentrant returns (uint) {
-        uint baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
+    function redeemTo(address recipient, uint iTokenAmount) public nonReentrant override returns (uint) {
+        uint _baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
 
-        iToken.burn(msg.sender, iTokenAmount);
+        MintableToken(address(_iToken)).burn(msg.sender, iTokenAmount);
 
-        _rebalance(baseTokenAmount);
+        _rebalance(_baseTokenAmount);
 
-        baseToken.safeTransfer(recipient, baseTokenAmount);
+        _baseToken.safeTransfer(recipient, _baseTokenAmount);
 
-        emit Redeemed(recipient, baseTokenAmount, iTokenAmount);
+        emit Redeemed(recipient, _baseTokenAmount, iTokenAmount);
 
-        return baseTokenAmount;
+        return _baseTokenAmount;
     }
 
-    function redeemBaseToken(uint baseTokenAmount) external {
-        redeemBaseTokenTo(msg.sender, baseTokenAmount);
+    function redeemBaseToken(uint _baseTokenAmount) external override {
+        redeemBaseTokenTo(msg.sender, _baseTokenAmount);
     }
 
-    function redeemBaseTokenTo(address recipient, uint baseTokenAmount) public nonReentrant {
-        uint iTokenAmount = convertAmountFromBase(exchangeRate(), baseTokenAmount);
+    function redeemBaseTokenTo(address recipient, uint _baseTokenAmount) public nonReentrant override {
+        uint iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
 
-        iToken.burn(msg.sender, iTokenAmount);
+        MintableToken(address(_iToken)).burn(msg.sender, iTokenAmount);
 
-        _rebalance(baseTokenAmount);
+        _rebalance(_baseTokenAmount);
 
-        baseToken.safeTransfer(recipient, baseTokenAmount);
+        _baseToken.safeTransfer(recipient, _baseTokenAmount);
 
-        emit Redeemed(recipient, baseTokenAmount, iTokenAmount);
+        emit Redeemed(recipient, _baseTokenAmount, iTokenAmount);
     }
 
     function rebalance() external nonReentrant {
@@ -110,7 +116,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function _rebalance(uint extraLiquidity) private {
         uint cTokenExchangeRate = cToken.exchangeRateStored();
         uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
-        uint currentBaseToken = baseToken.balanceOf(address(this));
+        uint currentBaseToken = _baseToken.balanceOf(address(this));
         uint totalBaseToken = currentCTokenValue.add(currentBaseToken);
 
         uint cash = cToken.getCash();
@@ -163,8 +169,8 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         return invest;
     }
 
-    function exchangeRate() public view returns (uint) {
-        uint totalSupply = iToken.totalSupply();
+    function exchangeRate() public view override returns (uint) {
+        uint totalSupply = _iToken.totalSupply();
         if (totalSupply == 0) {
             return 0.1 ether;
         }
@@ -172,13 +178,13 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     }
 
     function totalHoldings() public view returns (uint) {
-        return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1 ether).add(baseToken.balanceOf(address(this)));
+        return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1 ether).add(_baseToken.balanceOf(address(this)));
     }
 
-    function convertAmountFromBase(uint rate, uint baseTokenAmount) public pure returns (uint) {
-        return baseTokenAmount.mul(1 ether).div(rate);
+    function convertAmountFromBase(uint rate, uint _baseTokenAmount) public override pure returns (uint) {
+        return _baseTokenAmount.mul(1 ether).div(rate);
     }
-    function convertAmountToBase(uint rate, uint iTokenAmount) public pure returns (uint) {
+    function convertAmountToBase(uint rate, uint iTokenAmount) public override pure returns (uint) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 }
