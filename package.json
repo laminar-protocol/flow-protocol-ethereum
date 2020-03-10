@@ -17,7 +17,7 @@
     "deploy:mainnet": "cross-env NETWORK=mainnet yarn deploy"
   },
   "devDependencies": {
-    "@openzeppelin/contracts": "^2.5.0",
+    "@openzeppelin/contracts": "^3.0.0-beta.0",
     "@types/chai": "^4.2.10",
     "@types/mocha": "^7.0.2",
     "@types/node": "^13.9.0",

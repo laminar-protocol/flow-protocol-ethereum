@@ -1,6 +1,5 @@
 // solium-disable linebreak-style
-pragma solidity ^0.5.8;
-
+pragma solidity ^0.6.3;
 contract ProtocolOwnable {
     address private _protocol;
 
