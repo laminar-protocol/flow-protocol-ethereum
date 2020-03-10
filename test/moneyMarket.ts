@@ -1,3 +1,4 @@
+import BN from 'bn.js';
 import { expectRevert } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import {

@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
+import Web3 from 'web3';
+
 const deployTokens = async (
   artifacts: Truffle.Artifacts,
   deployer: Truffle.Deployer,
@@ -58,6 +60,7 @@ const save = (obj: any, filePath: string[]) => {
   if (!fs.existsSync(dirname)) {
     fs.mkdirSync(dirname, { recursive: true });
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const dirPath = fs.writeFileSync(finalPath, JSON.stringify(obj, null, 2));
 };
 

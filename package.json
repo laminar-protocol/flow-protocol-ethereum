@@ -41,11 +41,14 @@
     "truffle-contract-size": "^1.0.1",
     "truffle-hdwallet-provider": "^1.0.17",
     "truffle-plugin-verify": "^0.3.9",
-    "truffle-typings": "^1.0.8",
+    "truffle-typings": "1.0.4",
     "ts-node": "^8.6.2",
     "typechain": "^1.0.5",
     "typechain-target-truffle": "^1.0.2",
     "typechain-target-web3-v1": "^1.0.4",
-    "typescript": "^3.8.3"
+    "typescript": "^3.8.3",
+    "web3": "^1.2.6",
+    "web3-core": "^1.2.6",
+    "web3-eth-contract": "^1.2.6"
   }
 }
