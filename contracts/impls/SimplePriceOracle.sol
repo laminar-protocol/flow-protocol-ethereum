@@ -1,4 +1,3 @@
-// solium-disable linebreak-style
 pragma solidity ^0.6.3;
 import "../interfaces/PriceOracleInterface.sol";
 import "../impls/PriceOracleConfig.sol";
@@ -59,7 +58,9 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
     mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
-    bool public constant override isPriceOracle = true;
+    function isPriceOracle() external pure override returns (bool) {
+        return true;
+    }
 
     event PriceUpdated(address indexed addr, uint price);
 

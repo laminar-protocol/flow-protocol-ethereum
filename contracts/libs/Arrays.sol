@@ -1,4 +1,3 @@
-// solium-disable linebreak-style
 pragma solidity ^0.6.3;
 library Arrays {
     /// Find median of an unsorted uint array. Median: item at index `length/2`(floor) of sorted array.

@@ -1,4 +1,3 @@
-// solium-disable linebreak-style
 pragma solidity ^0.6.3;
 interface LiquidityPoolInterface {
     // return 0 means not available for this trade

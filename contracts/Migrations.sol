@@ -1,4 +1,3 @@
-// solium-disable linebreak-style
 pragma solidity ^0.6.3;
 contract Migrations {
   address public owner;

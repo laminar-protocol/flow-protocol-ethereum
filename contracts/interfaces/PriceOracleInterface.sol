@@ -1,4 +1,3 @@
-// solium-disable linebreak-style
 pragma solidity ^0.6.3;
 interface PriceOracleInterface {
     function isPriceOracle() external pure returns (bool);
