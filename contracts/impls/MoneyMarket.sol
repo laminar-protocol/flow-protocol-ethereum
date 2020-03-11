@@ -11,15 +11,13 @@ import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";
 import "./FlowToken.sol";
 import "./MintableToken.sol";
-import "./LaminarStorage.sol";
 
 contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    uint256 constant private MAX_UINT = 2**256 - 1;
-    uint256 private MONEY_MARKET_ID;
+    uint constant private MAX_UINT = 2**256 - 1;
 
     function baseToken() external view override returns (IERC20) {
         return _baseToken;
@@ -33,18 +31,16 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     IERC20 private _iToken;
     CErc20Interface public cToken;
 
-    LaminarStorage public laminarStorage;
+    Percentage.Percent public minLiquidity;
 
     Percentage.Percent private insignificantPercent;
 
     constructor(
-        LaminarStorage _laminarStorage,
         CErc20Interface cToken_,
+        uint minLiquidity_,
         string memory iTokenName,
         string memory iTokenSymbol
     ) public {
-        laminarStorage = LaminarStorage(_laminarStorage);
-
         cToken = cToken_;
         _baseToken = IERC20(cToken_.underlying());
         _iToken = IERC20(new MintableToken(iTokenName, iTokenSymbol));
@@ -52,6 +48,8 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
 
         // TODO: do we need to make this configurable and what should be the default value?
         insignificantPercent = Percentage.fromFraction(5, 100); // 5%
+
+        minLiquidity.value = minLiquidity_;
     }
 
     function mint(uint _baseTokenAmount) external override returns (uint) {
@@ -109,27 +107,9 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         _rebalance(0);
     }
 
-    function getMinLiquidityValue() public view returns(uint256) {
-        return laminarStorage.getUint256(
-            keccak256(abi.encodePacked("min_liquidity", MONEY_MARKET_ID))
-        );
-    }
-
-    function _getMinLiquidityPercentage() private view returns(Percentage.Percent memory) {
-        Percentage.Percent memory minLiquidity;
-        minLiquidity.value = getMinLiquidityValue();
-
-        return minLiquidity;
-    } 
-	
-    function setMinLiquidity(uint256 _newMinLiquidity) public onlyOwner {
-        require(_newMinLiquidity >= 0 && _newMinLiquidity <= Percentage.one(), "Invalid minLiquidity");        
-
-        laminarStorage.setUint256(
-            keccak256(abi.encodePacked("min_liquidity", MONEY_MARKET_ID)),
-            _newMinLiquidity
-        );
-
+    function setMinLiquidity(uint value) public onlyOwner {
+        require(value >= 0 && value <= Percentage.one(), "Invalid minLiquidity");
+        minLiquidity.value = value;
         _rebalance(0);
     }
 
@@ -170,7 +150,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
         }
 
         // targetLiquidityAmount = totalValue * minLiquidity
-        uint targetLiquidityAmount = totalValue.mulPercent(_getMinLiquidityPercentage());
+        uint targetLiquidityAmount = totalValue.mulPercent(minLiquidity);
 
         // a = cTokenBorrow + targetLiquidityAmount
         uint a = cTokenBorrow.add(targetLiquidityAmount);

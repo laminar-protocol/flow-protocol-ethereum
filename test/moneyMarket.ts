@@ -103,21 +103,21 @@ contract('MoneyMarket', accounts => {
         await cToken.borrow(alice, dollar(8000));
 
         await moneyMarket.setMinLiquidity(fromPercent(50));
-        expect(await moneyMarket.getMinLiquidityValue()).bignumber.equal(
+        expect(await moneyMarket.minLiquidity()).bignumber.equal(
           fromPercent(50),
         );
         await expectBalances(usd, moneyMarket, '333333333333333333334');
         await expectBalances(usd, cToken, '2666666666666666666666');
 
         await moneyMarket.setMinLiquidity(fromPercent(100));
-        expect(await moneyMarket.getMinLiquidityValue()).bignumber.equal(
+        expect(await moneyMarket.minLiquidity()).bignumber.equal(
           fromPercent(100),
         );
         await expectBalances(usd, moneyMarket, dollar(1000));
         await expectBalances(usd, cToken, dollar(2000));
 
         await moneyMarket.setMinLiquidity(fromPercent(80));
-        expect(await moneyMarket.getMinLiquidityValue()).bignumber.equal(
+        expect(await moneyMarket.minLiquidity()).bignumber.equal(
           fromPercent(80),
         );
         await expectBalances(usd, moneyMarket, '743589743589743589744');

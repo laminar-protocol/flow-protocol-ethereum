@@ -67,7 +67,6 @@ const save = (obj: any, filePath: string[]) => {
 type Network = keyof typeof getTokensByNetwork;
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
-  const MoneyMarketFactory = artifacts.require('MoneyMarketFactory');
   const MoneyMarket = artifacts.require('MoneyMarket');
   const FlowProtocol = artifacts.require('FlowProtocol');
   const FlowToken = artifacts.require('FlowToken');
@@ -80,8 +79,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const ERC20Detailed = artifacts.require('ERC20Detailed');
   const LiquidityPoolInterface = artifacts.require('LiquidityPoolInterface');
   const FaucetInterface = artifacts.require('FaucetInterface');
-  const LaminarStorage = artifacts.require('LaminarStorage');
-  const LaminarUpgrade = artifacts.require('LaminarUpgrade');
 
   return async (
     deployer: Truffle.Deployer,
@@ -94,40 +91,14 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       artifacts,
       deployer,
     );
-
-    await deployer.deploy(LaminarStorage);
-    const laminarStorage = await LaminarStorage.deployed();
-
-    await deployer.deploy(LaminarUpgrade, laminarStorage.address);
-    const laminarUpgrade = await LaminarUpgrade.deployed();
-    const contractKey = Web3.utils.soliditySha3(
-      'contract.address',
-      laminarUpgrade.address,
-    );
-    laminarStorage.setAddress(contractKey as string, laminarUpgrade.address);
-
     await deployer.deploy(
-      MoneyMarketFactory,
-      laminarStorage.address,
-      laminarUpgrade.address,
-    );
-    const moneyMarketFactory = await MoneyMarketFactory.deployed();
-
-    await laminarUpgrade.addContract(
-      'MoneyMarketFactory',
-      moneyMarketFactory.address,
-    );
-
-    await moneyMarketFactory.deployMoneyMarket(
+      MoneyMarket,
       cToken.address,
       web3.utils.toWei('0.3'),
       'iUSD',
       'iUSD',
     );
-
-    const moneyMarket = await MoneyMarket.at(
-      await moneyMarketFactory.moneyMarkets(0),
-    );
+    const moneyMarket = await MoneyMarket.deployed();
     const iToken = await IERC20.at(await moneyMarket.iToken());
 
     // TODO: make price feeder configurable

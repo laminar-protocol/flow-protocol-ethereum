@@ -41,7 +41,7 @@ module.exports = {
       host: 'localhost',
       port: 8545,
       network_id: '*', // Match any network id,
-      gas: 8000000
+      gas: 4712388
     }
   },
   compilers: {
@@ -49,7 +49,7 @@ module.exports = {
       version: '0.6.3',
       settings: {
         optimizer: {
-          enabled: true, // TODO ?
+          enabled: isProd,
           runs: 200
         }
       }
