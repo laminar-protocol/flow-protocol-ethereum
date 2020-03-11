@@ -7,9 +7,13 @@ chai.use(chaiBN(BN));
 
 const TestToken = artifacts.require('TestToken');
 const TestCToken = artifacts.require('TestCToken');
+const LaminarStorage = artifacts.require('LaminarStorage');
+const LaminarUpgrade = artifacts.require('LaminarUpgrade');
+const MoneyMarketFactory = artifacts.require('MoneyMarketFactory');
 const MoneyMarket = artifacts.require('MoneyMarket');
 const IERC20 = artifacts.require('IERC20');
 
+export const asciiToHex = (ascii: string) => web3.utils.asciiToHex(ascii);
 export const fromPip = (val: number | string): any =>
   web3.utils.toWei(new BN(val)).div(new BN(10000));
 export const fromPercent = (val: number | string): any =>
@@ -33,17 +37,45 @@ export async function createTestToken(...args: [string, number][]) {
   return token;
 }
 
+export function createLaminarStorage() {
+  return LaminarStorage.new();
+}
+
 export async function createMoneyMarket(
   testTokenAddress: string,
   liquidity = fromPercent(100),
 ) {
+  const laminarStorage = await createLaminarStorage();
+  const laminarUpgrade = await LaminarUpgrade.new(laminarStorage.address);
+  const contractKey = web3.utils.soliditySha3(
+    'contract.address',
+    laminarUpgrade.address,
+  );
+  laminarStorage.setAddress(contractKey as string, laminarUpgrade.address);
+
   const cToken = await TestCToken.new(testTokenAddress);
-  const moneyMarket = await MoneyMarket.new(
+
+  const moneyMarketFactory = await MoneyMarketFactory.new(
+    laminarStorage.address,
+    laminarUpgrade.address,
+  );
+
+  await laminarUpgrade.addContract(
+    'MoneyMarketFactory',
+    moneyMarketFactory.address,
+  );
+
+  await moneyMarketFactory.deployMoneyMarket(
     cToken.address,
     liquidity,
     'Test iToken',
     'iTEST',
   );
+
+  const moneyMarket = await MoneyMarket.at(
+    await moneyMarketFactory.moneyMarkets(0),
+  );
+
   return {
     moneyMarket,
     cToken,

@@ -44,7 +44,10 @@ module.exports = {
     'no-unused-expressions': 'off',
     'no-empty-character-class': 'off', // causing linter to crash
     'no-regex-spaces': 'off', // causing linter to crash
-    'prettier/prettier': 'error',
+    'prettier/prettier': [
+      'error',
+      { "endOfLine":"auto" }
+    ],
     'import/extensions': [
       'error',
       'ignorePackages',
