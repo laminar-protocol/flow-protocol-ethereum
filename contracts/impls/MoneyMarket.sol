@@ -1,4 +1,5 @@
 pragma solidity ^0.6.3;
+
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -9,15 +10,32 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "../interfaces/CErc20Interface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";
+import "../storages/MoneyMarketStorage.sol";
+
 import "./FlowToken.sol";
 import "./MintableToken.sol";
 
-contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
+contract MoneyMarket is MoneyMarketStorage, MoneyMarketInterface { 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    uint constant private MAX_UINT = 2**256 - 1;
+    // modifiers are inline to ensure consistency with the storage variables
+    modifier onlyOwner() {
+        require(owner == msg.sender, "Ownable: caller is not the owner");
+        _;
+    }
+
+    modifier nonReentrant() {
+        require(notEntered, "ReentrancyGuard: reentrant call");
+        notEntered = false;
+
+        _;
+
+        notEntered = true;
+    }
+
+    constructor() MoneyMarketStorage(CErc20Interface(address(0)), '', '', 0, false) public {}
 
     function baseToken() external view override returns (IERC20) {
         return _baseToken;
@@ -25,31 +43,6 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
 
     function iToken() external view override returns (IERC20) {
         return _iToken;
-    }
-
-    IERC20 private _baseToken;
-    IERC20 private _iToken;
-    CErc20Interface public cToken;
-
-    Percentage.Percent public minLiquidity;
-
-    Percentage.Percent private insignificantPercent;
-
-    constructor(
-        CErc20Interface cToken_,
-        uint minLiquidity_,
-        string memory iTokenName,
-        string memory iTokenSymbol
-    ) public {
-        cToken = cToken_;
-        _baseToken = IERC20(cToken_.underlying());
-        _iToken = IERC20(new MintableToken(iTokenName, iTokenSymbol));
-        _baseToken.safeApprove(address(cToken), MAX_UINT);
-
-        // TODO: do we need to make this configurable and what should be the default value?
-        insignificantPercent = Percentage.fromFraction(5, 100); // 5%
-
-        minLiquidity.value = minLiquidity_;
     }
 
     function mint(uint _baseTokenAmount) external override returns (uint) {
@@ -106,10 +99,10 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function rebalance() external nonReentrant {
         _rebalance(0);
     }
-
-    function setMinLiquidity(uint value) public onlyOwner {
-        require(value >= 0 && value <= Percentage.one(), "Invalid minLiquidity");
-        minLiquidity.value = value;
+	
+    function setMinLiquidity(uint256 _newMinLiquidity) public onlyOwner {
+        require(_newMinLiquidity >= 0 && _newMinLiquidity <= Percentage.one(), "Invalid minLiquidity");        
+        minLiquidity.value = _newMinLiquidity;
         _rebalance(0);
     }
 
@@ -184,6 +177,7 @@ contract MoneyMarket is MoneyMarketInterface, Ownable, ReentrancyGuard {
     function convertAmountFromBase(uint rate, uint _baseTokenAmount) public override pure returns (uint) {
         return _baseTokenAmount.mul(1 ether).div(rate);
     }
+
     function convertAmountToBase(uint rate, uint iTokenAmount) public override pure returns (uint) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
