@@ -1,29 +1,43 @@
 pragma solidity ^0.6.3;
 
-import "../storages/MoneyMarketStorage.sol";
+contract MoneyMarketProxy {  
+    bytes32 private constant implementationPosition = keccak256("implementation.address");
+    bytes32 private constant proxyOwnerPosition = keccak256("proxy.owner");
 
-contract MoneyMarketProxy is MoneyMarketStorage {
-    address public implementation;
-
-    modifier onlyOwner() {
-        require(owner == msg.sender, "Ownable: caller is not the owner");
+    modifier onlyProxyOwner() {
+        require (msg.sender == proxyOwner());
         _;
     }
 
-    constructor(
-        CErc20Interface _cToken,
-        string memory _iTokenName,
-        string memory _iTokenSymbol,
-        uint256 _minLiquidity
-    ) public MoneyMarketStorage(_cToken, _iTokenName, _iTokenSymbol, _minLiquidity, true) { }
+    constructor() public {
+        _setUpgradeabilityOwner(msg.sender);
+    }
 
-    function upgradeTo(address _newImplementation) external onlyOwner {
-        require(implementation != _newImplementation);
-        _setImplementation(_newImplementation);
+    function transferProxyOwnership(address _newOwner) public onlyProxyOwner {
+        require(_newOwner != address(0));
+        _setUpgradeabilityOwner(_newOwner);
+    }
+    
+    function upgradeTo(address _implementation) public onlyProxyOwner{
+        _upgradeTo(_implementation);
+    }
+
+    function implementation() public view returns (address impl) {
+        bytes32 position = implementationPosition;
+        assembly {
+            impl := sload(position)
+        }
+    }
+
+    function proxyOwner() public view returns (address owner) {
+        bytes32 position = proxyOwnerPosition;
+        assembly {
+            owner := sload(position)
+        }
     }
 
     fallback() payable external {
-        address impl = implementation;
+        address impl = implementation();
         require(impl != address(0));
 
         assembly {
@@ -43,7 +57,23 @@ contract MoneyMarketProxy is MoneyMarketStorage {
         revert('Contract cannot receive ETH!');
     }
 
-    function _setImplementation(address _newImp) internal {
-        implementation = _newImp;
+    function _setImplementation(address _newImplementation) internal {
+        bytes32 position = implementationPosition;
+        assembly {
+            sstore(position, _newImplementation)
+        }
+    }
+
+    function _upgradeTo(address _newImplementation) internal {
+        address currentImplementation = implementation();
+        require(currentImplementation != _newImplementation);
+        _setImplementation(_newImplementation);
+    }
+
+    function _setUpgradeabilityOwner(address _newProxyOwner) internal {
+        bytes32 position = proxyOwnerPosition;
+        assembly {
+            sstore(position, _newProxyOwner)
+        }
     }
 }
