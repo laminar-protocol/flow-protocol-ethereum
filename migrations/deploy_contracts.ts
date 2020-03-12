@@ -93,30 +93,20 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     );
 
     await deployer.deploy(MoneyMarket);
-    await deployer.deploy(
-      MoneyMarketProxy,
+    const moneyMarketImpl = await MoneyMarket.deployed();
+
+    await deployer.deploy(MoneyMarketProxy);
+    const moneyMarketProxy = await MoneyMarketProxy.deployed();
+
+    await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
+    const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
+
+    moneyMarket.initialize(
       cToken.address,
       'iUSD',
       'iUSD',
       web3.utils.toWei('0.3'),
     );
-
-    const moneyMarketProxy = await MoneyMarketProxy.deployed();
-    const moneyMarketImpl = await MoneyMarket.deployed();
-    await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
-
-    const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
-
-    console.log({
-      iToken1: await moneyMarket._iToken(),
-      iToken2: await moneyMarketProxy._iToken(),
-      iToken3: await moneyMarket.iToken(),
-      cToken1: await moneyMarket.cToken(),
-      cToken2: await moneyMarketProxy.cToken(),
-      baseToken1: await moneyMarket._baseToken(),
-      baseToken2: await moneyMarketProxy._baseToken(),
-      baseToken3: await moneyMarket.baseToken(),
-    });
 
     const iToken = await IERC20.at(await moneyMarket.iToken());
 

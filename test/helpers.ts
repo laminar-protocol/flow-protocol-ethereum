@@ -39,15 +39,16 @@ export async function createMoneyMarket(
   liquidity = fromPercent(100),
 ) {
   const cToken = await TestCToken.new(testTokenAddress);
-  const moneyMarketProxy = await MoneyMarketProxy.new(
+  const moneyMarketProxy = await MoneyMarketProxy.new();
+  const moneyMarketImpl = await MoneyMarket.new();
+  moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
+  const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
+  await moneyMarket.initialize(
     cToken.address,
     'Test iToken',
     'iTEST',
     liquidity,
   );
-  const moneyMarketImpl = await MoneyMarket.new();
-  moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
-  const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
 
   return {
     moneyMarket,
