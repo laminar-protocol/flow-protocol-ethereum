@@ -1,41 +1,53 @@
 pragma solidity ^0.6.3;
 
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import "../interfaces/CErc20Interface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";
-import "../storages/MoneyMarketStorage.sol";
+import "../libs/upgrades/UpgradeOwnable.sol";
+import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 
 import "./FlowToken.sol";
 import "./MintableToken.sol";
 
-contract MoneyMarket is MoneyMarketStorage, MoneyMarketInterface { 
+contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface { // TODO rename V1
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    // modifiers are inline to ensure consistency with the storage variables
-    modifier onlyOwner() {
-        require(owner == msg.sender, "Ownable: caller is not the owner");
-        _;
+    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
+    uint256 constant private MAX_UINT = 2**256 - 1;
+
+    IERC20 public _baseToken;
+    IERC20 public _iToken;
+    CErc20Interface public cToken;
+    Percentage.Percent public insignificantPercent;
+    Percentage.Percent public minLiquidity;
+
+    function initialize(
+        CErc20Interface _cToken,
+        string memory _iTokenName,
+        string memory _iTokenSymbol,
+        uint256 _minLiquidity
+    ) public initializer {
+        UpgradeOwnable.initialize(msg.sender);
+        UpgradeReentrancyGuard.initialize();
+
+        _baseToken = IERC20(_cToken.underlying());
+        _iToken = IERC20(new MintableToken(_iTokenName, _iTokenSymbol));
+        cToken = _cToken;
+
+        // TODO: do we need to make this configurable and what should be the default value?
+        insignificantPercent = Percentage.fromFraction(5, 100); // 5%
+        minLiquidity.value = _minLiquidity;
+
+        _baseToken.safeApprove(address(cToken), MAX_UINT);
     }
-
-    modifier nonReentrant() {
-        require(notEntered, "ReentrancyGuard: reentrant call");
-        notEntered = false;
-
-        _;
-
-        notEntered = true;
-    }
-
-    constructor() MoneyMarketStorage(CErc20Interface(address(0)), '', '', 0, false) public {}
 
     function baseToken() external view override returns (IERC20) {
         return _baseToken;
