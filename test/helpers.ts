@@ -8,6 +8,7 @@ chai.use(chaiBN(BN));
 const TestToken = artifacts.require('TestToken');
 const TestCToken = artifacts.require('TestCToken');
 const MoneyMarket = artifacts.require('MoneyMarket');
+const MoneyMarketProxy = artifacts.require('MoneyMarketProxy');
 const IERC20 = artifacts.require('IERC20');
 
 export const fromPip = (val: number | string): any =>
@@ -38,12 +39,16 @@ export async function createMoneyMarket(
   liquidity = fromPercent(100),
 ) {
   const cToken = await TestCToken.new(testTokenAddress);
-  const moneyMarket = await MoneyMarket.new(
+  const moneyMarketProxy = await MoneyMarketProxy.new(
     cToken.address,
-    liquidity,
     'Test iToken',
     'iTEST',
+    liquidity,
   );
+  const moneyMarketImpl = await MoneyMarket.new();
+  moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
+  const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
+
   return {
     moneyMarket,
     cToken,
