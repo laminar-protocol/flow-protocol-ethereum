@@ -111,9 +111,9 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
     function rebalance() external nonReentrant {
         _rebalance(0);
     }
-	
+
     function setMinLiquidity(uint256 _newMinLiquidity) public onlyOwner {
-        require(_newMinLiquidity >= 0 && _newMinLiquidity <= Percentage.one(), "Invalid minLiquidity");        
+        require(_newMinLiquidity >= 0 && _newMinLiquidity <= Percentage.one(), "Invalid minLiquidity");
         minLiquidity.value = _newMinLiquidity;
         _rebalance(0);
     }
