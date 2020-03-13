@@ -20,7 +20,11 @@ import {
   bn,
 } from './helpers';
 
+const Proxy = artifacts.require('Proxy');
 const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
+const FlowMarginProtocolNewVersion = artifacts.require(
+  'FlowMarginProtocolNewVersion',
+);
 const LiquidityPool = artifacts.require('LiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const MarginTradingPair = artifacts.require('MarginTradingPair');
@@ -58,10 +62,12 @@ contract('FlowMarginProtocol', accounts => {
       usd.address,
       fromPercent(100),
     ));
-    protocol = await FlowMarginProtocol.new(
-      oracle.address,
-      moneyMarket.address,
-    );
+    const flowMarginProtocolImpl = await FlowMarginProtocol.new();
+    const flowMarginProtocolProxy = await Proxy.new();
+
+    await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
+    protocol = await FlowMarginProtocol.at(flowMarginProtocolProxy.address);
+    await protocol.initialize(oracle.address, moneyMarket.address);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
@@ -478,6 +484,55 @@ contract('FlowMarginProtocol', accounts => {
         ]),
         balance(iUsd, liquidityPool.address, '100115963190913685961800'),
       );
+    });
+  });
+
+  describe('when upgrading the contract', () => {
+    it('upgrades the contract', async () => {
+      const flowMarginProtocolProxy = await Proxy.at(protocol.address);
+      const newFlowMarginProtocolImpl = await FlowMarginProtocolNewVersion.new();
+      await flowMarginProtocolProxy.upgradeTo(
+        newFlowMarginProtocolImpl.address,
+      );
+      const newFlowMarginProtocol = await FlowMarginProtocolNewVersion.at(
+        protocol.address,
+      );
+      const value = bn(345);
+      const firstBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+      const secondBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+      const newValueBefore = await newFlowMarginProtocol.newStorageUint();
+      await newFlowMarginProtocol.addNewStorageBytes32(firstBytes32);
+      await newFlowMarginProtocol.setNewStorageUint(value);
+      await newFlowMarginProtocol.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newFlowMarginProtocol.newStorageUint();
+      const newStorageByte1 = await newFlowMarginProtocol.newStorageBytes32(0);
+      const newStorageByte2 = await newFlowMarginProtocol.newStorageBytes32(1);
+
+      expect(newValueBefore).to.be.bignumber.equal(bn(0));
+      expect(newValueAfter).to.be.bignumber.equal(value);
+      expect(newStorageByte1).to.be.equal(firstBytes32);
+      expect(newStorageByte2).to.be.equal(secondBytes32);
+    });
+
+    it('works with old and new data', async () => {
+      const maxSpread = await protocol.maxSpread();
+
+      const flowMarginProtocolProxy = await Proxy.at(protocol.address);
+      const newFlowMarginProtocolImpl = await FlowMarginProtocolNewVersion.new();
+      await flowMarginProtocolProxy.upgradeTo(
+        newFlowMarginProtocolImpl.address,
+      );
+      const newFlowMarginProtocol = await FlowMarginProtocolNewVersion.at(
+        protocol.address,
+      );
+      const value = bn(345);
+      await newFlowMarginProtocol.setNewStorageUint(value);
+      const maxSpreadPlusNewValue = await newFlowMarginProtocol.getNewValuePlusMaxSpread();
+
+      expect(maxSpreadPlusNewValue).to.be.bignumber.equal(value.add(maxSpread));
     });
   });
 

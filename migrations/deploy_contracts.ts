@@ -67,7 +67,7 @@ type Network = keyof typeof getTokensByNetwork;
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const MoneyMarket = artifacts.require('MoneyMarket');
-  const MoneyMarketProxy = artifacts.require('MoneyMarketProxy');
+  const Proxy = artifacts.require('Proxy');
   const FlowProtocol = artifacts.require('FlowProtocol');
   const FlowToken = artifacts.require('FlowToken');
   const LiquidityPool = artifacts.require('LiquidityPool');
@@ -95,13 +95,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(MoneyMarket);
     const moneyMarketImpl = await MoneyMarket.deployed();
 
-    await deployer.deploy(MoneyMarketProxy);
-    const moneyMarketProxy = await MoneyMarketProxy.deployed();
+    await deployer.deploy(Proxy);
+    const moneyMarketProxy = await Proxy.deployed();
 
     await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
     const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
 
-    (moneyMarket as any).initialize(
+    await (moneyMarket as any).initialize(
       // workaround since init is overloaded function which isnt supported by typechain yet
       cToken.address,
       'iUSD',
@@ -115,8 +115,14 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(SimplePriceOracle);
     const oracle = await SimplePriceOracle.deployed();
 
-    await deployer.deploy(FlowProtocol, oracle.address, moneyMarket.address);
-    const protocol = await FlowProtocol.deployed();
+    await deployer.deploy(FlowProtocol);
+    const flowProtocolImpl = await FlowProtocol.deployed();
+    await deployer.deploy(Proxy);
+    const flowProtocolProxy = await Proxy.deployed();
+
+    await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
+    const protocol = await FlowProtocol.at(flowProtocolProxy.address);
+    await protocol.initialize(oracle.address, moneyMarket.address);
 
     await deployer.deploy(
       FlowToken,
@@ -172,12 +178,16 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // --- margin protocol
 
-    await deployer.deploy(
-      FlowMarginProtocol,
-      oracle.address,
-      moneyMarket.address,
+    await deployer.deploy(FlowMarginProtocol);
+    const flowMarginProtocolImpl = await FlowMarginProtocol.deployed();
+    await deployer.deploy(Proxy);
+    const flowMarginProtocolProxy = await Proxy.deployed();
+
+    await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
+    const marginProtocol = await FlowMarginProtocol.at(
+      flowMarginProtocolProxy.address,
     );
-    const marginProtocol = await FlowMarginProtocol.deployed();
+    await marginProtocol.initialize(oracle.address, moneyMarket.address);
 
     await deployer.deploy(
       MarginTradingPair,

@@ -20,11 +20,6 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     event NewTradingPair(address pair);
 
-    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_)
-        public
-        FlowProtocolBase(oracle_, moneyMarket_)
-    {}
-
     function addTradingPair(address pair) external onlyOwner {
         require(!tradingPairWhitelist[pair], "Already added");
         tradingPairWhitelist[pair] = true;

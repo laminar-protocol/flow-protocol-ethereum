@@ -19,7 +19,9 @@ import {
   dollar,
 } from './helpers';
 
+const Proxy = artifacts.require('Proxy');
 const FlowProtocol = artifacts.require('FlowProtocol');
+const FlowProtocolNewVersion = artifacts.require('FlowProtocolNewVersion');
 const LiquidityPool = artifacts.require('LiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const FlowToken = artifacts.require('FlowToken');
@@ -56,7 +58,13 @@ contract('FlowProtocol', accounts => {
       usd.address,
       fromPercent(100),
     ));
-    protocol = await FlowProtocol.new(oracle.address, moneyMarket.address);
+    const flowProtocolImpl = await FlowProtocol.new();
+    const flowProtocolProxy = await Proxy.new();
+
+    await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
+    protocol = await FlowProtocol.at(flowProtocolProxy.address);
+    await protocol.initialize(oracle.address, moneyMarket.address);
+
     fToken = await FlowToken.new(
       'Euro',
       'EUR',
@@ -277,6 +285,53 @@ contract('FlowProtocol', accounts => {
         balance(iUsd, fToken.address, 0),
         balance(iUsd, liquidityPool.address, '99150105373831775697390'),
       );
+    });
+
+    describe('when upgrading the contract', () => {
+      it('upgrades the contract', async () => {
+        const flowProtocolProxy = await Proxy.at(protocol.address);
+        const newFlowProtocolImpl = await FlowProtocolNewVersion.new();
+        await flowProtocolProxy.upgradeTo(newFlowProtocolImpl.address);
+        const newFlowProtocol = await FlowProtocolNewVersion.at(
+          protocol.address,
+        );
+        const value = bn(345);
+        const firstBytes32 =
+          '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+        const secondBytes32 =
+          '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+        const newValueBefore = await newFlowProtocol.newStorageUint();
+        await newFlowProtocol.addNewStorageBytes32(firstBytes32);
+        await newFlowProtocol.setNewStorageUint(value);
+        await newFlowProtocol.addNewStorageBytes32(secondBytes32);
+        const newValueAfter = await newFlowProtocol.newStorageUint();
+        const newStorageByte1 = await newFlowProtocol.newStorageBytes32(0);
+        const newStorageByte2 = await newFlowProtocol.newStorageBytes32(1);
+
+        expect(newValueBefore).to.be.bignumber.equal(bn(0));
+        expect(newValueAfter).to.be.bignumber.equal(value);
+        expect(newStorageByte1).to.be.equal(firstBytes32);
+        expect(newStorageByte2).to.be.equal(secondBytes32);
+      });
+
+      it('works with old and new data', async () => {
+        const maxSpread = await protocol.maxSpread();
+
+        const flowProtocolProxy = await Proxy.at(protocol.address);
+        const newFlowProtocolImpl = await FlowProtocolNewVersion.new();
+        await flowProtocolProxy.upgradeTo(newFlowProtocolImpl.address);
+        const newFlowProtocol = await FlowProtocolNewVersion.at(
+          protocol.address,
+        );
+        const value = bn(345);
+        await newFlowProtocol.setNewStorageUint(value);
+        const maxSpreadPlusNewValue = await newFlowProtocol.getNewValuePlusMaxSpread();
+
+        expect(maxSpreadPlusNewValue).to.be.bignumber.equal(
+          value.add(maxSpread),
+        );
+      });
     });
 
     // TODO: check liquidation incentive amount calculation is correct

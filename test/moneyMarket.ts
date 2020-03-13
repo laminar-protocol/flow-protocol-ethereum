@@ -18,7 +18,7 @@ import {
 } from './helpers';
 
 const MoneyMarketNewVersion = artifacts.require('MoneyMarketNewVersion');
-const MoneyMarketProxy = artifacts.require('MoneyMarketProxy');
+const Proxy = artifacts.require('Proxy');
 
 contract('MoneyMarket', accounts => {
   const alice = accounts[1];
@@ -138,7 +138,7 @@ contract('MoneyMarket', accounts => {
 
     describe('when upgrading the contract', () => {
       it('upgrades the contract', async () => {
-        const moneyMarketProxy = await MoneyMarketProxy.at(moneyMarket.address);
+        const moneyMarketProxy = await Proxy.at(moneyMarket.address);
         const newMoneyMarketImpl = await MoneyMarketNewVersion.new();
         await moneyMarketProxy.upgradeTo(newMoneyMarketImpl.address);
         const newMoneyMarket = await MoneyMarketNewVersion.at(
@@ -167,7 +167,7 @@ contract('MoneyMarket', accounts => {
       it('works with old and new data', async () => {
         const minLiquidity = await moneyMarket.minLiquidity();
 
-        const moneyMarketProxy = await MoneyMarketProxy.at(moneyMarket.address);
+        const moneyMarketProxy = await Proxy.at(moneyMarket.address);
         const newMoneyMarketImpl = await MoneyMarketNewVersion.new();
         await moneyMarketProxy.upgradeTo(newMoneyMarketImpl.address);
         const newMoneyMarket = await MoneyMarketNewVersion.at(

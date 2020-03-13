@@ -1,18 +1,20 @@
 pragma solidity ^0.6.3;
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
 import "../libs/Percentage.sol";
+import "../libs/upgrades/UpgradeOwnable.sol";
+import "../libs/upgrades/UpgradeReentrancyGuard.sol";
+
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "./FlowToken.sol";
 
-contract FlowProtocolBase is Ownable, ReentrancyGuard {
+contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGuard {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -23,9 +25,12 @@ contract FlowProtocolBase is Ownable, ReentrancyGuard {
 
     uint constant MAX_UINT = 2**256 - 1;
 
-    constructor(PriceOracleInterface oracle_, MoneyMarketInterface moneyMarket_) internal {
-        oracle = oracle_;
-        moneyMarket = moneyMarket_;
+    function initialize(PriceOracleInterface _oracle, MoneyMarketInterface _moneyMarket) public initializer {
+        UpgradeOwnable.initialize(msg.sender);
+        UpgradeReentrancyGuard.initialize();
+
+        oracle = _oracle;
+        moneyMarket = _moneyMarket;
 
         moneyMarket.baseToken().safeApprove(address(moneyMarket), MAX_UINT);
 
