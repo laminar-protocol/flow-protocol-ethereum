@@ -101,7 +101,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
     const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
 
-    moneyMarket.initialize(
+    (moneyMarket as any).initialize(
+      // workaround since init is overloaded function which isnt supported by typechain yet
       cToken.address,
       'iUSD',
       'iUSD',

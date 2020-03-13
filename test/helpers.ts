@@ -43,7 +43,8 @@ export async function createMoneyMarket(
   const moneyMarketImpl = await MoneyMarket.new();
   moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
   const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
-  await moneyMarket.initialize(
+  await (moneyMarket as any).initialize(
+    // workaround since init is overloaded function which isnt supported by typechain yet
     cToken.address,
     'Test iToken',
     'iTEST',
