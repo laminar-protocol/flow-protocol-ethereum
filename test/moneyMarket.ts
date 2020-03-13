@@ -145,13 +145,23 @@ contract('MoneyMarket', accounts => {
           moneyMarket.address,
         );
         const value = bn(345);
+        const firstBytes32 =
+          '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+        const secondBytes32 =
+          '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
 
         const newValueBefore = await newMoneyMarket.newStorageUint();
+        await newMoneyMarket.addNewStorageBytes32(firstBytes32);
         await newMoneyMarket.setNewStorageUint(value);
+        await newMoneyMarket.addNewStorageBytes32(secondBytes32);
         const newValueAfter = await newMoneyMarket.newStorageUint();
+        const newStorageByte1 = await newMoneyMarket.newStorageBytes32(0);
+        const newStorageByte2 = await newMoneyMarket.newStorageBytes32(1);
 
         expect(newValueBefore).to.be.bignumber.equal(bn(0));
         expect(newValueAfter).to.be.bignumber.equal(value);
+        expect(newStorageByte1).to.be.equal(firstBytes32);
+        expect(newStorageByte2).to.be.equal(secondBytes32);
       });
 
       it('works with old and new data', async () => {
