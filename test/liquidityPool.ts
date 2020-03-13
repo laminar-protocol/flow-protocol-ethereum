@@ -9,6 +9,8 @@ import {
 import * as helper from './helpers';
 
 const LiquidityPool = artifacts.require('LiquidityPool');
+const LiquidityPoolNewVersion = artifacts.require('LiquidityPoolNewVersion');
+const Proxy = artifacts.require('Proxy');
 
 contract('LiquidityPool', accounts => {
   const liquidityProvider = accounts[1];
@@ -24,10 +26,17 @@ contract('LiquidityPool', accounts => {
   beforeEach(async () => {
     usd = await helper.createTestToken([liquidityProvider, 10000]);
     ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
-    liquidityPool = await LiquidityPool.new(
+
+    const liquidityPoolImpl = await LiquidityPool.new();
+    const liquidityPoolProxy = await Proxy.new();
+    await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
+    liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
+    await (liquidityPool as any).methods['initialize(address,uint256)'](
       moneyMarket.address,
       helper.fromPip(10),
-      { from: liquidityProvider },
+      {
+        from: liquidityProvider,
+      },
     );
 
     await liquidityPool.approve(protocol, constants.MAX_UINT256, {
@@ -170,6 +179,35 @@ contract('LiquidityPool', accounts => {
         liquidityPool.withdrawLiquidity(500, { from: badAddress }),
         helper.messages.onlyOwner,
       );
+    });
+  });
+
+  describe('when upgrading the contract', () => {
+    it('upgrades the contract', async () => {
+      const liquidityPoolProxy = await Proxy.at(liquidityPool.address);
+      const newLiquidityPoolImpl = await LiquidityPoolNewVersion.new();
+      await liquidityPoolProxy.upgradeTo(newLiquidityPoolImpl.address);
+      const newLiquidityPool = await LiquidityPoolNewVersion.at(
+        liquidityPool.address,
+      );
+      const value = helper.bn(345);
+      const firstBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+      const secondBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+      const newValueBefore = await newLiquidityPool.newStorageUint();
+      await newLiquidityPool.addNewStorageBytes32(firstBytes32);
+      await newLiquidityPool.setNewStorageUint(value);
+      await newLiquidityPool.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newLiquidityPool.newStorageUint();
+      const newStorageByte1 = await newLiquidityPool.newStorageBytes32(0);
+      const newStorageByte2 = await newLiquidityPool.newStorageBytes32(1);
+
+      expect(newValueBefore).to.be.bignumber.equal(helper.bn(0));
+      expect(newValueAfter).to.be.bignumber.equal(value);
+      expect(newStorageByte1).to.be.equal(firstBytes32);
+      expect(newStorageByte2).to.be.equal(secondBytes32);
     });
   });
 });

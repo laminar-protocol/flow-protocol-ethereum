@@ -287,12 +287,18 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // liquidity pool
 
-    await deployer.deploy(
-      LiquidityPool,
+    await deployer.deploy(LiquidityPool);
+    const liquidityPoolImpl = await LiquidityPool.deployed();
+    await deployer.deploy(Proxy);
+    const liquidityPoolProxy = await Proxy.deployed();
+
+    await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
+    const pool = await LiquidityPool.at(liquidityPoolProxy.address);
+    await (pool as any).initialize(
+      // workaround since init is overloaded function which isnt supported by typechain yet
       moneyMarket.address,
       web3.utils.toWei('0.003'),
     );
-    const pool = await LiquidityPool.deployed();
 
     await pool.approve(protocol.address, web3.utils.toWei('100000000000'));
     await pool.approve(
@@ -304,7 +310,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await pool.enableToken(fXAU.address);
     await pool.enableToken(fAAPL.address);
 
-    const pool2 = await LiquidityPool.new(
+    await deployer.deploy(Proxy);
+    const liquidityPoolProxy2 = await Proxy.deployed();
+
+    await liquidityPoolProxy2.upgradeTo(liquidityPoolImpl.address);
+    const pool2 = await LiquidityPool.at(liquidityPoolProxy2.address);
+    await (pool2 as any).initialize(
+      // workaround since init is overloaded function which isnt supported by typechain yet
       moneyMarket.address,
       web3.utils.toWei('0.0031'),
     );
