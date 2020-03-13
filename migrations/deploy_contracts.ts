@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-
 import Web3 from 'web3';
 
 const deployTokens = async (
@@ -68,6 +67,7 @@ type Network = keyof typeof getTokensByNetwork;
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const MoneyMarket = artifacts.require('MoneyMarket');
+  const MoneyMarketProxy = artifacts.require('MoneyMarketProxy');
   const FlowProtocol = artifacts.require('FlowProtocol');
   const FlowToken = artifacts.require('FlowToken');
   const LiquidityPool = artifacts.require('LiquidityPool');
@@ -91,14 +91,24 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       artifacts,
       deployer,
     );
-    await deployer.deploy(
-      MoneyMarket,
+
+    await deployer.deploy(MoneyMarket);
+    const moneyMarketImpl = await MoneyMarket.deployed();
+
+    await deployer.deploy(MoneyMarketProxy);
+    const moneyMarketProxy = await MoneyMarketProxy.deployed();
+
+    await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
+    const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
+
+    (moneyMarket as any).initialize(
+      // workaround since init is overloaded function which isnt supported by typechain yet
       cToken.address,
+      'iUSD',
+      'iUSD',
       web3.utils.toWei('0.3'),
-      'iUSD',
-      'iUSD',
     );
-    const moneyMarket = await MoneyMarket.deployed();
+
     const iToken = await IERC20.at(await moneyMarket.iToken());
 
     // TODO: make price feeder configurable
@@ -305,7 +315,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await moneyMarket.mintTo(pool2.address, web3.utils.toWei('20000'));
 
     const deployment = {
-      moneyMarket: [moneyMarket, MoneyMarket],
+      // TODO moneyMarketStorage? proxy?
+      moneyMarketImpl: [moneyMarketImpl, MoneyMarket],
       iToken: [iToken, ERC20Detailed],
       oracle: [oracle, PriceOracleInterface],
       protocol: [protocol, FlowProtocol],

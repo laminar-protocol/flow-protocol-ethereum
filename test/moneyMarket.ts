@@ -1,6 +1,7 @@
 import BN from 'bn.js';
 import { expectRevert } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
+
 import {
   TestTokenInstance,
   MoneyMarketInstance,
@@ -15,6 +16,9 @@ import {
   bn,
   dollar,
 } from './helpers';
+
+const MoneyMarketNewVersion = artifacts.require('MoneyMarketNewVersion');
+const MoneyMarketProxy = artifacts.require('MoneyMarketProxy');
 
 contract('MoneyMarket', accounts => {
   const alice = accounts[1];
@@ -128,6 +132,53 @@ contract('MoneyMarket', accounts => {
         await expectRevert(
           moneyMarket.setMinLiquidity(fromPercent(10), { from: badAddress }),
           messages.onlyOwner,
+        );
+      });
+    });
+
+    describe('when upgrading the contract', () => {
+      it('upgrades the contract', async () => {
+        const moneyMarketProxy = await MoneyMarketProxy.at(moneyMarket.address);
+        const newMoneyMarketImpl = await MoneyMarketNewVersion.new();
+        await moneyMarketProxy.upgradeTo(newMoneyMarketImpl.address);
+        const newMoneyMarket = await MoneyMarketNewVersion.at(
+          moneyMarket.address,
+        );
+        const value = bn(345);
+        const firstBytes32 =
+          '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+        const secondBytes32 =
+          '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+        const newValueBefore = await newMoneyMarket.newStorageUint();
+        await newMoneyMarket.addNewStorageBytes32(firstBytes32);
+        await newMoneyMarket.setNewStorageUint(value);
+        await newMoneyMarket.addNewStorageBytes32(secondBytes32);
+        const newValueAfter = await newMoneyMarket.newStorageUint();
+        const newStorageByte1 = await newMoneyMarket.newStorageBytes32(0);
+        const newStorageByte2 = await newMoneyMarket.newStorageBytes32(1);
+
+        expect(newValueBefore).to.be.bignumber.equal(bn(0));
+        expect(newValueAfter).to.be.bignumber.equal(value);
+        expect(newStorageByte1).to.be.equal(firstBytes32);
+        expect(newStorageByte2).to.be.equal(secondBytes32);
+      });
+
+      it('works with old and new data', async () => {
+        const minLiquidity = await moneyMarket.minLiquidity();
+
+        const moneyMarketProxy = await MoneyMarketProxy.at(moneyMarket.address);
+        const newMoneyMarketImpl = await MoneyMarketNewVersion.new();
+        await moneyMarketProxy.upgradeTo(newMoneyMarketImpl.address);
+        const newMoneyMarket = await MoneyMarketNewVersion.at(
+          moneyMarket.address,
+        );
+        const value = bn(345);
+        await newMoneyMarket.setNewStorageUint(value);
+        const minLiquidityPlusNewValue = await newMoneyMarket.getNewValuePlusMinLiquidity();
+
+        expect(minLiquidityPlusNewValue).to.be.bignumber.equal(
+          value.add(minLiquidity),
         );
       });
     });

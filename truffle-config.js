@@ -8,8 +8,6 @@ const HDWalletProvider = require('truffle-hdwallet-provider');
 
 require('dotenv').config();
 
-const isProd = process.env.ENV === 'PROD';
-
 module.exports = {
   networks: {
     mainnet: {
@@ -49,7 +47,7 @@ module.exports = {
       version: '0.6.3',
       settings: {
         optimizer: {
-          enabled: isProd,
+          enabled: true,
           runs: 200
         }
       }
