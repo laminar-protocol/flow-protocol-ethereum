@@ -376,8 +376,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await moneyMarket.mintTo(pool2.address, web3.utils.toWei('20000'));
 
     const deployment = {
-      // TODO moneyMarketStorage? proxy?
-      moneyMarketImpl: [moneyMarketImpl, MoneyMarket],
+      moneyMarket: [moneyMarket, MoneyMarket],
       iToken: [iToken, ERC20Detailed],
       oracle: [oracle, PriceOracleInterface],
       protocol: [protocol, FlowProtocol],

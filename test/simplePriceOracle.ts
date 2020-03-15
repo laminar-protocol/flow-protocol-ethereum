@@ -8,6 +8,9 @@ import * as helper from './helpers';
 
 const Proxy = artifacts.require('Proxy');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
+const SimplePriceOracleNewVersion = artifacts.require(
+  'SimplePriceOracleNewVersion',
+);
 
 contract('SimplePriceOracle', accounts => {
   const owner = accounts[0];
@@ -311,6 +314,35 @@ contract('SimplePriceOracle', accounts => {
         oracle.removePriceFeeder(priceFeeder, { from: badAddress }),
         helper.messages.onlyOwner,
       );
+    });
+  });
+
+  describe('when upgrading the contract', () => {
+    it('upgrades the contract', async () => {
+      const oracleProxy = await Proxy.at(oracle.address);
+      const oracleImpl = await SimplePriceOracleNewVersion.new();
+      await oracleProxy.upgradeTo(oracleImpl.address);
+      const newOracle = await SimplePriceOracleNewVersion.at(
+        oracleProxy.address,
+      );
+      const value = helper.bn(345);
+      const firstBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+      const secondBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+      const newValueBefore = await newOracle.newStorageUint();
+      await newOracle.addNewStorageBytes32(firstBytes32);
+      await newOracle.setNewStorageUint(value);
+      await newOracle.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newOracle.newStorageUint();
+      const newStorageByte1 = await newOracle.newStorageBytes32(0);
+      const newStorageByte2 = await newOracle.newStorageBytes32(1);
+
+      expect(newValueBefore).to.be.bignumber.equal(helper.bn(0));
+      expect(newValueAfter).to.be.bignumber.equal(value);
+      expect(newStorageByte1).to.be.equal(firstBytes32);
+      expect(newStorageByte2).to.be.equal(secondBytes32);
     });
   });
 });
