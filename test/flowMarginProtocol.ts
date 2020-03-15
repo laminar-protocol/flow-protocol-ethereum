@@ -46,7 +46,13 @@ contract('FlowMarginProtocol', accounts => {
   let moneyMarket: MoneyMarketInstance;
 
   before(async () => {
-    oracle = await SimplePriceOracle.new();
+    const oracleImpl = await SimplePriceOracle.new();
+    const oracleProxy = await Proxy.new();
+    oracleProxy.upgradeTo(oracleImpl.address);
+
+    oracle = await SimplePriceOracle.at(oracleProxy.address);
+    await oracle.initialize();
+
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));

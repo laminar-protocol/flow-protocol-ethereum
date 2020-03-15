@@ -1,9 +1,11 @@
 pragma solidity ^0.6.3;
-import "@openzeppelin/contracts/ownership/Ownable.sol";
 
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+
+import "../libs/upgrades/UpgradeOwnable.sol";
 import "../libs/Percentage.sol";
 
-contract PriceOracleConfig is Ownable {
+contract PriceOracleConfig is Initializable, UpgradeOwnable {
     // max price diff since last input
     Percentage.Percent public oracleDeltaLastLimit;
     // max price diff since last snapshot
@@ -13,7 +15,9 @@ contract PriceOracleConfig is Ownable {
     // price record is considered expired after this amount of time
     uint public expireIn;
 
-    constructor() internal {
+    function initialize() public virtual initializer {
+        UpgradeOwnable.initialize(msg.sender);
+
         // TODO: all those values should be from constructor parameter
         oracleDeltaLastLimit = Percentage.fromFraction(10, 100);
         oracleDeltaSnapshotLimit = Percentage.fromFraction(15, 100);

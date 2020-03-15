@@ -18,7 +18,7 @@ contract Proxy {
         _setUpgradeabilityOwner(_newOwner);
     }
     
-    function upgradeTo(address _implementation) public onlyProxyOwner{
+    function upgradeTo(address _implementation) public onlyProxyOwner {
         _upgradeTo(_implementation);
     }
 

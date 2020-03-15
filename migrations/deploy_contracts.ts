@@ -112,8 +112,15 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const iToken = await IERC20.at(await moneyMarket.iToken());
 
     // TODO: make price feeder configurable
+
     await deployer.deploy(SimplePriceOracle);
-    const oracle = await SimplePriceOracle.deployed();
+    const simplePriceOracleImpl = await SimplePriceOracle.deployed();
+    await deployer.deploy(Proxy);
+    const simplePriceOracleProxy = await Proxy.deployed();
+    await simplePriceOracleProxy.upgradeTo(simplePriceOracleImpl.address);
+    const oracle = await SimplePriceOracle.at(simplePriceOracleProxy.address);
+
+    await oracle.initialize();
 
     await deployer.deploy(FlowProtocol);
     const flowProtocolImpl = await FlowProtocol.deployed();
