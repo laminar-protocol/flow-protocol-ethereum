@@ -1,8 +1,8 @@
 pragma solidity ^0.6.3;
 
-import "../impls/FlowProtocol.sol";
+import "../../impls/LiquidityPool.sol";
 
-contract FlowProtocolNewVersion is FlowProtocol {
+contract LiquidityPoolNewVersion is LiquidityPool {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 
@@ -12,9 +12,5 @@ contract FlowProtocolNewVersion is FlowProtocol {
 
     function setNewStorageUint(uint256 _newStorageUint) public {
         newStorageUint = _newStorageUint;
-    }
-
-    function getNewValuePlusMaxSpread() public view returns (uint256) {
-        return maxSpread.add(newStorageUint);
     }
 }

@@ -1,8 +1,8 @@
 pragma solidity ^0.6.3;
 
-import "../impls/FlowMarginProtocol.sol";
+import "../../impls/FlowProtocol.sol";
 
-contract FlowMarginProtocolNewVersion is FlowMarginProtocol {
+contract FlowProtocolNewVersion is FlowProtocol {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 

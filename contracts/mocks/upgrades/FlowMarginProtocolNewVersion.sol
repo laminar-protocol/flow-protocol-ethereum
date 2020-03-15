@@ -1,8 +1,8 @@
 pragma solidity ^0.6.3;
 
-import "../impls/SimplePriceOracle.sol";
+import "../../impls/FlowMarginProtocol.sol";
 
-contract SimplePriceOracleNewVersion is SimplePriceOracle {
+contract FlowMarginProtocolNewVersion is FlowMarginProtocol {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 
@@ -12,5 +12,9 @@ contract SimplePriceOracleNewVersion is SimplePriceOracle {
 
     function setNewStorageUint(uint256 _newStorageUint) public {
         newStorageUint = _newStorageUint;
+    }
+
+    function getNewValuePlusMaxSpread() public view returns (uint256) {
+        return maxSpread.add(newStorageUint);
     }
 }

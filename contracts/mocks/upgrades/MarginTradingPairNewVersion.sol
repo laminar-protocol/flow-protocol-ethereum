@@ -1,6 +1,6 @@
 pragma solidity ^0.6.3;
 
-import "../impls/MarginTradingPair.sol";
+import "../../impls/MarginTradingPair.sol";
 
 contract MarginTradingPairNewVersion is MarginTradingPair {
     bytes32[] public newStorageBytes32;
