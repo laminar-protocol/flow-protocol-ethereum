@@ -175,7 +175,11 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('with 10x long leverage', () => {
     beforeEach(async () => {
-      pair = await MarginTradingPair.new(
+      const marginPairImpl = await MarginTradingPair.new();
+      const marginPairProxy = await Proxy.new();
+      await marginPairProxy.upgradeTo(marginPairImpl.address);
+      pair = await MarginTradingPair.at(marginPairProxy.address);
+      pair.initialize(
         protocol.address,
         moneyMarket.address,
         eur,
@@ -183,6 +187,7 @@ contract('FlowMarginProtocol', accounts => {
         fromPercent(70),
         dollar(5),
       );
+
       await protocol.addTradingPair(pair.address);
     });
 
@@ -424,7 +429,11 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('with 5x short leverage', () => {
     beforeEach(async () => {
-      pair = await MarginTradingPair.new(
+      const marginPairImpl = await MarginTradingPair.new();
+      const marginPairProxy = await Proxy.new();
+      await marginPairProxy.upgradeTo(marginPairImpl.address);
+      pair = await MarginTradingPair.at(marginPairProxy.address);
+      pair.initialize(
         protocol.address,
         moneyMarket.address,
         eur,

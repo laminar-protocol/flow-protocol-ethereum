@@ -189,8 +189,14 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     );
     await marginProtocol.initialize(oracle.address, moneyMarket.address);
 
-    await deployer.deploy(
-      MarginTradingPair,
+    await deployer.deploy(MarginTradingPair);
+    const marginTradingPairImpl = await MarginTradingPair.deployed();
+
+    await deployer.deploy(Proxy);
+    const l10USDEURProxy = await Proxy.deployed();
+    await l10USDEURProxy.upgradeTo(marginTradingPairImpl.address);
+    const l10USDEUR = await MarginTradingPair.at(l10USDEURProxy.address);
+    l10USDEUR.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fEUR.address,
@@ -199,9 +205,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l10USDEUR = await MarginTradingPair.deployed();
-
-    const s10USDEUR = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s10USDEURProxy = await Proxy.deployed();
+    await s10USDEURProxy.upgradeTo(marginTradingPairImpl.address);
+    const s10USDEUR = await MarginTradingPair.at(s10USDEURProxy.address);
+    s10USDEUR.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fEUR.address,
@@ -210,7 +218,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l20USDJPY = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const l20USDJPYProxy = await Proxy.deployed();
+    await l20USDJPYProxy.upgradeTo(marginTradingPairImpl.address);
+    const l20USDJPY = await MarginTradingPair.at(l20USDJPYProxy.address);
+    l20USDJPY.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fJPY.address,
@@ -219,7 +231,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const s20USDJPY = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s20USDJPYProxy = await Proxy.deployed();
+    await s20USDJPYProxy.upgradeTo(marginTradingPairImpl.address);
+    const s20USDJPY = await MarginTradingPair.at(s20USDJPYProxy.address);
+    s20USDJPY.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fJPY.address,
@@ -228,7 +244,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l20USDXAU = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const l20USDXAUProxy = await Proxy.deployed();
+    await l20USDXAUProxy.upgradeTo(marginTradingPairImpl.address);
+    const l20USDXAU = await MarginTradingPair.at(l20USDXAUProxy.address);
+    l20USDXAU.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fXAU.address,
@@ -237,7 +257,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const s20USDXAU = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s20USDXAUProxy = await Proxy.deployed();
+    await s20USDXAUProxy.upgradeTo(marginTradingPairImpl.address);
+    const s20USDXAU = await MarginTradingPair.at(s20USDXAUProxy.address);
+    s20USDXAU.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fXAU.address,
@@ -246,7 +270,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l5USDAAPL = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const l5USDAAPLProxy = await Proxy.deployed();
+    await l5USDAAPLProxy.upgradeTo(marginTradingPairImpl.address);
+    const l5USDAAPL = await MarginTradingPair.at(l5USDAAPLProxy.address);
+    l5USDAAPL.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fAAPL.address,
@@ -255,7 +283,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const s5USDAAPL = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s5USDAAPLProxy = await Proxy.deployed();
+    await s5USDAAPLProxy.upgradeTo(marginTradingPairImpl.address);
+    const s5USDAAPL = await MarginTradingPair.at(s5USDAAPLProxy.address);
+    s5USDAAPL.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fAAPL.address,
