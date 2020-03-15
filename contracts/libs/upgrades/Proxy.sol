@@ -1,6 +1,6 @@
 pragma solidity ^0.6.3;
 
-contract MoneyMarketProxy {  
+contract Proxy {  
     bytes32 private constant implementationPosition = keccak256("implementation.address");
     bytes32 private constant proxyOwnerPosition = keccak256("proxy.owner");
 
@@ -18,7 +18,7 @@ contract MoneyMarketProxy {
         _setUpgradeabilityOwner(_newOwner);
     }
     
-    function upgradeTo(address _implementation) public onlyProxyOwner{
+    function upgradeTo(address _implementation) public onlyProxyOwner {
         _upgradeTo(_implementation);
     }
 

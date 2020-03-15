@@ -58,6 +58,11 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
     mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
+    function initialize() public override(PriceOracleConfig,PriceFeederRole) initializer {
+        PriceOracleConfig.initialize();
+        PriceFeederRole.initialize();
+    }
+
     function isPriceOracle() external pure override returns (bool) {
         return true;
     }

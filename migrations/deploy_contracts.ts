@@ -67,7 +67,7 @@ type Network = keyof typeof getTokensByNetwork;
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const MoneyMarket = artifacts.require('MoneyMarket');
-  const MoneyMarketProxy = artifacts.require('MoneyMarketProxy');
+  const Proxy = artifacts.require('Proxy');
   const FlowProtocol = artifacts.require('FlowProtocol');
   const FlowToken = artifacts.require('FlowToken');
   const LiquidityPool = artifacts.require('LiquidityPool');
@@ -95,13 +95,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(MoneyMarket);
     const moneyMarketImpl = await MoneyMarket.deployed();
 
-    await deployer.deploy(MoneyMarketProxy);
-    const moneyMarketProxy = await MoneyMarketProxy.deployed();
+    await deployer.deploy(Proxy);
+    const moneyMarketProxy = await Proxy.deployed();
 
     await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
     const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
 
-    (moneyMarket as any).initialize(
+    await (moneyMarket as any).initialize(
       // workaround since init is overloaded function which isnt supported by typechain yet
       cToken.address,
       'iUSD',
@@ -112,11 +112,24 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const iToken = await IERC20.at(await moneyMarket.iToken());
 
     // TODO: make price feeder configurable
-    await deployer.deploy(SimplePriceOracle);
-    const oracle = await SimplePriceOracle.deployed();
 
-    await deployer.deploy(FlowProtocol, oracle.address, moneyMarket.address);
-    const protocol = await FlowProtocol.deployed();
+    await deployer.deploy(SimplePriceOracle);
+    const simplePriceOracleImpl = await SimplePriceOracle.deployed();
+    await deployer.deploy(Proxy);
+    const simplePriceOracleProxy = await Proxy.deployed();
+    await simplePriceOracleProxy.upgradeTo(simplePriceOracleImpl.address);
+    const oracle = await SimplePriceOracle.at(simplePriceOracleProxy.address);
+
+    await oracle.initialize();
+
+    await deployer.deploy(FlowProtocol);
+    const flowProtocolImpl = await FlowProtocol.deployed();
+    await deployer.deploy(Proxy);
+    const flowProtocolProxy = await Proxy.deployed();
+
+    await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
+    const protocol = await FlowProtocol.at(flowProtocolProxy.address);
+    await protocol.initialize(oracle.address, moneyMarket.address);
 
     await deployer.deploy(
       FlowToken,
@@ -172,15 +185,25 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // --- margin protocol
 
-    await deployer.deploy(
-      FlowMarginProtocol,
-      oracle.address,
-      moneyMarket.address,
-    );
-    const marginProtocol = await FlowMarginProtocol.deployed();
+    await deployer.deploy(FlowMarginProtocol);
+    const flowMarginProtocolImpl = await FlowMarginProtocol.deployed();
+    await deployer.deploy(Proxy);
+    const flowMarginProtocolProxy = await Proxy.deployed();
 
-    await deployer.deploy(
-      MarginTradingPair,
+    await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
+    const marginProtocol = await FlowMarginProtocol.at(
+      flowMarginProtocolProxy.address,
+    );
+    await marginProtocol.initialize(oracle.address, moneyMarket.address);
+
+    await deployer.deploy(MarginTradingPair);
+    const marginTradingPairImpl = await MarginTradingPair.deployed();
+
+    await deployer.deploy(Proxy);
+    const l10USDEURProxy = await Proxy.deployed();
+    await l10USDEURProxy.upgradeTo(marginTradingPairImpl.address);
+    const l10USDEUR = await MarginTradingPair.at(l10USDEURProxy.address);
+    l10USDEUR.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fEUR.address,
@@ -189,9 +212,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l10USDEUR = await MarginTradingPair.deployed();
-
-    const s10USDEUR = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s10USDEURProxy = await Proxy.deployed();
+    await s10USDEURProxy.upgradeTo(marginTradingPairImpl.address);
+    const s10USDEUR = await MarginTradingPair.at(s10USDEURProxy.address);
+    s10USDEUR.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fEUR.address,
@@ -200,7 +225,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l20USDJPY = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const l20USDJPYProxy = await Proxy.deployed();
+    await l20USDJPYProxy.upgradeTo(marginTradingPairImpl.address);
+    const l20USDJPY = await MarginTradingPair.at(l20USDJPYProxy.address);
+    l20USDJPY.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fJPY.address,
@@ -209,7 +238,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const s20USDJPY = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s20USDJPYProxy = await Proxy.deployed();
+    await s20USDJPYProxy.upgradeTo(marginTradingPairImpl.address);
+    const s20USDJPY = await MarginTradingPair.at(s20USDJPYProxy.address);
+    s20USDJPY.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fJPY.address,
@@ -218,7 +251,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l20USDXAU = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const l20USDXAUProxy = await Proxy.deployed();
+    await l20USDXAUProxy.upgradeTo(marginTradingPairImpl.address);
+    const l20USDXAU = await MarginTradingPair.at(l20USDXAUProxy.address);
+    l20USDXAU.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fXAU.address,
@@ -227,7 +264,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const s20USDXAU = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s20USDXAUProxy = await Proxy.deployed();
+    await s20USDXAUProxy.upgradeTo(marginTradingPairImpl.address);
+    const s20USDXAU = await MarginTradingPair.at(s20USDXAUProxy.address);
+    s20USDXAU.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fXAU.address,
@@ -236,7 +277,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const l5USDAAPL = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const l5USDAAPLProxy = await Proxy.deployed();
+    await l5USDAAPLProxy.upgradeTo(marginTradingPairImpl.address);
+    const l5USDAAPL = await MarginTradingPair.at(l5USDAAPLProxy.address);
+    l5USDAAPL.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fAAPL.address,
@@ -245,7 +290,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    const s5USDAAPL = await MarginTradingPair.new(
+    await deployer.deploy(Proxy);
+    const s5USDAAPLProxy = await Proxy.deployed();
+    await s5USDAAPLProxy.upgradeTo(marginTradingPairImpl.address);
+    const s5USDAAPL = await MarginTradingPair.at(s5USDAAPLProxy.address);
+    s5USDAAPL.initialize(
       marginProtocol.address,
       moneyMarket.address,
       fAAPL.address,
@@ -277,12 +326,18 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // liquidity pool
 
-    await deployer.deploy(
-      LiquidityPool,
+    await deployer.deploy(LiquidityPool);
+    const liquidityPoolImpl = await LiquidityPool.deployed();
+    await deployer.deploy(Proxy);
+    const liquidityPoolProxy = await Proxy.deployed();
+
+    await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
+    const pool = await LiquidityPool.at(liquidityPoolProxy.address);
+    await (pool as any).initialize(
+      // workaround since init is overloaded function which isnt supported by typechain yet
       moneyMarket.address,
       web3.utils.toWei('0.003'),
     );
-    const pool = await LiquidityPool.deployed();
 
     await pool.approve(protocol.address, web3.utils.toWei('100000000000'));
     await pool.approve(
@@ -294,7 +349,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await pool.enableToken(fXAU.address);
     await pool.enableToken(fAAPL.address);
 
-    const pool2 = await LiquidityPool.new(
+    await deployer.deploy(Proxy);
+    const liquidityPoolProxy2 = await Proxy.deployed();
+
+    await liquidityPoolProxy2.upgradeTo(liquidityPoolImpl.address);
+    const pool2 = await LiquidityPool.at(liquidityPoolProxy2.address);
+    await (pool2 as any).initialize(
+      // workaround since init is overloaded function which isnt supported by typechain yet
       moneyMarket.address,
       web3.utils.toWei('0.0031'),
     );

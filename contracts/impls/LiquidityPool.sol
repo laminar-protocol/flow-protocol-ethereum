@@ -1,8 +1,9 @@
 pragma solidity ^0.6.3;
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
+import "../libs/upgrades/UpgradeOwnable.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "./FlowProtocol.sol";
@@ -10,7 +11,7 @@ import "./FlowToken.sol";
 import "./FlowMarginProtocol.sol";
 import "./MarginTradingPair.sol";
 
-contract LiquidityPool is LiquidityPoolInterface, Ownable {
+contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface {
     using SafeERC20 for IERC20;
 
     uint constant MAX_UINT = 2**256 - 1;
@@ -21,9 +22,11 @@ contract LiquidityPool is LiquidityPoolInterface, Ownable {
 
     mapping (address => bool) private allowedTokens;
 
-    constructor(MoneyMarketInterface moneyMarket_, uint spread_) public {
-        moneyMarket = moneyMarket_;
-        spread = spread_;
+    function initialize(MoneyMarketInterface _moneyMarket, uint _spread) public initializer {
+        UpgradeOwnable.initialize(msg.sender);
+
+        moneyMarket = _moneyMarket;
+        spread = _spread;
         collateralRatio = 0; // use fToken default
     }
 

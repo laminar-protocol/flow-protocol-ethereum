@@ -1,9 +1,12 @@
 pragma solidity ^0.6.3;
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/access/Roles.sol";
 
+import "../libs/upgrades/UpgradeOwnable.sol";
+
 // TODO: change Ownable to Admin to ensure always must be a valid admin
-contract PriceFeederRole is Ownable {
+contract PriceFeederRole is Initializable, UpgradeOwnable {
     using Roles for Roles.Role;
 
     event PriceFeederAdded(address indexed account);
@@ -19,6 +22,10 @@ contract PriceFeederRole is Ownable {
     modifier onlyPriceFeeder() {
         require(isPriceFeeder(msg.sender), "PriceFeederRole: caller does not have the PriceFeeder role");
         _;
+    }
+
+    function initialize() public virtual initializer {
+        UpgradeOwnable.initialize(msg.sender);
     }
 
     function isPriceFeeder(address account) public view returns (bool) {

@@ -1,4 +1,5 @@
 pragma solidity ^0.6.3;
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
@@ -6,11 +7,12 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
+import "../libs/upgrades/UpgradeOwnable.sol";
 import "../libs/Percentage.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 
-contract MarginTradingPair is Ownable {
+contract MarginTradingPair is Initializable, UpgradeOwnable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
@@ -43,14 +45,16 @@ contract MarginTradingPair is Ownable {
         uint positionId, uint closePrice, uint ownerAmount, uint liquidityPoolAmount
     );
 
-    constructor(
+    function initialize(
         address protocol,
         MoneyMarketInterface moneyMarket_,
         address quoteToken_,
         int leverage_,
         uint safeMarginPercent_,
         uint liquidationFee_
-    ) public {
+    ) public initializer {
+        UpgradeOwnable.initialize(msg.sender);
+
         require((leverage_ >= 2 && leverage_ <= 100) || (leverage_ <= -2 && leverage_ >= -100), "Invalid leverage");
         require(safeMarginPercent_ <= Percentage.one(), "Invalid safeMarginPercent");
 

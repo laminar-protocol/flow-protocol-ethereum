@@ -1,4 +1,7 @@
 pragma solidity ^0.6.3;
+
+import "./MoneyMarketInterface.sol";
+
 interface LiquidityPoolInterface {
     // return 0 means not available for this trade
     function getBidSpread(address fToken) external view returns (uint256);
