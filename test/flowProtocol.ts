@@ -70,12 +70,17 @@ contract('FlowProtocol', accounts => {
     protocol = await FlowProtocol.at(flowProtocolProxy.address);
     await protocol.initialize(oracle.address, moneyMarket.address);
 
-    fToken = await FlowToken.new(
+    const fTokenImpl = await FlowToken.new();
+    const fTokenProxy = await Proxy.new();
+    await fTokenProxy.upgradeTo(fTokenImpl.address);
+    fToken = await FlowToken.at(fTokenProxy.address);
+    await (fToken as any).initialize(
       'Euro',
       'EUR',
       moneyMarket.address,
       protocol.address,
     );
+
     await protocol.addFlowToken(fToken.address);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });

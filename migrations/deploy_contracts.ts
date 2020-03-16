@@ -131,27 +131,47 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const protocol = await FlowProtocol.at(flowProtocolProxy.address);
     await protocol.initialize(oracle.address, moneyMarket.address);
 
-    await deployer.deploy(
-      FlowToken,
+    await deployer.deploy(FlowToken);
+    const flowTokenImpl = await FlowToken.deployed();
+
+    await deployer.deploy(Proxy);
+    const fEURProxy = await Proxy.deployed();
+    await fEURProxy.upgradeTo(flowTokenImpl.address);
+    const fEUR = await FlowToken.at(fEURProxy.address);
+    await (fEUR as any).initialize(
       'Flow Euro',
       'fEUR',
       moneyMarket.address,
       protocol.address,
     );
-    const fEUR = await FlowToken.deployed();
-    const fJPY = await FlowToken.new(
+
+    await deployer.deploy(Proxy);
+    const fJPYProxy = await Proxy.deployed();
+    await fJPYProxy.upgradeTo(flowTokenImpl.address);
+    const fJPY = await FlowToken.at(fJPYProxy.address);
+    await (fJPY as any).initialize(
       'Flow Japanese Yen',
       'fJPY',
       moneyMarket.address,
       protocol.address,
     );
-    const fXAU = await FlowToken.new(
+
+    await deployer.deploy(Proxy);
+    const fXAUProxy = await Proxy.deployed();
+    await fXAUProxy.upgradeTo(flowTokenImpl.address);
+    const fXAU = await FlowToken.at(fXAUProxy.address);
+    await (fXAU as any).initialize(
       'Gold',
       'fXAU',
       moneyMarket.address,
       protocol.address,
     );
-    const fAAPL = await FlowToken.new(
+
+    await deployer.deploy(Proxy);
+    const fAAPLProxy = await Proxy.deployed();
+    await fAAPLProxy.upgradeTo(flowTokenImpl.address);
+    const fAAPL = await FlowToken.at(fAAPLProxy.address);
+    await (fAAPL as any).initialize(
       'Apple Inc.',
       'fAAPL',
       moneyMarket.address,
