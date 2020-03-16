@@ -164,7 +164,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await protocol.addFlowToken(fAAPL.address);
 
     // set feeder and price
-    const kovanDeployerAddr = '0xD98C58B8a7cc6FFC44105E4A93253798D1D3f472';
+    const kovanDeployerAddr = '0x15ae150d7dC03d3B635EE90b85219dBFe071ED35'; // requires cDAI balance, use faucet at http://flow.laminar.one/ | TODO
     const priceFeeder =
       network === 'development' ? accounts[0] : kovanDeployerAddr;
     await oracle.addPriceFeeder(priceFeeder);
