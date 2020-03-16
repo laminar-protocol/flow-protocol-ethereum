@@ -1,23 +1,5 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "contract PriceOracleInterface",
-        "name": "oracle_",
-        "type": "address"
-      },
-      {
-        "internalType": "contract MoneyMarketInterface",
-        "name": "moneyMarket_",
-        "type": "address"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "constructor",
-    "signature": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -52,7 +34,47 @@
     "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
   },
   {
-    "constant": true,
+    "inputs": [
+      {
+        "internalType": "contract PriceOracleInterface",
+        "name": "_oracle",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "_moneyMarket",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x485cc955"
+  },
+  {
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
     "inputs": [],
     "name": "isOwner",
     "outputs": [
@@ -62,13 +84,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8f32d59b"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "maxSpread",
     "outputs": [
@@ -78,13 +99,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x796e8f90"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "moneyMarket",
     "outputs": [
@@ -94,13 +114,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xd6d75f51"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "oracle",
     "outputs": [
@@ -110,13 +129,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x7dc0d1d0"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "owner",
     "outputs": [
@@ -126,23 +144,20 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8da5cb5b"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x715018a6"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -152,13 +167,11 @@
     ],
     "name": "setMaxSpread",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xbef648db"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -174,13 +187,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x2337c815"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -190,13 +202,11 @@
     ],
     "name": "transferOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf2fde38b"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -206,13 +216,11 @@
     ],
     "name": "addTradingPair",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x7c022811"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract MarginTradingPair",
@@ -238,13 +246,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xab903463"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract MarginTradingPair",
@@ -259,7 +265,6 @@
     ],
     "name": "closePosition",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x742fe1f8"

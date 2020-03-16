@@ -22,7 +22,6 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "constructor",
     "signature": "constructor"
@@ -80,7 +79,6 @@
     "signature": "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -101,13 +99,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xdd62ed3e"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -116,7 +113,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "value",
+        "name": "amount",
         "type": "uint256"
       }
     ],
@@ -128,13 +125,11 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x095ea7b3"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -150,13 +145,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x70a08231"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "decimals",
     "outputs": [
@@ -166,13 +160,12 @@
         "type": "uint8"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x313ce567"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -193,13 +186,11 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa457c2d7"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "defaultCollateralRatio",
     "outputs": [
@@ -209,13 +200,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x1cfe28dd"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -231,13 +221,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xfc7e286d"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "extremeCollateralRatio",
     "outputs": [
@@ -247,13 +236,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xc1c90c93"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -274,13 +262,11 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x39509351"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -296,13 +282,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x3a8fd97a"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -318,13 +303,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xbf241030"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "isProtocol",
     "outputs": [
@@ -334,13 +318,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xe48d389d"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "liquidationCollateralRatio",
     "outputs": [
@@ -350,13 +333,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8d1bd1be"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -377,13 +359,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x6e73f445"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "name",
     "outputs": [
@@ -393,13 +374,12 @@
         "type": "string"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x06fdde03"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "protocol",
     "outputs": [
@@ -409,13 +389,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8ce74426"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "symbol",
     "outputs": [
@@ -425,13 +404,12 @@
         "type": "string"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x95d89b41"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "totalInterestDebits",
     "outputs": [
@@ -441,13 +419,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x680ce57c"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "totalInterestShares",
     "outputs": [
@@ -457,13 +434,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8d0334ec"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "totalPrincipalAmount",
     "outputs": [
@@ -473,13 +449,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x1b7466b4"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "totalSupply",
     "outputs": [
@@ -489,13 +464,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x18160ddd"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -516,13 +490,11 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa9059cbb"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -548,13 +520,11 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x23b872dd"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -564,13 +534,11 @@
     ],
     "name": "setLiquidationCollateralRatio",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xaeddae1d"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -580,13 +548,11 @@
     ],
     "name": "setExtremeCollateralRatio",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xd777fb62"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -596,13 +562,11 @@
     ],
     "name": "setDefaultCollateralRatio",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x2f94e441"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "uint256",
@@ -618,13 +582,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x36bb4dd7"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -639,13 +602,11 @@
     ],
     "name": "mint",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x40c10f19"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -660,13 +621,11 @@
     ],
     "name": "burn",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x9dc29fac"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -687,13 +646,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x16c19739"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -718,13 +676,11 @@
     ],
     "name": "addPosition",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x566fbe6f"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -750,13 +706,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa5943c09"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "interestShareExchangeRate",
     "outputs": [
@@ -766,13 +720,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x46541d54"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -787,13 +740,11 @@
     ],
     "name": "withdrawTo",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x205c2878"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -819,13 +770,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x0efe6a8b"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -846,7 +795,6 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf3fef3a3"

@@ -1,23 +1,5 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "contract PriceOracleInterface",
-        "name": "oracle_",
-        "type": "address"
-      },
-      {
-        "internalType": "contract MoneyMarketInterface",
-        "name": "moneyMarket_",
-        "type": "address"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "constructor",
-    "signature": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -294,7 +276,47 @@
     "signature": "0xda4c370e4f539b8e19d66144cad73d70fbf440a544e56ff38e28e38ed47801a8"
   },
   {
-    "constant": true,
+    "inputs": [
+      {
+        "internalType": "contract PriceOracleInterface",
+        "name": "_oracle",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "_moneyMarket",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x485cc955"
+  },
+  {
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
     "inputs": [],
     "name": "isOwner",
     "outputs": [
@@ -304,13 +326,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8f32d59b"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "maxSpread",
     "outputs": [
@@ -320,13 +341,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x796e8f90"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "moneyMarket",
     "outputs": [
@@ -336,13 +356,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xd6d75f51"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "oracle",
     "outputs": [
@@ -352,13 +371,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x7dc0d1d0"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "owner",
     "outputs": [
@@ -368,23 +386,20 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8da5cb5b"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x715018a6"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -394,13 +409,11 @@
     ],
     "name": "setMaxSpread",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xbef648db"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -416,13 +429,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x753d7563"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "string",
@@ -438,13 +450,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x04c2320b"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -454,13 +465,11 @@
     ],
     "name": "transferOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf2fde38b"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -470,13 +479,11 @@
     ],
     "name": "addFlowToken",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x304e9f3b"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -502,13 +509,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xc6c3bbe6"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -534,13 +539,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x0e6dfcd5"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -566,13 +569,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x26c01303"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -592,13 +593,11 @@
     ],
     "name": "addCollateral",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x59781034"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -614,13 +613,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x928d300e"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -635,13 +632,11 @@
     ],
     "name": "deposit",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x47e7ef24"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "contract FlowToken",
@@ -656,7 +651,6 @@
     ],
     "name": "withdraw",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf3fef3a3"

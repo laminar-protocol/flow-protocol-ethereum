@@ -44,7 +44,6 @@
     "type": "event"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "isPriceOracle",
     "outputs": [
@@ -54,12 +53,10 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "pure",
     "type": "function"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -75,12 +72,10 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -96,7 +91,6 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function"
   }
