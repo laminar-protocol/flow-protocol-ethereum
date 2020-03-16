@@ -1,33 +1,5 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "contract CErc20Interface",
-        "name": "cToken_",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "minLiquidity_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "iTokenName",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "iTokenSymbol",
-        "type": "string"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "constructor",
-    "signature": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -100,9 +72,8 @@
     "signature": "0xf3a670cd3af7d64b488926880889d08a8585a138ff455227af6737339a1ec262"
   },
   {
-    "constant": true,
     "inputs": [],
-    "name": "baseToken",
+    "name": "_baseToken",
     "outputs": [
       {
         "internalType": "contract IERC20",
@@ -110,13 +81,27 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
-    "signature": "0xc55dae63"
+    "constant": true,
+    "signature": "0xf2f7b37f"
   },
   {
+    "inputs": [],
+    "name": "_iToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
     "constant": true,
+    "signature": "0x281c8f32"
+  },
+  {
     "inputs": [],
     "name": "cToken",
     "outputs": [
@@ -126,29 +111,27 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x69e527da"
   },
   {
-    "constant": true,
     "inputs": [],
-    "name": "iToken",
+    "name": "insignificantPercent",
     "outputs": [
       {
-        "internalType": "contract MintableToken",
-        "name": "",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
-    "signature": "0x408cfe24"
+    "constant": true,
+    "signature": "0xbf20d3bf"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "isOwner",
     "outputs": [
@@ -158,13 +141,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8f32d59b"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "minLiquidity",
     "outputs": [
@@ -174,13 +156,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x252cf2d2"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "owner",
     "outputs": [
@@ -190,23 +171,20 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8da5cb5b"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x715018a6"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -216,17 +194,96 @@
     ],
     "name": "transferOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf2fde38b"
   },
   {
-    "constant": false,
+    "inputs": [
+      {
+        "internalType": "contract CErc20Interface",
+        "name": "_cToken",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "_iTokenName",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "_iTokenSymbol",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minLiquidity",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x4d12d4b6"
+  },
+  {
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
+    "inputs": [],
+    "name": "baseToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xc55dae63"
+  },
+  {
+    "inputs": [],
+    "name": "iToken",
+    "outputs": [
+      {
+        "internalType": "contract IERC20",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x408cfe24"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "baseTokenAmount",
+        "name": "_baseTokenAmount",
         "type": "uint256"
       }
     ],
@@ -238,13 +295,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa0712d68"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -253,7 +308,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "baseTokenAmount",
+        "name": "_baseTokenAmount",
         "type": "uint256"
       }
     ],
@@ -265,13 +320,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x449a52f8"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -287,13 +340,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xdb006a75"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -314,29 +365,25 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x2f7605fb"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "baseTokenAmount",
+        "name": "_baseTokenAmount",
         "type": "uint256"
       }
     ],
     "name": "redeemBaseToken",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa1bce477"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -345,45 +392,39 @@
       },
       {
         "internalType": "uint256",
-        "name": "baseTokenAmount",
+        "name": "_baseTokenAmount",
         "type": "uint256"
       }
     ],
     "name": "redeemBaseTokenTo",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf776b15f"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "rebalance",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x7d7c2a1c"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "value",
+        "name": "_newMinLiquidity",
         "type": "uint256"
       }
     ],
     "name": "setMinLiquidity",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x5c4c4749"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "uint256",
@@ -409,13 +450,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x58e30b61"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "exchangeRate",
     "outputs": [
@@ -425,13 +465,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x3ba0b9a9"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "totalHoldings",
     "outputs": [
@@ -441,13 +480,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xe9ec2e99"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "uint256",
@@ -456,7 +494,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "baseTokenAmount",
+        "name": "_baseTokenAmount",
         "type": "uint256"
       }
     ],
@@ -468,13 +506,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "pure",
     "type": "function",
+    "constant": true,
     "signature": "0xf8014a0b"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "uint256",
@@ -495,9 +532,9 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "pure",
     "type": "function",
+    "constant": true,
     "signature": "0x746bd32d"
   }
 ]

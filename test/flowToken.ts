@@ -9,6 +9,8 @@ import {
 import { createTestToken, createMoneyMarket, fromPercent, bn } from './helpers';
 
 const FlowToken = artifacts.require('FlowToken');
+const FlowTokenNewVersion = artifacts.require('FlowTokenNewVersion');
+const Proxy = artifacts.require('Proxy');
 
 contract('FlowToken', accounts => {
   const owner = accounts[0];
@@ -28,7 +30,11 @@ contract('FlowToken', accounts => {
       fromPercent(100),
     ));
 
-    fToken = await FlowToken.new('Euro', 'EUR', moneyMarket.address, owner);
+    const fTokenImpl = await FlowToken.new();
+    const fTokenProxy = await Proxy.new();
+    await fTokenProxy.upgradeTo(fTokenImpl.address);
+    fToken = await FlowToken.at(fTokenProxy.address);
+    await (fToken as any).initialize('Euro', 'EUR', moneyMarket.address, owner);
 
     await usd.approve(moneyMarket.address, constants.MAX_UINT256);
 
@@ -257,5 +263,32 @@ contract('FlowToken', accounts => {
         ).bignumber.equal(fromPercent(incentive));
       });
     }
+  });
+
+  describe('when upgrading the contract', () => {
+    it('upgrades the contract', async () => {
+      const flowTokenProxy = await Proxy.at(fToken.address);
+      const newFTokenImpl = await FlowTokenNewVersion.new();
+      await flowTokenProxy.upgradeTo(newFTokenImpl.address);
+      const newFToken = await FlowTokenNewVersion.at(fToken.address);
+      const value = bn(345);
+      const firstBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+      const secondBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+      const newValueBefore = await newFToken.newStorageUint();
+      await newFToken.addNewStorageBytes32(firstBytes32);
+      await newFToken.setNewStorageUint(value);
+      await newFToken.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newFToken.newStorageUint();
+      const newStorageByte1 = await newFToken.newStorageBytes32(0);
+      const newStorageByte2 = await newFToken.newStorageBytes32(1);
+
+      expect(newValueBefore).to.be.bignumber.equal(bn(0));
+      expect(newValueAfter).to.be.bignumber.equal(value);
+      expect(newStorageByte1).to.be.equal(firstBytes32);
+      expect(newStorageByte2).to.be.equal(secondBytes32);
+    });
   });
 });

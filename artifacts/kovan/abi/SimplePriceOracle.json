@@ -94,7 +94,6 @@
     "signature": "0x0d86730737b142fc160892fa8a0f2db687a92a0e294d1ad70624cf5acef03b84"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -104,13 +103,11 @@
     ],
     "name": "addPriceFeeder",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x72f34208"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "expireIn",
     "outputs": [
@@ -120,13 +117,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x7bb70c94"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "isOwner",
     "outputs": [
@@ -136,13 +132,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8f32d59b"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -158,29 +153,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xf9aad6d7"
   },
   {
-    "constant": true,
-    "inputs": [],
-    "name": "isPriceOracle",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "view",
-    "type": "function",
-    "signature": "0x66331bba"
-  },
-  {
-    "constant": true,
     "inputs": [],
     "name": "oracleDeltaLastLimit",
     "outputs": [
@@ -190,13 +168,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x86c51385"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "oracleDeltaSnapshotLimit",
     "outputs": [
@@ -206,13 +183,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xe2c1946d"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "oracleDeltaSnapshotTime",
     "outputs": [
@@ -222,13 +198,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x7adee8e0"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "owner",
     "outputs": [
@@ -238,13 +213,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8da5cb5b"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -254,33 +228,27 @@
     ],
     "name": "removePriceFeeder",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x79a68c6c"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x715018a6"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "renouncePriceFeeder",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xea35de5f"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -290,13 +258,11 @@
     ],
     "name": "setExpireIn",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa373fb3a"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -306,13 +272,11 @@
     ],
     "name": "setOracleDeltaLastLimit",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xda279e21"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -322,13 +286,11 @@
     ],
     "name": "setOracleDeltaSnapshotLimit",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x0f7ab4d8"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "uint256",
@@ -338,13 +300,11 @@
     ],
     "name": "setOracleDeltaSnapshotTime",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf6dd31d9"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -354,13 +314,48 @@
     ],
     "name": "transferOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf2fde38b"
   },
   {
-    "constant": false,
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
+    "inputs": [],
+    "name": "isPriceOracle",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "pure",
+    "type": "function",
+    "constant": true,
+    "signature": "0x66331bba"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -375,13 +370,11 @@
     ],
     "name": "feedPrice",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xcd56022e"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -397,13 +390,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x41976e09"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "address",
@@ -419,9 +410,9 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x033d497a"
   }
 ]

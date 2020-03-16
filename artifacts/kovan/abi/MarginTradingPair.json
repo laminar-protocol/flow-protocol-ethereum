@@ -1,43 +1,5 @@
 [
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "protocol",
-        "type": "address"
-      },
-      {
-        "internalType": "contract MoneyMarketInterface",
-        "name": "moneyMarket_",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "quoteToken_",
-        "type": "address"
-      },
-      {
-        "internalType": "int256",
-        "name": "leverage_",
-        "type": "int256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "safeMarginPercent_",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "liquidationFee_",
-        "type": "uint256"
-      }
-    ],
-    "payable": false,
-    "stateMutability": "nonpayable",
-    "type": "constructor",
-    "signature": "constructor"
-  },
-  {
     "anonymous": false,
     "inputs": [
       {
@@ -152,7 +114,6 @@
     "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "isOwner",
     "outputs": [
@@ -162,13 +123,12 @@
         "type": "bool"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8f32d59b"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "leverage",
     "outputs": [
@@ -178,13 +138,12 @@
         "type": "int256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x2c86d98e"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "liquidationFee",
     "outputs": [
@@ -194,13 +153,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xa36a3630"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "moneyMarket",
     "outputs": [
@@ -210,13 +168,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0xd6d75f51"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "nextPositionId",
     "outputs": [
@@ -226,13 +183,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x899346c7"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "owner",
     "outputs": [
@@ -242,13 +198,12 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x8da5cb5b"
   },
   {
-    "constant": true,
     "inputs": [
       {
         "internalType": "uint256",
@@ -289,13 +244,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x99fbab88"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "quoteToken",
     "outputs": [
@@ -305,23 +259,20 @@
         "type": "address"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x217a4b70"
   },
   {
-    "constant": false,
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x715018a6"
   },
   {
-    "constant": true,
     "inputs": [],
     "name": "safeMarginPercent",
     "outputs": [
@@ -331,13 +282,12 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "view",
     "type": "function",
+    "constant": true,
     "signature": "0x11f9f560"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -347,13 +297,64 @@
     ],
     "name": "transferOwnership",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf2fde38b"
   },
   {
-    "constant": false,
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "protocol",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "moneyMarket_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "quoteToken_",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "leverage_",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "safeMarginPercent_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "liquidationFee_",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xa793e47a"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -394,13 +395,11 @@
         "type": "uint256"
       }
     ],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x1cdd6534"
   },
   {
-    "constant": false,
     "inputs": [
       {
         "internalType": "address",
@@ -420,7 +419,6 @@
     ],
     "name": "closePosition",
     "outputs": [],
-    "payable": false,
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x4fa9c4db"

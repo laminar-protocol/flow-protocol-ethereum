@@ -33,7 +33,8 @@ module.exports = {
           `https://kovan.infura.io/v3/${process.env.INFURA_API_KEY}`
         ),
       network_id: 42,
-      gasPrice: '1000000000'
+      gasPrice: '1000000000',
+      gas: 4712388
     },
     development: {
       host: 'localhost',

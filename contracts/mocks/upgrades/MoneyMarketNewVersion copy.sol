@@ -1,8 +1,8 @@
 pragma solidity ^0.6.3;
 
-import "../impls/MarginTradingPair.sol";
+import "../../impls/MoneyMarket.sol";
 
-contract MarginTradingPairNewVersion is MarginTradingPair {
+contract MoneyMarketNewVersion is MoneyMarket {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 
@@ -12,5 +12,9 @@ contract MarginTradingPairNewVersion is MarginTradingPair {
 
     function setNewStorageUint(uint256 _newStorageUint) public {
         newStorageUint = _newStorageUint;
+    }
+
+    function getNewValuePlusMinLiquidity() public view returns (uint256) {
+        return minLiquidity.value.add(newStorageUint);
     }
 }

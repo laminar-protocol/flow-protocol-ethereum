@@ -1,6 +1,7 @@
 pragma solidity ^0.6.3;
+
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -8,8 +9,9 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../roles/ProtocolOwnable.sol";
 import "../libs/Percentage.sol";
+import "../libs/upgrades/ERC20DetailedUpgradable.sol";
 
-contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
+contract FlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
@@ -35,12 +37,15 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20Detailed {
     mapping (address => uint) public interestDebits;
     mapping (address => uint) public deposits;
 
-    constructor(
+    function initialize(
         string memory name,
         string memory symbol,
         MoneyMarketInterface moneyMarket_,
         address protocol
-    ) ERC20Detailed(name, symbol, 18) ProtocolOwnable(protocol) public {
+    ) public initializer {
+        ProtocolOwnable.initialize(protocol);
+        ERC20DetailedUpgradable.initialize(name, symbol, 18);
+
         moneyMarket = moneyMarket_;
 
         moneyMarket.iToken().safeApprove(protocol, MAX_UINT);

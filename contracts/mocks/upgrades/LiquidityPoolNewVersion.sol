@@ -1,8 +1,8 @@
 pragma solidity ^0.6.3;
 
-import "../impls/MoneyMarket.sol";
+import "../../impls/LiquidityPool.sol";
 
-contract MoneyMarketNewVersion is MoneyMarket {
+contract LiquidityPoolNewVersion is LiquidityPool {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 
@@ -12,9 +12,5 @@ contract MoneyMarketNewVersion is MoneyMarket {
 
     function setNewStorageUint(uint256 _newStorageUint) public {
         newStorageUint = _newStorageUint;
-    }
-
-    function getNewValuePlusMinLiquidity() public view returns (uint256) {
-        return minLiquidity.value.add(newStorageUint);
     }
 }

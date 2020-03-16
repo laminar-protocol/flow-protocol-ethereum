@@ -1,8 +1,11 @@
 pragma solidity ^0.6.3;
-contract ProtocolOwnable {
+
+import "@openzeppelin/upgrades/contracts/Initializable.sol";
+
+contract ProtocolOwnable is Initializable {
     address private _protocol;
 
-    constructor (address protocol) internal {
+    function initialize(address protocol) public initializer {
         _protocol = protocol;
     }
 

@@ -131,27 +131,47 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const protocol = await FlowProtocol.at(flowProtocolProxy.address);
     await protocol.initialize(oracle.address, moneyMarket.address);
 
-    await deployer.deploy(
-      FlowToken,
+    await deployer.deploy(FlowToken);
+    const flowTokenImpl = await FlowToken.deployed();
+
+    await deployer.deploy(Proxy);
+    const fEURProxy = await Proxy.deployed();
+    await fEURProxy.upgradeTo(flowTokenImpl.address);
+    const fEUR = await FlowToken.at(fEURProxy.address);
+    await (fEUR as any).initialize(
       'Flow Euro',
       'fEUR',
       moneyMarket.address,
       protocol.address,
     );
-    const fEUR = await FlowToken.deployed();
-    const fJPY = await FlowToken.new(
+
+    await deployer.deploy(Proxy);
+    const fJPYProxy = await Proxy.deployed();
+    await fJPYProxy.upgradeTo(flowTokenImpl.address);
+    const fJPY = await FlowToken.at(fJPYProxy.address);
+    await (fJPY as any).initialize(
       'Flow Japanese Yen',
       'fJPY',
       moneyMarket.address,
       protocol.address,
     );
-    const fXAU = await FlowToken.new(
+
+    await deployer.deploy(Proxy);
+    const fXAUProxy = await Proxy.deployed();
+    await fXAUProxy.upgradeTo(flowTokenImpl.address);
+    const fXAU = await FlowToken.at(fXAUProxy.address);
+    await (fXAU as any).initialize(
       'Gold',
       'fXAU',
       moneyMarket.address,
       protocol.address,
     );
-    const fAAPL = await FlowToken.new(
+
+    await deployer.deploy(Proxy);
+    const fAAPLProxy = await Proxy.deployed();
+    await fAAPLProxy.upgradeTo(flowTokenImpl.address);
+    const fAAPL = await FlowToken.at(fAAPLProxy.address);
+    await (fAAPL as any).initialize(
       'Apple Inc.',
       'fAAPL',
       moneyMarket.address,
@@ -164,7 +184,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await protocol.addFlowToken(fAAPL.address);
 
     // set feeder and price
-    const kovanDeployerAddr = '0xD98C58B8a7cc6FFC44105E4A93253798D1D3f472';
+    const kovanDeployerAddr = '0x15ae150d7dC03d3B635EE90b85219dBFe071ED35'; // requires cDAI balance, use faucet at http://flow.laminar.one/ | TODO
     const priceFeeder =
       network === 'development' ? accounts[0] : kovanDeployerAddr;
     await oracle.addPriceFeeder(priceFeeder);
@@ -376,8 +396,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await moneyMarket.mintTo(pool2.address, web3.utils.toWei('20000'));
 
     const deployment = {
-      // TODO moneyMarketStorage? proxy?
-      moneyMarketImpl: [moneyMarketImpl, MoneyMarket],
+      moneyMarket: [moneyMarket, MoneyMarket],
       iToken: [iToken, ERC20Detailed],
       oracle: [oracle, PriceOracleInterface],
       protocol: [protocol, FlowProtocol],
