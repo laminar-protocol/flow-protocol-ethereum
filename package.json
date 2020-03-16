@@ -13,8 +13,8 @@
     "deploy-local": "sh deploy-local.sh",
     "deploy": "cross-env-shell yarn truffle migrate --reset --network $NETWORK --skip-dry-run",
     "deploy:development": "cross-env NETWORK=development yarn deploy",
-    "deploy:kovan": "cross-env NETWORK=kovan yarn deploy && NETWORK=kovan yarn verify",
-    "deploy:mainnet": "cross-env NETWORK=mainnet yarn deploy && NETWORK=kovan yarn verify"
+    "deploy:kovan": "cross-env NETWORK=kovan yarn deploy && cross-env NETWORK=kovan yarn verify",
+    "deploy:mainnet": "cross-env NETWORK=mainnet yarn deploy && cross-env NETWORK=kovan yarn verify"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^3.0.0-beta.0",
