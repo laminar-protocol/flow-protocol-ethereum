@@ -11,7 +11,7 @@
     "test": "bash ./run_tests.sh",
     "graph-node": "docker-compose up",
     "deploy-local": "sh deploy-local.sh",
-    "deploy": "yarn truffle migrate --reset --network $NETWORK --skip-dry-run && yarn verify",
+    "deploy": "cross-env-shell yarn truffle migrate --reset --network $NETWORK --skip-dry-run && yarn verify",
     "deploy:development": "cross-env NETWORK=development yarn deploy",
     "deploy:kovan": "cross-env NETWORK=kovan yarn deploy",
     "deploy:mainnet": "cross-env NETWORK=mainnet yarn deploy"
