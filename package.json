@@ -6,15 +6,15 @@
   "scripts": {
     "generate": "yarn truffle compile && yarn typechain --target truffle \"./build/**/*.json\" && yarn typechain --target web3-v1 \"./build/**/*.json\"",
     "prepare": "yarn generate && cd subgraph && yarn && cross-env NETWORK=kovan yarn codegen",
-    "verify": "if [ $NETWORK != 'development' ]\nthen\ntruffle run verify Proxy MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network $NETWORK\nfi",
+    "verify": "cross-env-shell truffle run verify Proxy MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network $NETWORK",
     "lint": "yarn solium -d contracts/ && yarn eslint --ext .js,.ts subgraph && yarn tsc --noEmit --pretty",
     "test": "bash ./run_tests.sh",
     "graph-node": "docker-compose up",
     "deploy-local": "sh deploy-local.sh",
-    "deploy": "cross-env-shell yarn truffle migrate --reset --network $NETWORK --skip-dry-run && yarn verify",
+    "deploy": "cross-env-shell yarn truffle migrate --reset --network $NETWORK --skip-dry-run",
     "deploy:development": "cross-env NETWORK=development yarn deploy",
-    "deploy:kovan": "cross-env NETWORK=kovan yarn deploy",
-    "deploy:mainnet": "cross-env NETWORK=mainnet yarn deploy"
+    "deploy:kovan": "cross-env NETWORK=kovan yarn deploy && NETWORK=kovan yarn verify",
+    "deploy:mainnet": "cross-env NETWORK=mainnet yarn deploy && NETWORK=kovan yarn verify"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^3.0.0-beta.0",
