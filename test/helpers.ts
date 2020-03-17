@@ -66,4 +66,6 @@ export const messages = {
   onlyOwnerCanClosePosition: 'Only position owner can close a safe position',
   onlyOwnerOrLiquidityPoolCanClosePosition:
     'Only position owner or liquidity pool can close a open position',
+  askPriceTooHigh: 'Ask price too high',
+  bidPriceTooLow: 'Bid price too low',
 };

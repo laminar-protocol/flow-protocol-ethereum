@@ -20,7 +20,7 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
     uint private spread;
     uint private collateralRatio;
 
-    mapping (address => bool) private allowedTokens;
+    mapping (address => bool) public allowedTokens;
 
     function initialize(MoneyMarketInterface _moneyMarket, uint _spread) public initializer {
         UpgradeOwnable.initialize(msg.sender);

@@ -126,10 +126,38 @@ contract('FlowProtocol', accounts => {
     protocol.mint(fToken.address, liquidityPool.address, amount, {
       from: addr,
     });
+  const buyWithMaxPrice = (
+    addr: string,
+    amount: number,
+    minPrice: number,
+  ) => () =>
+    protocol.mintWithMaxPrice(
+      fToken.address,
+      liquidityPool.address,
+      amount,
+      minPrice,
+      {
+        from: addr,
+      },
+    );
   const sell = (addr: string, amount: any) => () =>
     protocol.redeem(fToken.address, liquidityPool.address, amount, {
       from: addr,
     });
+  const sellWithMinPrice = (
+    addr: string,
+    amount: number,
+    minPrice: number,
+  ) => () =>
+    protocol.redeemWithMinPrice(
+      fToken.address,
+      liquidityPool.address,
+      amount,
+      minPrice,
+      {
+        from: addr,
+      },
+    );
   const balance = (
     token: IERC20Instance,
     addr: string,
@@ -164,6 +192,43 @@ contract('FlowProtocol', accounts => {
       balance(usd, alice, dollar(9998)),
       balance(iUsd, fToken.address, 0),
       balance(iUsd, liquidityPool.address, dollar(100020)),
+    );
+  });
+
+  it('able to buy and sell with minimum price', async () => {
+    await run(
+      buyWithMaxPrice(alice, dollar(1001), dollar('1.001')),
+      balance(fToken, alice, dollar(1000)),
+      balance(usd, alice, dollar(8999)),
+      balance(iUsd, fToken.address, dollar(11000)),
+      balance(iUsd, liquidityPool.address, dollar(99010)),
+
+      sellWithMinPrice(alice, dollar(1000), dollar('0.999')),
+      balance(fToken, alice, 0),
+      balance(usd, alice, dollar(9998)),
+      balance(iUsd, fToken.address, 0),
+      balance(iUsd, liquidityPool.address, dollar(100020)),
+    );
+  });
+
+  it('reverts when maximum buy price is too low', async () => {
+    await expectRevert(
+      run(buyWithMaxPrice(alice, dollar(1001), dollar('1.0009'))),
+      messages.askPriceTooHigh,
+    );
+  });
+
+  it('reverts when minimum sell price is too high', async () => {
+    await expectRevert(
+      run(
+        buyWithMaxPrice(alice, dollar(1001), dollar('1.001')),
+        balance(fToken, alice, dollar(1000)),
+        balance(usd, alice, dollar(8999)),
+        balance(iUsd, fToken.address, dollar(11000)),
+        balance(iUsd, liquidityPool.address, dollar(99010)),
+        sellWithMinPrice(alice, dollar(1000), dollar('0.9991')),
+      ),
+      messages.bidPriceTooLow,
     );
   });
 
