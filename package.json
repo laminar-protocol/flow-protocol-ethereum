@@ -18,7 +18,8 @@
     "change-owner": "cross-env-shell NETWORK=$NETWORK yarn truffle exec dev-scripts/changeOwners.js --network $NETWORK",
     "change-owner:development": "cross-env NETWORK=development yarn change-owner",
     "change-owner:kovan": "cross-env NETWORK=kovan change-owner",
-    "change-owner:mainnet": "cross-env NETWORK=mainnet change-owner"
+    "change-owner:mainnet": "cross-env NETWORK=mainnet change-owner",
+    "upgrade-contracts:kovan": "cross-env-shell CONTRACT_NAME=$CONTRACT_NAME NETWORK=kovan yarn truffle exec dev-scripts/upgradeContract.js --network kovan"
   },
   "devDependencies": {
     "@openzeppelin/contracts": "^3.0.0-beta.0",
