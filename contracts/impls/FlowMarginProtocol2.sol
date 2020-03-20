@@ -1,4 +1,5 @@
 pragma solidity ^0.6.3;
+
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -121,10 +122,10 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
     }
 
     /// askPrice = price * (1 + ask_spread)
-    function _getAskPrice(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns(uint256) {
+    function _getAskPriceInWei(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns(uint256) {
         uint256 price = _getPrice(_pair.base, _pair.quote);
         uint256 spread = _pool.getAskSpread(address(_pair.quote));
-        uint256 askPrice = uint256(1).add(spread).mul(price);
+        uint256 askPrice = price.add(price.mul(spread).div(1e18));
 
         if (_max > 0) {
             require(askPrice <= _max, "Ask price too high");
@@ -134,10 +135,10 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
     }
 
 	/// bidPrice = price * (1 - bid_spread)
-    function _getBidPrice(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns(uint256) {
+    function _getBidPriceInWei(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns(uint256) {
         uint256 price = _getPrice(_pair.base, _pair.quote);
         uint256 spread = _pool.getBidSpread(address(_pair.quote));
-        uint256 bidPrice = uint256(1).sub(spread).mul(price);
+        uint256 bidPrice = price.sub(price.mul(spread).div(1e18));
 
         if (_min > 0) {
             require(bidPrice >= _min, "Bid price too low");
@@ -153,8 +154,8 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
         int256 openPrice = openPriceValue >= 0 ? openPriceValue : -openPriceValue;
 
         uint256 currentPrice = _position.leverage.isLong()
-            ? _getBidPrice(_position.pool, _position.pair, 0)
-            : _getAskPrice(_position.pool, _position.pair, 0);
+            ? _getBidPriceInWei(_position.pool, _position.pair, 0)
+            : _getAskPriceInWei(_position.pool, _position.pair, 0);
 
         int256 priceDelta = int256(currentPrice).sub(openPrice);
         int256 unrealized = _position.leveragedHeld.mul(priceDelta);
@@ -166,7 +167,7 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
     function _getUsdValue(IERC20 _currencyToken, int256 _amount) internal returns (int256) {
         uint256 price = _getPrice(moneyMarket.baseToken(), _currencyToken);
 
-        return _amount.mul(int256(price));
+        return _amount.mul(int256(price)).div(1e18);
     }
 
     /// The price from oracle.
@@ -174,6 +175,6 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
         uint256 basePrice = oracle.getPrice(address(_baseCurrencyId));
         uint256 quotePrice = oracle.getPrice(address(_quoteCurrencyId));
 
-        return quotePrice.div(basePrice);
+        return quotePrice.mul(1e18).div(basePrice);
     }
 }
