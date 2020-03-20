@@ -17,6 +17,7 @@ import {
   fromPercent,
   fromPip,
   dollar,
+  euro,
 } from './helpers';
 
 const Proxy = artifacts.require('Proxy');
@@ -141,20 +142,20 @@ contract('FlowMarginProtocol2', accounts => {
         0,
       )) as any;
 
-      const leveragedHeld = dollar(100);
-      const leveragedDebitsInWei = leveragedHeld.mul(askPrice);
+      const leveragedHeldInEuro = euro(100);
+      const leveragedDebitsInWei = leveragedHeldInEuro.mul(askPrice);
 
       const unrealizedPl = await protocol.testUnrealizedPl.call(
         liquidityPool.address,
         usd.address,
         eur,
         leverage.address,
-        leveragedHeld,
+        leveragedHeldInEuro,
         leveragedDebitsInWei,
       );
 
-      const expectedPl = leveragedHeld.mul(
-        bidPrice.sub(leveragedDebitsInWei.div(leveragedHeld)),
+      const expectedPl = leveragedHeldInEuro.mul(
+        bidPrice.sub(leveragedDebitsInWei.div(leveragedHeldInEuro)),
       );
 
       expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
@@ -170,8 +171,8 @@ contract('FlowMarginProtocol2', accounts => {
         0,
       );
 
-      const leveragedHeld = dollar(100);
-      const leveragedDebitsInWei = leveragedHeld.mul(askPrice);
+      const leveragedHeldInEuro = euro(100);
+      const leveragedDebitsInWei = leveragedHeldInEuro.mul(askPrice);
 
       await oracle.feedPrice(eur, fromPercent(240), { from: owner });
 
@@ -187,12 +188,12 @@ contract('FlowMarginProtocol2', accounts => {
         usd.address,
         eur,
         leverage.address,
-        leveragedHeld,
+        leveragedHeldInEuro,
         leveragedDebitsInWei,
       );
 
-      const expectedPl = leveragedHeld.mul(
-        newBidPrice.sub(leveragedDebitsInWei.div(leveragedHeld)),
+      const expectedPl = leveragedHeldInEuro.mul(
+        newBidPrice.sub(leveragedDebitsInWei.div(leveragedHeldInEuro)),
       );
 
       expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
@@ -208,8 +209,8 @@ contract('FlowMarginProtocol2', accounts => {
         0,
       );
 
-      const leveragedHeld = dollar(100);
-      const leveragedDebitsInWei = leveragedHeld.mul(askPrice);
+      const leveragedHeldInEuro = euro(100);
+      const leveragedDebitsInWei = leveragedHeldInEuro.mul(askPrice);
 
       await oracle.feedPrice(eur, fromPercent(60), { from: owner });
 
@@ -225,12 +226,12 @@ contract('FlowMarginProtocol2', accounts => {
         usd.address,
         eur,
         leverage.address,
-        leveragedHeld,
+        leveragedHeldInEuro,
         leveragedDebitsInWei,
       );
 
-      const expectedPl = leveragedHeld.mul(
-        newBidPrice.sub(leveragedDebitsInWei.div(leveragedHeld)),
+      const expectedPl = leveragedHeldInEuro.mul(
+        newBidPrice.sub(leveragedDebitsInWei.div(leveragedHeldInEuro)),
       );
 
       expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
