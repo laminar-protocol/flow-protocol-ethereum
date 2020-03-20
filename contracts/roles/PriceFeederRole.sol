@@ -24,7 +24,6 @@ contract PriceFeederRole is Initializable, UpgradeOwnable, AccessControl {
 
     function initialize() public virtual initializer {
         UpgradeOwnable.initialize(msg.sender);
-        _grantRole(PRICE_FEEDER_ROLE, msg.sender);
     }
 
     function isPriceFeeder(address _account) public view returns (bool) {
