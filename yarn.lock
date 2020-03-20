@@ -18,7 +18,7 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
-"@openzeppelin/contracts@^3.0.0-beta.0":
+"@openzeppelin/contracts@^3.0.0-rc.0":
   version "3.0.0-rc.0"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.0.0-rc.0.tgz#6cc5128f509b6310668547899a4115f8512c32ff"
   integrity sha512-Ts7h4/5tNiRN2iiH10Mp+6CgmK/PETDHYIJ/tpUrXgGjWR51T/Dr8kxa41GeHHhmAsuo+CkcuG9L4di6qth/Mw==
