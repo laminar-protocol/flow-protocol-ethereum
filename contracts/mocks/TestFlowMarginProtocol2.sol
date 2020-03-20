@@ -7,7 +7,7 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
         LiquidityPoolInterface _pool,
         FlowToken _base,
         FlowToken _quote,
-        Leverage _leverage,
+        int256 _leverage,
         int256 _leveragedHeld,
         int256 _leveragedDebits
     ) public returns(int256) {
