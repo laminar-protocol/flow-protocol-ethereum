@@ -1,18 +1,16 @@
 pragma solidity ^0.6.3;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/access/Roles.sol";
 
+import "../libs/upgrades/UpgradeAccessControl.sol";
 import "../libs/upgrades/UpgradeOwnable.sol";
 
 // TODO: change Ownable to Admin to ensure always must be a valid admin
-contract PriceFeederRole is Initializable, UpgradeOwnable {
-    using Roles for Roles.Role;
+contract PriceFeederRole is Initializable, UpgradeOwnable, AccessControl {
+    event PriceFeederAdded(address indexed _account);
+    event PriceFeederRemoved(address indexed _account);
 
-    event PriceFeederAdded(address indexed account);
-    event PriceFeederRemoved(address indexed account);
-
-    Roles.Role private _priceFeederRole;
+    bytes32 public constant PRICE_FEEDER_ROLE = keccak256("PRICE_FEEDER_ROLE");
 
     // store all price feeders to support traverse etc
     address[] internal priceFeeders;
@@ -28,47 +26,47 @@ contract PriceFeederRole is Initializable, UpgradeOwnable {
         UpgradeOwnable.initialize(msg.sender);
     }
 
-    function isPriceFeeder(address account) public view returns (bool) {
-        return _priceFeederRole.has(account);
+    function isPriceFeeder(address _account) public view returns (bool) {
+        return hasRole(PRICE_FEEDER_ROLE, _account);
     }
 
-    function addPriceFeeder(address account) public onlyOwner {
-        _addPriceFeeder(account);
+    function addPriceFeeder(address _account) public onlyOwner {
+        _addPriceFeeder(_account);
     }
 
-    function removePriceFeeder(address account) public onlyOwner {
-        _removePriceFeeder(account);
+    function removePriceFeeder(address _account) public onlyOwner {
+        _removePriceFeeder(_account);
     }
 
     function renouncePriceFeeder() public {
         _removePriceFeeder(msg.sender);
     }
 
-    function _addPriceFeeder(address account) internal {
+    function _addPriceFeeder(address _account) internal {
         // role
-        _priceFeederRole.add(account);
+        _grantRole(PRICE_FEEDER_ROLE, _account);
 
         // push and record index
-        priceFeeders.push(account);
-        priceFeederIndices[account] = priceFeeders.length - 1;
+        priceFeeders.push(_account);
+        priceFeederIndices[_account] = priceFeeders.length - 1;
 
-        emit PriceFeederAdded(account);
+        emit PriceFeederAdded(_account);
     }
 
-    function _removePriceFeeder(address account) internal {
+    function _removePriceFeeder(address _account) internal {
         // role
-        _priceFeederRole.remove(account);
+        _revokeRole(PRICE_FEEDER_ROLE, _account);
 
         // if not last index, swap with last element
-        uint index = priceFeederIndices[account];
+        uint index = priceFeederIndices[_account];
         uint lastIndex = priceFeeders.length - 1;
         if (index != lastIndex) {
             priceFeeders[index] = priceFeeders[lastIndex];
         }
         // delete last element and its index
         priceFeeders.pop();
-        delete priceFeederIndices[account];
+        delete priceFeederIndices[_account];
 
-        emit PriceFeederRemoved(account);
+        emit PriceFeederRemoved(_account);
     }
 }
