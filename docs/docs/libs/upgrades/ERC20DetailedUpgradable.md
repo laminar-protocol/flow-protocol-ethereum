@@ -1,6 +1,6 @@
 Optional functions from the ERC20 standard.
 
-# Functions:
+## Functions:
 
 - [`initialize(string name, string symbol, uint8 decimals)`](#ERC20DetailedUpgradable-initialize-string-string-uint8-)
 
@@ -10,7 +10,7 @@ Optional functions from the ERC20 standard.
 
 - [`decimals()`](#ERC20DetailedUpgradable-decimals--)
 
-# Function `initialize(string name, string symbol, uint8 decimals)` {#ERC20DetailedUpgradable-initialize-string-string-uint8-}
+### [Function `initialize(string name, string symbol, uint8 decimals)`](#ERC20DetailedUpgradable-initialize-string-string-uint8-)
 
 Sets the values for `name`, `symbol`, and `decimals`. All three of
 
@@ -18,17 +18,17 @@ these values are immutable: they can only be set once during
 
 construction.
 
-# Function `name() → string` {#ERC20DetailedUpgradable-name--}
+### [Function `name() → string`](#ERC20DetailedUpgradable-name--)
 
 Returns the name of the token.
 
-# Function `symbol() → string` {#ERC20DetailedUpgradable-symbol--}
+### [Function `symbol() → string`](#ERC20DetailedUpgradable-symbol--)
 
 Returns the symbol of the token, usually a shorter version of the
 
 name.
 
-# Function `decimals() → uint8` {#ERC20DetailedUpgradable-decimals--}
+### [Function `decimals() → uint8`](#ERC20DetailedUpgradable-decimals--)
 
 Returns the number of decimals used to get its user representation.
 

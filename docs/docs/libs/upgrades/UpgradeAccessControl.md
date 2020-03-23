@@ -48,7 +48,7 @@ roles. More complex role relationships can be created by using
 
 {_setRoleAdmin}.
 
-# Functions:
+## Functions:
 
 - [`hasRole(bytes32 role, address account)`](#AccessControl-hasRole-bytes32-address-)
 
@@ -64,23 +64,23 @@ roles. More complex role relationships can be created by using
 
 - [`renounceRole(bytes32 role, address account)`](#AccessControl-renounceRole-bytes32-address-)
 
-# Events:
+## Events:
 
 - [`RoleGranted(bytes32 role, address account, address sender)`](#AccessControl-RoleGranted-bytes32-address-address-)
 
 - [`RoleRevoked(bytes32 role, address account, address sender)`](#AccessControl-RoleRevoked-bytes32-address-address-)
 
-# Function `hasRole(bytes32 role, address account) → bool` {#AccessControl-hasRole-bytes32-address-}
+### [Function `hasRole(bytes32 role, address account) → bool`](#AccessControl-hasRole-bytes32-address-)
 
 Returns `true` if `account` has been granted `role`.
 
-# Function `getRoleMemberCount(bytes32 role) → uint256` {#AccessControl-getRoleMemberCount-bytes32-}
+### [Function `getRoleMemberCount(bytes32 role) → uint256`](#AccessControl-getRoleMemberCount-bytes32-)
 
 Returns the number of accounts that have `role`. Can be used
 
 together with {getRoleMember} to enumerate all bearers of a role.
 
-# Function `getRoleMember(bytes32 role, uint256 index) → address` {#AccessControl-getRoleMember-bytes32-uint256-}
+### [Function `getRoleMember(bytes32 role, uint256 index) → address`](#AccessControl-getRoleMember-bytes32-uint256-)
 
 Returns one of the accounts that have `role`. `index` must be a
 
@@ -98,7 +98,7 @@ https://forum.openzeppelin.com/t/iterating-over-elements-on-enumerableset-in-ope
 
 for more information.
 
-# Function `getRoleAdmin(bytes32 role) → bytes32` {#AccessControl-getRoleAdmin-bytes32-}
+### [Function `getRoleAdmin(bytes32 role) → bytes32`](#AccessControl-getRoleAdmin-bytes32-)
 
 Returns the admin role that controls `role`. See {grantRole} and
 
@@ -106,7 +106,7 @@ Returns the admin role that controls `role`. See {grantRole} and
 
 To change a role's admin, use {_setRoleAdmin}.
 
-# Function `grantRole(bytes32 role, address account)` {#AccessControl-grantRole-bytes32-address-}
+### [Function `grantRole(bytes32 role, address account)`](#AccessControl-grantRole-bytes32-address-)
 
 Grants `role` to `account`.
 
@@ -116,7 +116,7 @@ Requirements:
 
 - the caller must have `role`'s admin role.
 
-# Function `revokeRole(bytes32 role, address account)` {#AccessControl-revokeRole-bytes32-address-}
+### [Function `revokeRole(bytes32 role, address account)`](#AccessControl-revokeRole-bytes32-address-)
 
 Revokes `role` from `account`.
 
@@ -126,7 +126,7 @@ Requirements:
 
 - the caller must have `role`'s admin role.
 
-# Function `renounceRole(bytes32 role, address account)` {#AccessControl-renounceRole-bytes32-address-}
+### [Function `renounceRole(bytes32 role, address account)`](#AccessControl-renounceRole-bytes32-address-)
 
 Revokes `role` from the calling account.
 
@@ -140,7 +140,7 @@ Requirements:
 
 - the caller must be `account`.
 
-# Event `RoleGranted(bytes32 role, address account, address sender)` {#AccessControl-RoleGranted-bytes32-address-address-}
+### Event `RoleGranted(bytes32 role, address account, address sender)` {#AccessControl-RoleGranted-bytes32-address-address-}
 
 Emitted when `account` is granted `role`.
 
@@ -150,7 +150,7 @@ Emitted when `account` is granted `role`.
 
 - if using `_grantRole`, its meaning is system-dependent
 
-# Event `RoleRevoked(bytes32 role, address account, address sender)` {#AccessControl-RoleRevoked-bytes32-address-address-}
+### Event `RoleRevoked(bytes32 role, address account, address sender)` {#AccessControl-RoleRevoked-bytes32-address-address-}
 
 Emitted when `account` is revoked `role`.
 

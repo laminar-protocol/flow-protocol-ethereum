@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`getBidSpread(address fToken)`](#LiquidityPoolInterface-getBidSpread-address-)
 
@@ -8,32 +8,32 @@
 
 - [`openPosition(address tradingPair, uint256 positionId, address quoteToken, int256 leverage, uint256 baseTokenAmount)`](#LiquidityPoolInterface-openPosition-address-uint256-address-int256-uint256-)
 
-# Events:
+## Events:
 
 - [`SpreadUpdated()`](#LiquidityPoolInterface-SpreadUpdated--)
 
 - [`AdditionalCollateralRatioUpdated()`](#LiquidityPoolInterface-AdditionalCollateralRatioUpdated--)
 
-# Function `getBidSpread(address fToken) → uint256` {#LiquidityPoolInterface-getBidSpread-address-}
+### [Function `getBidSpread(address fToken) → uint256`](#LiquidityPoolInterface-getBidSpread-address-)
 
 No description
 
-# Function `getAskSpread(address fToken) → uint256` {#LiquidityPoolInterface-getAskSpread-address-}
+### [Function `getAskSpread(address fToken) → uint256`](#LiquidityPoolInterface-getAskSpread-address-)
 
 No description
 
-# Function `getAdditionalCollateralRatio(address fToken) → uint256` {#LiquidityPoolInterface-getAdditionalCollateralRatio-address-}
+### [Function `getAdditionalCollateralRatio(address fToken) → uint256`](#LiquidityPoolInterface-getAdditionalCollateralRatio-address-)
 
 No description
 
-# Function `openPosition(address tradingPair, uint256 positionId, address quoteToken, int256 leverage, uint256 baseTokenAmount) → bool` {#LiquidityPoolInterface-openPosition-address-uint256-address-int256-uint256-}
+### [Function `openPosition(address tradingPair, uint256 positionId, address quoteToken, int256 leverage, uint256 baseTokenAmount) → bool`](#LiquidityPoolInterface-openPosition-address-uint256-address-int256-uint256-)
 
 No description
 
-# Event `SpreadUpdated()` {#LiquidityPoolInterface-SpreadUpdated--}
+### Event `SpreadUpdated()` {#LiquidityPoolInterface-SpreadUpdated--}
 
 No description
 
-# Event `AdditionalCollateralRatioUpdated()` {#LiquidityPoolInterface-AdditionalCollateralRatioUpdated--}
+### Event `AdditionalCollateralRatioUpdated()` {#LiquidityPoolInterface-AdditionalCollateralRatioUpdated--}
 
 No description

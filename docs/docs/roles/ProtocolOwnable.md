@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`initialize(address protocol)`](#ProtocolOwnable-initialize-address-)
 
@@ -6,14 +6,14 @@
 
 - [`isProtocol()`](#ProtocolOwnable-isProtocol--)
 
-# Function `initialize(address protocol)` {#ProtocolOwnable-initialize-address-}
+### [Function `initialize(address protocol)`](#ProtocolOwnable-initialize-address-)
 
 No description
 
-# Function `protocol() → address` {#ProtocolOwnable-protocol--}
+### [Function `protocol() → address`](#ProtocolOwnable-protocol--)
 
 No description
 
-# Function `isProtocol() → bool` {#ProtocolOwnable-isProtocol--}
+### [Function `isProtocol() → bool`](#ProtocolOwnable-isProtocol--)
 
 No description

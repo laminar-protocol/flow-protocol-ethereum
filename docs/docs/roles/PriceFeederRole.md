@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`initialize()`](#PriceFeederRole-initialize--)
 
@@ -10,36 +10,36 @@
 
 - [`renouncePriceFeeder()`](#PriceFeederRole-renouncePriceFeeder--)
 
-# Events:
+## Events:
 
 - [`PriceFeederAdded(address _account)`](#PriceFeederRole-PriceFeederAdded-address-)
 
 - [`PriceFeederRemoved(address _account)`](#PriceFeederRole-PriceFeederRemoved-address-)
 
-# Function `initialize()` {#PriceFeederRole-initialize--}
+### [Function `initialize()`](#PriceFeederRole-initialize--)
 
 No description
 
-# Function `isPriceFeeder(address _account) → bool` {#PriceFeederRole-isPriceFeeder-address-}
+### [Function `isPriceFeeder(address _account) → bool`](#PriceFeederRole-isPriceFeeder-address-)
 
 No description
 
-# Function `addPriceFeeder(address _account)` {#PriceFeederRole-addPriceFeeder-address-}
+### [Function `addPriceFeeder(address _account)`](#PriceFeederRole-addPriceFeeder-address-)
 
 No description
 
-# Function `removePriceFeeder(address _account)` {#PriceFeederRole-removePriceFeeder-address-}
+### [Function `removePriceFeeder(address _account)`](#PriceFeederRole-removePriceFeeder-address-)
 
 No description
 
-# Function `renouncePriceFeeder()` {#PriceFeederRole-renouncePriceFeeder--}
+### [Function `renouncePriceFeeder()`](#PriceFeederRole-renouncePriceFeeder--)
 
 No description
 
-# Event `PriceFeederAdded(address _account)` {#PriceFeederRole-PriceFeederAdded-address-}
+### Event `PriceFeederAdded(address _account)` {#PriceFeederRole-PriceFeederAdded-address-}
 
 No description
 
-# Event `PriceFeederRemoved(address _account)` {#PriceFeederRole-PriceFeederRemoved-address-}
+### Event `PriceFeederRemoved(address _account)` {#PriceFeederRole-PriceFeederRemoved-address-}
 
 No description

@@ -10,7 +10,7 @@ This module is used through inheritance. It will make available the modifier
 
 the owner.
 
-# Functions:
+## Functions:
 
 - [`initialize(address sender)`](#UpgradeOwnable-initialize-address-)
 
@@ -22,23 +22,23 @@ the owner.
 
 - [`transferOwnership(address newOwner)`](#UpgradeOwnable-transferOwnership-address-)
 
-# Events:
+## Events:
 
 - [`OwnershipTransferred(address previousOwner, address newOwner)`](#UpgradeOwnable-OwnershipTransferred-address-address-)
 
-# Function `initialize(address sender)` {#UpgradeOwnable-initialize-address-}
+### [Function `initialize(address sender)`](#UpgradeOwnable-initialize-address-)
 
 Initializes the contract setting the deployer as the initial owner.
 
-# Function `owner() → address` {#UpgradeOwnable-owner--}
+### [Function `owner() → address`](#UpgradeOwnable-owner--)
 
 Returns the address of the current owner.
 
-# Function `isOwner() → bool` {#UpgradeOwnable-isOwner--}
+### [Function `isOwner() → bool`](#UpgradeOwnable-isOwner--)
 
 Returns true if the caller is the current owner.
 
-# Function `renounceOwnership()` {#UpgradeOwnable-renounceOwnership--}
+### [Function `renounceOwnership()`](#UpgradeOwnable-renounceOwnership--)
 
 Leaves the contract without owner. It will not be possible to call
 
@@ -48,12 +48,12 @@ Leaves the contract without owner. It will not be possible to call
 
 thereby removing any functionality that is only available to the owner.
 
-# Function `transferOwnership(address newOwner)` {#UpgradeOwnable-transferOwnership-address-}
+### [Function `transferOwnership(address newOwner)`](#UpgradeOwnable-transferOwnership-address-)
 
 Transfers ownership of the contract to a new account (`newOwner`).
 
 Can only be called by the current owner.
 
-# Event `OwnershipTransferred(address previousOwner, address newOwner)` {#UpgradeOwnable-OwnershipTransferred-address-address-}
+### Event `OwnershipTransferred(address previousOwner, address newOwner)` {#UpgradeOwnable-OwnershipTransferred-address-address-}
 
 No description

@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`transferProxyOwnership(address _newOwner)`](#Proxy-transferProxyOwnership-address-)
 
@@ -12,26 +12,26 @@
 
 - [`receive()`](#Proxy-receive--)
 
-# Function `transferProxyOwnership(address _newOwner)` {#Proxy-transferProxyOwnership-address-}
+### [Function `transferProxyOwnership(address _newOwner)`](#Proxy-transferProxyOwnership-address-)
 
 No description
 
-# Function `upgradeTo(address _implementation)` {#Proxy-upgradeTo-address-}
+### [Function `upgradeTo(address _implementation)`](#Proxy-upgradeTo-address-)
 
 No description
 
-# Function `implementation() → address impl` {#Proxy-implementation--}
+### [Function `implementation() → address impl`](#Proxy-implementation--)
 
 No description
 
-# Function `proxyOwner() → address owner` {#Proxy-proxyOwner--}
+### [Function `proxyOwner() → address owner`](#Proxy-proxyOwner--)
 
 No description
 
-# Function `fallback()` {#Proxy-fallback--}
+### [Function `fallback()`](#Proxy-fallback--)
 
 No description
 
-# Function `receive()` {#Proxy-receive--}
+### [Function `receive()`](#Proxy-receive--)
 
 No description

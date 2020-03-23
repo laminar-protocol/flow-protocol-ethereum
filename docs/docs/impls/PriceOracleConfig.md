@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`initialize()`](#PriceOracleConfig-initialize--)
 
@@ -10,22 +10,22 @@
 
 - [`setExpireIn(uint256 time)`](#PriceOracleConfig-setExpireIn-uint256-)
 
-# Function `initialize()` {#PriceOracleConfig-initialize--}
+### [Function `initialize()`](#PriceOracleConfig-initialize--)
 
 No description
 
-# Function `setOracleDeltaLastLimit(uint256 limit)` {#PriceOracleConfig-setOracleDeltaLastLimit-uint256-}
+### [Function `setOracleDeltaLastLimit(uint256 limit)`](#PriceOracleConfig-setOracleDeltaLastLimit-uint256-)
 
 No description
 
-# Function `setOracleDeltaSnapshotLimit(uint256 limit)` {#PriceOracleConfig-setOracleDeltaSnapshotLimit-uint256-}
+### [Function `setOracleDeltaSnapshotLimit(uint256 limit)`](#PriceOracleConfig-setOracleDeltaSnapshotLimit-uint256-)
 
 No description
 
-# Function `setOracleDeltaSnapshotTime(uint256 time)` {#PriceOracleConfig-setOracleDeltaSnapshotTime-uint256-}
+### [Function `setOracleDeltaSnapshotTime(uint256 time)`](#PriceOracleConfig-setOracleDeltaSnapshotTime-uint256-)
 
 No description
 
-# Function `setExpireIn(uint256 time)` {#PriceOracleConfig-setExpireIn-uint256-}
+### [Function `setExpireIn(uint256 time)`](#PriceOracleConfig-setExpireIn-uint256-)
 
 No description

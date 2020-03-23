@@ -66,7 +66,7 @@ fs.appendFileSync('.gitbook.yaml', `  summary: ${SUMMARY_FILE}\n`);
 scan(INPUT_DIR, '');
 
 const args = [
-  `${NODE_DIR}/solidity-docs/dist/cli.js`,
+  `${NODE_DIR}/solidity-docgen/dist/cli.js`,
   `--input=${INPUT_DIR}`,
   `--output=${OUTPUT_DIR}`,
   `--templates=${CONFIG_DIR}`,

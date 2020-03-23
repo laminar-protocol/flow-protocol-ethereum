@@ -14,10 +14,10 @@ those functions `private`, and then adding `external` `nonReentrant` entry
 
 points to them.
 
-# Functions:
+## Functions:
 
 - [`initialize()`](#UpgradeReentrancyGuard-initialize--)
 
-# Function `initialize()` {#UpgradeReentrancyGuard-initialize--}
+### [Function `initialize()`](#UpgradeReentrancyGuard-initialize--)
 
 No description

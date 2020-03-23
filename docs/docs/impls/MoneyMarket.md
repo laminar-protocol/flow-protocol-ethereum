@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`initialize(contract CErc20Interface _cToken, string _iTokenName, string _iTokenSymbol, uint256 _minLiquidity)`](#MoneyMarket-initialize-contract-CErc20Interface-string-string-uint256-)
 
@@ -32,66 +32,66 @@
 
 - [`convertAmountToBase(uint256 rate, uint256 iTokenAmount)`](#MoneyMarket-convertAmountToBase-uint256-uint256-)
 
-# Function `initialize(contract CErc20Interface _cToken, string _iTokenName, string _iTokenSymbol, uint256 _minLiquidity)` {#MoneyMarket-initialize-contract-CErc20Interface-string-string-uint256-}
+### [Function `initialize(contract CErc20Interface _cToken, string _iTokenName, string _iTokenSymbol, uint256 _minLiquidity)`](#MoneyMarket-initialize-contract-CErc20Interface-string-string-uint256-)
 
 No description
 
-# Function `baseToken() → contract IERC20` {#MoneyMarket-baseToken--}
+### [Function `baseToken() → contract IERC20`](#MoneyMarket-baseToken--)
 
 No description
 
-# Function `iToken() → contract IERC20` {#MoneyMarket-iToken--}
+### [Function `iToken() → contract IERC20`](#MoneyMarket-iToken--)
 
 No description
 
-# Function `mint(uint256 _baseTokenAmount) → uint256` {#MoneyMarket-mint-uint256-}
+### [Function `mint(uint256 _baseTokenAmount) → uint256`](#MoneyMarket-mint-uint256-)
 
 No description
 
-# Function `mintTo(address recipient, uint256 _baseTokenAmount) → uint256` {#MoneyMarket-mintTo-address-uint256-}
+### [Function `mintTo(address recipient, uint256 _baseTokenAmount) → uint256`](#MoneyMarket-mintTo-address-uint256-)
 
 No description
 
-# Function `redeem(uint256 iTokenAmount) → uint256` {#MoneyMarket-redeem-uint256-}
+### [Function `redeem(uint256 iTokenAmount) → uint256`](#MoneyMarket-redeem-uint256-)
 
 No description
 
-# Function `redeemTo(address recipient, uint256 iTokenAmount) → uint256` {#MoneyMarket-redeemTo-address-uint256-}
+### [Function `redeemTo(address recipient, uint256 iTokenAmount) → uint256`](#MoneyMarket-redeemTo-address-uint256-)
 
 No description
 
-# Function `redeemBaseToken(uint256 _baseTokenAmount)` {#MoneyMarket-redeemBaseToken-uint256-}
+### [Function `redeemBaseToken(uint256 _baseTokenAmount)`](#MoneyMarket-redeemBaseToken-uint256-)
 
 No description
 
-# Function `redeemBaseTokenTo(address recipient, uint256 _baseTokenAmount)` {#MoneyMarket-redeemBaseTokenTo-address-uint256-}
+### [Function `redeemBaseTokenTo(address recipient, uint256 _baseTokenAmount)`](#MoneyMarket-redeemBaseTokenTo-address-uint256-)
 
 No description
 
-# Function `rebalance()` {#MoneyMarket-rebalance--}
+### [Function `rebalance()`](#MoneyMarket-rebalance--)
 
 No description
 
-# Function `setMinLiquidity(uint256 _newMinLiquidity)` {#MoneyMarket-setMinLiquidity-uint256-}
+### [Function `setMinLiquidity(uint256 _newMinLiquidity)`](#MoneyMarket-setMinLiquidity-uint256-)
 
 No description
 
-# Function `calculateInvestAmount(uint256 cTokenCash, uint256 cTokenBorrow, uint256 totalValue) → uint256` {#MoneyMarket-calculateInvestAmount-uint256-uint256-uint256-}
+### [Function `calculateInvestAmount(uint256 cTokenCash, uint256 cTokenBorrow, uint256 totalValue) → uint256`](#MoneyMarket-calculateInvestAmount-uint256-uint256-uint256-)
 
 No description
 
-# Function `exchangeRate() → uint256` {#MoneyMarket-exchangeRate--}
+### [Function `exchangeRate() → uint256`](#MoneyMarket-exchangeRate--)
 
 No description
 
-# Function `totalHoldings() → uint256` {#MoneyMarket-totalHoldings--}
+### [Function `totalHoldings() → uint256`](#MoneyMarket-totalHoldings--)
 
 No description
 
-# Function `convertAmountFromBase(uint256 rate, uint256 _baseTokenAmount) → uint256` {#MoneyMarket-convertAmountFromBase-uint256-uint256-}
+### [Function `convertAmountFromBase(uint256 rate, uint256 _baseTokenAmount) → uint256`](#MoneyMarket-convertAmountFromBase-uint256-uint256-)
 
 No description
 
-# Function `convertAmountToBase(uint256 rate, uint256 iTokenAmount) → uint256` {#MoneyMarket-convertAmountToBase-uint256-uint256-}
+### [Function `convertAmountToBase(uint256 rate, uint256 iTokenAmount) → uint256`](#MoneyMarket-convertAmountToBase-uint256-uint256-)
 
 No description

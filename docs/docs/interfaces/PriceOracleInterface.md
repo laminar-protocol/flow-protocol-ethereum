@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`isPriceOracle()`](#PriceOracleInterface-isPriceOracle--)
 
@@ -6,28 +6,28 @@
 
 - [`readPrice(address key)`](#PriceOracleInterface-readPrice-address-)
 
-# Events:
+## Events:
 
 - [`PriceFeeded(address addr, address sender, uint256 price)`](#PriceOracleInterface-PriceFeeded-address-address-uint256-)
 
 - [`PriceUpdated(address addr, uint256 price)`](#PriceOracleInterface-PriceUpdated-address-uint256-)
 
-# Function `isPriceOracle() → bool` {#PriceOracleInterface-isPriceOracle--}
+### [Function `isPriceOracle() → bool`](#PriceOracleInterface-isPriceOracle--)
 
 No description
 
-# Function `getPrice(address addr) → uint256` {#PriceOracleInterface-getPrice-address-}
+### [Function `getPrice(address addr) → uint256`](#PriceOracleInterface-getPrice-address-)
 
 No description
 
-# Function `readPrice(address key) → uint256` {#PriceOracleInterface-readPrice-address-}
+### [Function `readPrice(address key) → uint256`](#PriceOracleInterface-readPrice-address-)
 
 No description
 
-# Event `PriceFeeded(address addr, address sender, uint256 price)` {#PriceOracleInterface-PriceFeeded-address-address-uint256-}
+### Event `PriceFeeded(address addr, address sender, uint256 price)` {#PriceOracleInterface-PriceFeeded-address-address-uint256-}
 
 No description
 
-# Event `PriceUpdated(address addr, uint256 price)` {#PriceOracleInterface-PriceUpdated-address-uint256-}
+### Event `PriceUpdated(address addr, uint256 price)` {#PriceOracleInterface-PriceUpdated-address-uint256-}
 
 No description

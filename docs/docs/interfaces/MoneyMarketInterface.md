@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`baseToken()`](#MoneyMarketInterface-baseToken--)
 
@@ -22,60 +22,60 @@
 
 - [`convertAmountToBase(uint256 rate, uint256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
 
-# Events:
+## Events:
 
 - [`Minted(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)`](#MoneyMarketInterface-Minted-address-uint256-uint256-)
 
 - [`Redeemed(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)`](#MoneyMarketInterface-Redeemed-address-uint256-uint256-)
 
-# Function `baseToken() → contract IERC20` {#MoneyMarketInterface-baseToken--}
+### [Function `baseToken() → contract IERC20`](#MoneyMarketInterface-baseToken--)
 
 No description
 
-# Function `iToken() → contract IERC20` {#MoneyMarketInterface-iToken--}
+### [Function `iToken() → contract IERC20`](#MoneyMarketInterface-iToken--)
 
 No description
 
-# Function `exchangeRate() → uint256` {#MoneyMarketInterface-exchangeRate--}
+### [Function `exchangeRate() → uint256`](#MoneyMarketInterface-exchangeRate--)
 
 No description
 
-# Function `mint(uint256 baseTokenAmount) → uint256` {#MoneyMarketInterface-mint-uint256-}
+### [Function `mint(uint256 baseTokenAmount) → uint256`](#MoneyMarketInterface-mint-uint256-)
 
 No description
 
-# Function `mintTo(address recipient, uint256 baseTokenAmount) → uint256` {#MoneyMarketInterface-mintTo-address-uint256-}
+### [Function `mintTo(address recipient, uint256 baseTokenAmount) → uint256`](#MoneyMarketInterface-mintTo-address-uint256-)
 
 No description
 
-# Function `redeem(uint256 iTokenAmount) → uint256` {#MoneyMarketInterface-redeem-uint256-}
+### [Function `redeem(uint256 iTokenAmount) → uint256`](#MoneyMarketInterface-redeem-uint256-)
 
 No description
 
-# Function `redeemTo(address recipient, uint256 iTokenAmount) → uint256` {#MoneyMarketInterface-redeemTo-address-uint256-}
+### [Function `redeemTo(address recipient, uint256 iTokenAmount) → uint256`](#MoneyMarketInterface-redeemTo-address-uint256-)
 
 No description
 
-# Function `redeemBaseToken(uint256 baseTokenAmount)` {#MoneyMarketInterface-redeemBaseToken-uint256-}
+### [Function `redeemBaseToken(uint256 baseTokenAmount)`](#MoneyMarketInterface-redeemBaseToken-uint256-)
 
 No description
 
-# Function `redeemBaseTokenTo(address recipient, uint256 baseTokenAmount)` {#MoneyMarketInterface-redeemBaseTokenTo-address-uint256-}
+### [Function `redeemBaseTokenTo(address recipient, uint256 baseTokenAmount)`](#MoneyMarketInterface-redeemBaseTokenTo-address-uint256-)
 
 No description
 
-# Function `convertAmountFromBase(uint256 rate, uint256 baseTokenAmount) → uint256` {#MoneyMarketInterface-convertAmountFromBase-uint256-uint256-}
+### [Function `convertAmountFromBase(uint256 rate, uint256 baseTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountFromBase-uint256-uint256-)
 
 No description
 
-# Function `convertAmountToBase(uint256 rate, uint256 iTokenAmount) → uint256` {#MoneyMarketInterface-convertAmountToBase-uint256-uint256-}
+### [Function `convertAmountToBase(uint256 rate, uint256 iTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
 
 No description
 
-# Event `Minted(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)` {#MoneyMarketInterface-Minted-address-uint256-uint256-}
+### Event `Minted(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)` {#MoneyMarketInterface-Minted-address-uint256-uint256-}
 
 No description
 
-# Event `Redeemed(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)` {#MoneyMarketInterface-Redeemed-address-uint256-uint256-}
+### Event `Redeemed(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)` {#MoneyMarketInterface-Redeemed-address-uint256-uint256-}
 
 No description

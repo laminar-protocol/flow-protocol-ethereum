@@ -1,4 +1,4 @@
-# Functions:
+## Functions:
 
 - [`totalSupply()`](#CErc20Interface-totalSupply--)
 
@@ -24,50 +24,50 @@
 
 - [`transferFrom(address src, address dst, uint256 amount)`](#CErc20Interface-transferFrom-address-address-uint256-)
 
-# Function `totalSupply() → uint256` {#CErc20Interface-totalSupply--}
+### [Function `totalSupply() → uint256`](#CErc20Interface-totalSupply--)
 
 No description
 
-# Function `exchangeRateStored() → uint256` {#CErc20Interface-exchangeRateStored--}
+### [Function `exchangeRateStored() → uint256`](#CErc20Interface-exchangeRateStored--)
 
 No description
 
-# Function `getCash() → uint256` {#CErc20Interface-getCash--}
+### [Function `getCash() → uint256`](#CErc20Interface-getCash--)
 
 No description
 
-# Function `totalBorrows() → uint256` {#CErc20Interface-totalBorrows--}
+### [Function `totalBorrows() → uint256`](#CErc20Interface-totalBorrows--)
 
 No description
 
-# Function `underlying() → address` {#CErc20Interface-underlying--}
+### [Function `underlying() → address`](#CErc20Interface-underlying--)
 
 No description
 
-# Function `balanceOf(address owner) → uint256` {#CErc20Interface-balanceOf-address-}
+### [Function `balanceOf(address owner) → uint256`](#CErc20Interface-balanceOf-address-)
 
 No description
 
-# Function `redeemUnderlying(uint256 redeemAmount) → uint256` {#CErc20Interface-redeemUnderlying-uint256-}
+### [Function `redeemUnderlying(uint256 redeemAmount) → uint256`](#CErc20Interface-redeemUnderlying-uint256-)
 
 No description
 
-# Function `mint(uint256 mintAmount) → uint256` {#CErc20Interface-mint-uint256-}
+### [Function `mint(uint256 mintAmount) → uint256`](#CErc20Interface-mint-uint256-)
 
 No description
 
-# Function `transfer(address dst, uint256 amount) → bool` {#CErc20Interface-transfer-address-uint256-}
+### [Function `transfer(address dst, uint256 amount) → bool`](#CErc20Interface-transfer-address-uint256-)
 
 No description
 
-# Function `redeem(uint256 redeemTokens) → uint256` {#CErc20Interface-redeem-uint256-}
+### [Function `redeem(uint256 redeemTokens) → uint256`](#CErc20Interface-redeem-uint256-)
 
 No description
 
-# Function `approve(address spender, uint256 amount) → bool` {#CErc20Interface-approve-address-uint256-}
+### [Function `approve(address spender, uint256 amount) → bool`](#CErc20Interface-approve-address-uint256-)
 
 No description
 
-# Function `transferFrom(address src, address dst, uint256 amount) → bool` {#CErc20Interface-transferFrom-address-address-uint256-}
+### [Function `transferFrom(address src, address dst, uint256 amount) → bool`](#CErc20Interface-transferFrom-address-address-uint256-)
 
 No description
