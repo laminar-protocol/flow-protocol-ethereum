@@ -1,6 +1,6 @@
 /* solium-disable */
 
-pragma solidity ^0.6.3;
+pragma solidity ^0.6.4;
 // TODOs:
 // - register liquidity pool
 // - discovery liquidity pool
