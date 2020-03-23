@@ -1,10 +1,14 @@
 ## Functions:
 
-- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-)
+- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskThreshold, uint256 _initialLiquidityPoolENPThreshold, uint256 _initialLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-)
 
 - [`setSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol2-setSwapRate-uint256-)
 
 - [`setTraderRiskThreshold(uint256 _newTraderRiskThreshold)`](#FlowMarginProtocol2-setTraderRiskThreshold-uint256-)
+
+- [`setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPThreshold-uint256-)
+
+- [`setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLThreshold-uint256-)
 
 - [`deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-MarginLiquidityPoolInterface-uint256-)
 
@@ -44,7 +48,7 @@
 
 - [`LiquidityPoolBecameSafe(address liquidityPool)`](#FlowMarginProtocol2-LiquidityPoolBecameSafe-address-)
 
-### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-)
+### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskThreshold, uint256 _initialLiquidityPoolENPThreshold, uint256 _initialLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-)
 
 Initialize the FlowMarginProtocol.
 
@@ -73,6 +77,22 @@ Set new trader risk threshold, only for the owner.
 #### Parameters:
 
 - `_newTraderRiskThreshold`: The new trader risk threshold.
+
+### [Function `setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPThreshold-uint256-)
+
+Set new trader risk threshold, only for the owner.
+
+#### Parameters:
+
+- `_newLiquidityPoolENPThreshold`: The new trader risk threshold.
+
+### [Function `setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLThreshold-uint256-)
+
+Set new trader risk threshold, only for the owner.
+
+#### Parameters:
+
+- `_newLiquidityPoolELLThreshold`: The new trader risk threshold.
 
 ### [Function `deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-MarginLiquidityPoolInterface-uint256-)
 
