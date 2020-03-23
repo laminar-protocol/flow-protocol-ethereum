@@ -26,6 +26,8 @@
 
 - [`makeLiquidityPoolSafe(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-makeLiquidityPoolSafe-contract-MarginLiquidityPoolInterface-)
 
+- [`liquidateTrader(address _trader)`](#FlowMarginProtocol2-liquidateTrader-address-)
+
 - [`liquidateLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-MarginLiquidityPoolInterface-)
 
 ## Events:
@@ -177,6 +179,14 @@ Enable full trading functionality for pool, undoing a previous `marginCallLiquid
 #### Parameters:
 
 - `_pool`: The MarginLiquidityPool.
+
+### [Function `liquidateTrader(address _trader)`](#FlowMarginProtocol2-liquidateTrader-address-)
+
+Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
+
+#### Parameters:
+
+- `_trader`: The trader address.
 
 ### [Function `liquidateLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-MarginLiquidityPoolInterface-)
 

@@ -299,11 +299,25 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     /**
-     * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
-     * @param _pool The MarginLiquidityPool.
-     */
+        * @dev Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
+        * @param _trader The trader address.
+        */
+    function liquidateTrader(address _trader) public {
+        // TODO
+
+        // close positions as much as possible, send fee back to caller
+        // emit TraderLiquidated(_trader);
+    }
+
+    /**
+        * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
+        * @param _pool The MarginLiquidityPool.
+        */
     function liquidateLiquidityPool(MarginLiquidityPoolInterface _pool) public {
         // TODO
+
+        // close positions as much as possible, send fee back to caller
+        // emit PoolLiquidated(_pool);
     }
 
     // Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
