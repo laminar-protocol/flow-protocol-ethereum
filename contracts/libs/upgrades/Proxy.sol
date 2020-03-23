@@ -1,4 +1,4 @@
-pragma solidity ^0.6.3;
+pragma solidity ^0.6.4;
 
 contract Proxy {  
     bytes32 private constant implementationPosition = keccak256("implementation.address");

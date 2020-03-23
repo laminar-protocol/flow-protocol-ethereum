@@ -3,3 +3,4 @@ contracts/Migrations.sol
 contracts/libs/upgrades/Proxy.sol
 contracts/libs/upgrades/ERC20DetailedUpgradable.sol
 contracts/libs/upgrades/UpgradeAccessControl.sol
+contracts/interfaces/MarginLiquidityPoolInterface.sol

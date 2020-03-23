@@ -1,4 +1,4 @@
-pragma solidity ^0.6.3;
+pragma solidity ^0.6.4;
 import "../interfaces/PriceOracleInterface.sol";
 import "../impls/PriceOracleConfig.sol";
 import "../libs/Percentage.sol";
