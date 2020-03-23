@@ -4,11 +4,11 @@ const { spawnSync } = require('child_process'); // eslint-disable-line
 
 const NODE_DIR = 'node_modules';
 const INPUT_DIR = 'contracts';
-const CONFIG_DIR = 'docs';
-const OUTPUT_DIR = 'docs/docs';
-// const README_FILE = 'docs/README.md';
-const SUMMARY_FILE = 'docs/SUMMARY.md';
-const EXCLUDE_FILE = 'docs/exclude.txt';
+const CONFIG_DIR = 'generated-docs';
+const OUTPUT_DIR = 'generated-docs/docs';
+// const README_FILE = 'generated-docs/README.md';
+const SUMMARY_FILE = 'generated-docs/SUMMARY.md';
+const EXCLUDE_FILE = 'generated-docs/exclude.txt';
 
 function lines(pathName) {
   return fs
