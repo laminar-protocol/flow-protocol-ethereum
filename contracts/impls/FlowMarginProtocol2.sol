@@ -16,29 +16,6 @@ import "../interfaces/MoneyMarketInterface.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "./FlowToken.sol";
 
-contract Leverage {
-    function isLong() public pure returns(bool) {
-        return true; // TODO !self.isShort();
-    }
-
-    function isShort() public pure returns(bool) {
-        return false; // TODO return self >= Leverage.ShortTwo;
-    }
-
-	/* TODO
-    function value(uint256 self) public returns(uint256) {
-		match self {
-			Leverage::LongTwo | Leverage::ShortTwo => 2,
-			Leverage::LongThree | Leverage::ShortThree => 3,
-			Leverage::LongFive | Leverage::ShortFive => 5,
-			Leverage::LongTen | Leverage::ShortTen => 10,
-			Leverage::LongTwenty | Leverage::ShortTwenty => 20,
-			Leverage::LongThirty | Leverage::ShortThirty => 30,
-			Leverage::LongFifty | Leverage::ShortFifty => 50,
-		};
-	} */
-}
-
 contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancyGuard {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
@@ -53,7 +30,7 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
         address owner;
         LiquidityPoolInterface pool;
         TradingPair pair;
-        Leverage leverage;
+        int256 leverage;
         int256 leveragedHeld;
         int256 leveragedDebits;
 
@@ -153,7 +130,7 @@ contract FlowMarginProtocol2 is Initializable, UpgradeOwnable, UpgradeReentrancy
         int256 openPriceValue = _position.leveragedDebits.div(_position.leveragedHeld);
         int256 openPrice = openPriceValue >= 0 ? openPriceValue : -openPriceValue;
 
-        uint256 currentPrice = _position.leverage.isLong()
+        uint256 currentPrice = _position.leverage > 0
             ? _getBidPriceInWei(_position.pool, _position.pair, 0)
             : _getAskPriceInWei(_position.pool, _position.pair, 0);
 
