@@ -6,4 +6,6 @@ interface MarginLiquidityPoolInterface is LiquidityPoolInterface {
     function depositLiquidity(uint256 _realized) external;
 
     function withdrawLiquidity(uint256 _realized) external;
+
+    function getLiquidity() external returns (uint256);
 }

@@ -67,11 +67,10 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
     mapping (uint256 => Position) private positionsById;
     mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) private positionsByPoolAndTrader;
-    mapping (MarginLiquidityPoolInterface => mapping (address => mapping (address => Position[]))) internal positionsByPool;
-    // mapping (TradingPair => Option<SwapPeriod>) public swapPeriods;
+    mapping (MarginLiquidityPoolInterface => Position[]) internal positionsByPool;
     mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public balances;
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
-    mapping (MarginLiquidityPoolInterface => MarginLiquidityPoolInterface[]) public marginCalledLiquidityPools;
+    mapping (MarginLiquidityPoolInterface => bool) public poolIsMarginCalled;
 
     uint256 public currentSwapRate;
     uint256 public traderRiskThreshold;
@@ -92,12 +91,16 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         PriceOracleInterface _oracle,
         MoneyMarketInterface _moneyMarket,
         uint256 _initialSwapRate,
-        uint256 _initialTraderRiskThreshold
+        uint256 _initialTraderRiskThreshold,
+        uint256 _initialLiquidityPoolENPThreshold,
+        uint256 _initialLiquidityPoolELLThreshold
     ) public initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
 
         currentSwapRate = _initialSwapRate;
         traderRiskThreshold = _initialTraderRiskThreshold;
+        liquidityPoolENPThreshold = _initialLiquidityPoolENPThreshold;
+        liquidityPoolELLThreshold = _initialLiquidityPoolELLThreshold;
     }
 
     /**
@@ -114,6 +117,22 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      */
     function setTraderRiskThreshold(uint256 _newTraderRiskThreshold) public onlyOwner {
         traderRiskThreshold = _newTraderRiskThreshold;
+    }
+
+    /**
+     * @dev Set new trader risk threshold, only for the owner.
+     * @param _newLiquidityPoolENPThreshold The new trader risk threshold.
+     */
+    function setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold) public onlyOwner {
+        liquidityPoolENPThreshold = _newLiquidityPoolENPThreshold;
+    }
+
+    /**
+     * @dev Set new trader risk threshold, only for the owner.
+     * @param _newLiquidityPoolELLThreshold The new trader risk threshold.
+     */
+    function setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold) public onlyOwner {
+        liquidityPoolELLThreshold = _newLiquidityPoolELLThreshold;
     }
 
     /**
@@ -196,7 +215,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     function closePosition(uint256 _positionId, uint256 _price) public {
         Position memory position = positionsById[_positionId];
         (int256 unrealizedPl, uint256 marketPrice) = _getUnrealizedPlAndMarketPriceOfPosition(position, _price);
-        uint256 accumulatedSwapRate = _getAccumulatedSwapRate(position);
+        uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPosition(position);
         int256 balanceDelta = unrealizedPl.sub(int256(accumulatedSwapRate));
 
         // realizing
@@ -258,7 +277,12 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function marginCallLiquidityPool(MarginLiquidityPoolInterface _pool) public {
-        // TODO
+        require(!poolIsMarginCalled[_pool], "Pool is already margin called!");
+        require(!_isPoolSafe(_pool), "Pool cannot be margin called!");
+
+        poolIsMarginCalled[_pool] = true;
+
+        emit LiquidityPoolMarginCalled(address(_pool));
     }
 
      /**
@@ -266,7 +290,12 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function makeLiquidityPoolSafe(MarginLiquidityPoolInterface _pool) public {
-        // TODO
+        require(poolIsMarginCalled[_pool], "Pool is not margin called!");
+        require(_isPoolSafe(_pool), "Pool cannot become safe!");
+
+        poolIsMarginCalled[_pool] = false;
+
+        emit LiquidityPoolBecameSafe(address(_pool));
     }
 
     /**
@@ -277,19 +306,63 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         // TODO
     }
 
+    // Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
+	//
+	// Return true if ensured safe or false if not.
+    function _isPoolSafe(MarginLiquidityPoolInterface _pool) internal returns (bool) {
+        (uint256 enp, uint256 ell) = _getEnpAndEll(_pool);
+        bool isSafe = enp > liquidityPoolENPThreshold && ell > liquidityPoolELLThreshold;
+
+        return isSafe;
+    }
+
     // Ensure a trader is safe, based on equity delta, opened positions or plus a new one to open.
 	//
 	// Return true if ensured safe or false if not.
-    function _isTraderSafe(
-        MarginLiquidityPoolInterface _pool,
-        address _trader
-        // TODO uint256 _newPosition,
-        // TODO int256 _equityDelta
-    ) internal returns (bool) {
+    function _isTraderSafe(MarginLiquidityPoolInterface _pool, address _trader) internal returns (bool) {
         int256 marginLevel = _getMarginLevel(_pool, _trader);
         bool isSafe = marginLevel > int256(traderRiskThreshold);
 
         return isSafe;
+    }
+
+    // ENP and ELL. If `new_position` is `None`, return the ENP & ELL based on current positions,
+    // else based on current positions plus this new one. If `equity_delta` is `None`, return
+    // the ENP & ELL based on current equity of pool, else based on current equity of pool plus
+    // the `equity_delta`.
+    //
+    // ENP - Equity to Net Position ratio of a liquidity pool.
+    // ELL - Equity to Longest Leg ratio of a liquidity pool.
+    function _getEnpAndEll(MarginLiquidityPoolInterface _pool) internal returns (uint256, uint256) {
+        int256 equity = _getEquityOfPool(_pool);
+
+        if (equity < 0) {
+            return (0, 0);
+        }
+
+        (int256 net, int256 positive, int256 nonPositive) = (int256(0), int256(0), int256(0));
+
+        Position[] memory positions = positionsByPool[_pool];
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            int256 leveragedDebitsInUsd = positions[i].leveragedDebitsInUsd;
+
+            net = net.add(leveragedDebitsInUsd);
+
+            if (leveragedDebitsInUsd >= 0) {
+                positive = positive.add(leveragedDebitsInUsd);
+            } else {
+                nonPositive = nonPositive.add(leveragedDebitsInUsd);
+            }
+        }
+
+        uint256 netAbs = net >= 0 ? uint256(net) : uint256(-net);
+        uint256 enp = netAbs == 0 ? MAX_UINT : uint256(equity).div(netAbs);
+
+        uint256 longestLeg = Math.max(uint256(positive), uint256(-nonPositive));
+        uint256 ell = longestLeg == 0 ? MAX_UINT : uint256(equity).div(longestLeg);
+
+        return (enp, ell);
     }
 
     // Margin level of a given user.
@@ -319,6 +392,27 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         int256 totalBalance = int256(balances[_pool][_trader]).add(unrealized);
 
         return totalBalance.sub(int256(accumulatedSwapRates));
+    }
+
+	/// equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate)
+    function _getEquityOfPool(MarginLiquidityPoolInterface _pool) internal returns (int256) {
+        uint256 liquidity = _pool.getLiquidity();
+
+        // allUnrealizedPl + allAccumulatedSwapRate
+        int256 unrealizedPlAndRate = 0;
+
+        Position[] memory positions = positionsByPool[_pool];
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            Position memory position = positions[i];
+
+            int256 unrealized = _getUnrealizedPlOfPosition(position);
+            uint256 swapRate = _getAccumulatedSwapRateOfPosition(position);
+
+            unrealizedPlAndRate = unrealizedPlAndRate.add(unrealized).add(int256(swapRate));
+        }
+
+        return int256(liquidity).sub(unrealizedPlAndRate);
     }
 
     // askPrice = price * (1 + ask_spread)
@@ -367,7 +461,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         uint256 accumulatedSwapRates = uint256(0);
 
         for (uint256 i = 0; i < positions.length; i++) {
-            accumulatedSwapRates = accumulatedSwapRates.add(_getAccumulatedSwapRate(positions[i]));
+            accumulatedSwapRates = accumulatedSwapRates.add(_getAccumulatedSwapRateOfPosition(positions[i]));
         }
 
         return accumulatedSwapRates;
@@ -456,7 +550,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         positionsById[positionId] = position;
         positionsByPoolAndTrader[_pool][_owner].push(position);
-        positionsByPool[_pool][address(_pair.base)][address(_pair.quote)].push(position);
+        positionsByPool[_pool].push(position);
     }
 
     function _removePositionFromTraderList(Position memory _position, uint256 _positionId) internal {
@@ -464,11 +558,11 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     function _removePositionFromPoolList(Position memory _position, uint256 _positionId) internal {
-        _removePositionFromList(positionsByPool[_position.pool][address(_position.pair.base)][address(_position.pair.quote)], _positionId);
+        _removePositionFromList(positionsByPool[_position.pool], _positionId);
     }
 
     function _removePositionFromList(Position[] storage positions, uint256 _positionId) internal {
-        for (uint256 i = 0; i < positions.length; i++) { // TODO pass correct index to prevent out-of-gas
+        for (uint256 i = 0; i < positions.length; i++) { // TODO pass correct index to minimise gas
             if (positions[i].id == _positionId) {
                 positions[i] = positions[positions.length.sub(1)];
                 positions.pop();
@@ -479,7 +573,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     // accumulated interest rate = rate * days
-    function _getAccumulatedSwapRate(Position memory _position) internal view returns (uint256) {
+    function _getAccumulatedSwapRateOfPosition(Position memory _position) internal view returns (uint256) {
         uint256 timeDeltaInSeconds = _position.timeWhenOpened.sub(now);
         uint256 daysSinceOpen = timeDeltaInSeconds.div(1 days);
         uint256 accumulatedSwapRate = _position.swapRate.mul(daysSinceOpen);
