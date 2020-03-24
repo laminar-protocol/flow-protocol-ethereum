@@ -85,7 +85,11 @@ contract('FlowMarginProtocol', accounts => {
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await liquidityPool.initialize(moneyMarket.address, fromPip(10));
+    await liquidityPool.initialize(
+      moneyMarket.address,
+      protocol.address,
+      fromPip(10),
+    );
 
     await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
     await liquidityPool.enableToken(eur);

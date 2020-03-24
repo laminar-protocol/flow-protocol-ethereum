@@ -22,7 +22,7 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
     }
 
     function getMarginLevel(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
-        return _getMarginLevel(_pool, _trader);
+        return _getMarginLevel(_pool, _trader).value;
     }
 
     function getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
@@ -40,12 +40,12 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
     function getAskPrice(LiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _max) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
-        return _getAskPriceInWei(_pool, pair, _max).value;
+        return _getAskPrice(_pool, pair, _max).value;
     }
 
     function getBidPrice(LiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _min) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
-        return _getBidPriceInWei(_pool, pair, _min).value;
+        return _getBidPrice(_pool, pair, _min).value;
     }
 }

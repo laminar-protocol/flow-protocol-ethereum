@@ -75,7 +75,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
 
     uint256 public currentSwapRate;
-    uint256 public traderRiskThreshold;
+    Percentage.Percent public traderRiskThreshold;
     uint256 public liquidityPoolENPThreshold;
     uint256 public liquidityPoolELLThreshold;
 
@@ -87,7 +87,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _oracle The price oracle
      * @param _moneyMarket The money market.
      * @param _initialSwapRate The initial swap rate.
-     * @param _initialTraderRiskThreshold The initial trader risk threshold.
+     * @param _initialTraderRiskThreshold The initial trader risk threshold as percentage.
      */
     function initialize(
         PriceOracleInterface _oracle,
@@ -100,7 +100,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
 
         currentSwapRate = _initialSwapRate;
-        traderRiskThreshold = _initialTraderRiskThreshold;
+        traderRiskThreshold = Percentage.Percent(_initialTraderRiskThreshold);
         liquidityPoolENPThreshold = _initialLiquidityPoolENPThreshold;
         liquidityPoolELLThreshold = _initialLiquidityPoolELLThreshold;
     }
@@ -115,10 +115,10 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
     /**
      * @dev Set new trader risk threshold, only for the owner.
-     * @param _newTraderRiskThreshold The new trader risk threshold.
+     * @param _newTraderRiskThreshold The new trader risk threshold as percentage.
      */
     function setTraderRiskThreshold(uint256 _newTraderRiskThreshold) public onlyOwner {
-        traderRiskThreshold = _newTraderRiskThreshold;
+        traderRiskThreshold = Percentage.Percent(_newTraderRiskThreshold);
     }
 
     /**
@@ -203,7 +203,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         );
 
         // TODO higher threshold?
-        // require(_isTraderSafe(_pool, msg.sender), "Trader has not enough balance to open position!");
+        require(_isTraderSafe(_pool, msg.sender), "Trader has not enough balance to safely open position!");
 
         emit PositionOpened(
             msg.sender,
@@ -229,6 +229,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         // realizing
         uint256 balanceDeltaAbs = balanceDelta >= 0 ? uint256(balanceDelta) : uint256(-balanceDelta);
+
         if (balanceDelta >= 0) {
             // trader has profit
             uint256 realized = Math.min(LiquidityPoolInterface(position.pool).getLiquidity(), balanceDeltaAbs);
@@ -236,7 +237,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(realized);
         } else {
             // trader has loss
-            uint256 realized = balanceDeltaAbs; // TODO Math.min(balances[msg.sender], balanceDeltaAbs);
+            uint256 realized = Math.min(FlowToken(position.pair.base).balanceOf(address(this)), balanceDeltaAbs);
             FlowToken(position.pair.base).approve(address(position.pool), realized);
             LiquidityPoolInterface(position.pool).depositLiquidity(realized);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(realized);
@@ -344,8 +345,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 	//
 	// Return true if ensured safe or false if not.
     function _isTraderSafe(LiquidityPoolInterface _pool, address _trader) internal returns (bool) {
-        int256 marginLevel = _getMarginLevel(_pool, _trader);
-        bool isSafe = marginLevel > int256(traderRiskThreshold);
+        Percentage.SignedPercent memory marginLevel = _getMarginLevel(_pool, _trader);
+        bool isSafe = marginLevel.value > int256(traderRiskThreshold.value);
 
         return isSafe;
     }
@@ -390,15 +391,15 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     // Margin level of a given user.
-    function _getMarginLevel(LiquidityPoolInterface _pool, address _trader) internal returns (int256) {
+    function _getMarginLevel(LiquidityPoolInterface _pool, address _trader) internal returns (Percentage.SignedPercent memory) {
         int256 equity = _getEquityOfTrader(_pool, _trader);
         uint256 leveragedDebitsInUsd = _getLeveragedDebitsOfTrader(_pool, _trader);
 
         if (leveragedDebitsInUsd == 0) {
-            return MAX_INT;
+            return Percentage.SignedPercent(MAX_INT);
         }
 
-        return equity.div(int256(leveragedDebitsInUsd));
+        return Percentage.signedFromFraction(equity, int256(leveragedDebitsInUsd));
     }
 
     // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
