@@ -9,6 +9,7 @@
     "verify": "cross-env-shell truffle run verify Proxy MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network $NETWORK",
     "lint": "yarn solium -d contracts/ && yarn eslint --ext .js,.ts subgraph && yarn tsc --noEmit --pretty",
     "test": "bash ./run_tests.sh",
+    "test:debug": "yarn buidler test",
     "docify": "node docify.js",
     "graph-node": "docker-compose up",
     "deploy-local": "sh deploy-local.sh",
