@@ -10,25 +10,25 @@
 
 - [`setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLThreshold-uint256-)
 
-- [`deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-MarginLiquidityPoolInterface-uint256-)
+- [`deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
-- [`withdraw(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-withdraw-contract-MarginLiquidityPoolInterface-uint256-)
+- [`withdraw(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-withdraw-contract-LiquidityPoolInterface-uint256-)
 
-- [`openPosition(contract MarginLiquidityPoolInterface _pool, contract FlowToken _base, contract FlowToken _quote, int256 _leverage, int256 _leveragedHeld, uint256 _price)`](#FlowMarginProtocol2-openPosition-contract-MarginLiquidityPoolInterface-contract-FlowToken-contract-FlowToken-int256-int256-uint256-)
+- [`openPosition(contract LiquidityPoolInterface _pool, contract FlowToken _base, contract FlowToken _quote, int256 _leverage, int256 _leveragedHeld, uint256 _price)`](#FlowMarginProtocol2-openPosition-contract-LiquidityPoolInterface-contract-FlowToken-contract-FlowToken-int256-int256-uint256-)
 
 - [`closePosition(uint256 _positionId, uint256 _price)`](#FlowMarginProtocol2-closePosition-uint256-uint256-)
 
-- [`marginCallTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-marginCallTrader-contract-MarginLiquidityPoolInterface-address-)
+- [`marginCallTrader(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-marginCallTrader-contract-LiquidityPoolInterface-address-)
 
-- [`makeTraderSafe(contract MarginLiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-makeTraderSafe-contract-MarginLiquidityPoolInterface-address-)
+- [`makeTraderSafe(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-makeTraderSafe-contract-LiquidityPoolInterface-address-)
 
-- [`marginCallLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-marginCallLiquidityPool-contract-MarginLiquidityPoolInterface-)
+- [`marginCallLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-marginCallLiquidityPool-contract-LiquidityPoolInterface-)
 
-- [`makeLiquidityPoolSafe(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-makeLiquidityPoolSafe-contract-MarginLiquidityPoolInterface-)
+- [`makeLiquidityPoolSafe(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-makeLiquidityPoolSafe-contract-LiquidityPoolInterface-)
 
 - [`liquidateTrader(address _trader)`](#FlowMarginProtocol2-liquidateTrader-address-)
 
-- [`liquidateLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-MarginLiquidityPoolInterface-)
+- [`liquidateLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-LiquidityPoolInterface-)
 
 ## Events:
 
@@ -62,7 +62,7 @@ Initialize the FlowMarginProtocol.
 
 - `_initialSwapRate`: The initial swap rate.
 
-- `_initialTraderRiskThreshold`: The initial trader risk threshold.
+- `_initialTraderRiskThreshold`: The initial trader risk threshold as percentage.
 
 ### [Function `setSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol2-setSwapRate-uint256-)
 
@@ -78,7 +78,7 @@ Set new trader risk threshold, only for the owner.
 
 #### Parameters:
 
-- `_newTraderRiskThreshold`: The new trader risk threshold.
+- `_newTraderRiskThreshold`: The new trader risk threshold as percentage.
 
 ### [Function `setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPThreshold-uint256-)
 
@@ -96,7 +96,7 @@ Set new trader risk threshold, only for the owner.
 
 - `_newLiquidityPoolELLThreshold`: The new trader risk threshold.
 
-### [Function `deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-MarginLiquidityPoolInterface-uint256-)
+### [Function `deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
 Deposit amount to pool balance.
 
@@ -106,7 +106,7 @@ Deposit amount to pool balance.
 
 - `_baseTokenAmount`: The base token amount to deposit.
 
-### [Function `withdraw(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-withdraw-contract-MarginLiquidityPoolInterface-uint256-)
+### [Function `withdraw(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-withdraw-contract-LiquidityPoolInterface-uint256-)
 
 Withdraw amount from pool balance.
 
@@ -116,7 +116,7 @@ Withdraw amount from pool balance.
 
 - `_baseTokenAmount`: The base token amount to withdraw.
 
-### [Function `openPosition(contract MarginLiquidityPoolInterface _pool, contract FlowToken _base, contract FlowToken _quote, int256 _leverage, int256 _leveragedHeld, uint256 _price)`](#FlowMarginProtocol2-openPosition-contract-MarginLiquidityPoolInterface-contract-FlowToken-contract-FlowToken-int256-int256-uint256-)
+### [Function `openPosition(contract LiquidityPoolInterface _pool, contract FlowToken _base, contract FlowToken _quote, int256 _leverage, int256 _leveragedHeld, uint256 _price)`](#FlowMarginProtocol2-openPosition-contract-LiquidityPoolInterface-contract-FlowToken-contract-FlowToken-int256-int256-uint256-)
 
 Open a new position with a min/max price. Set price to 0 if you want to use the current market price.
 
@@ -144,7 +144,7 @@ Close the given position with a min/max price. Set price to 0 if you want to use
 
 - `_price`: The max/min price when closing the position..
 
-### [Function `marginCallTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-marginCallTrader-contract-MarginLiquidityPoolInterface-address-)
+### [Function `marginCallTrader(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-marginCallTrader-contract-LiquidityPoolInterface-address-)
 
 Margin call a trader, reducing his allowed trading functionality given a MarginLiquidityPool.
 
@@ -154,7 +154,7 @@ Margin call a trader, reducing his allowed trading functionality given a MarginL
 
 - `_trader`: The Trader.
 
-### [Function `makeTraderSafe(contract MarginLiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-makeTraderSafe-contract-MarginLiquidityPoolInterface-address-)
+### [Function `makeTraderSafe(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-makeTraderSafe-contract-LiquidityPoolInterface-address-)
 
 Enable full trading functionality for trader, undoing a previous `marginCallTrader` given a MarginLiquidityPool.
 
@@ -164,7 +164,7 @@ Enable full trading functionality for trader, undoing a previous `marginCallTrad
 
 - `_trader`: The Trader.
 
-### [Function `marginCallLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-marginCallLiquidityPool-contract-MarginLiquidityPoolInterface-)
+### [Function `marginCallLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-marginCallLiquidityPool-contract-LiquidityPoolInterface-)
 
 Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders.
 
@@ -172,7 +172,7 @@ Margin call a given MarginLiquidityPool, reducing its allowed trading functional
 
 - `_pool`: The MarginLiquidityPool.
 
-### [Function `makeLiquidityPoolSafe(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-makeLiquidityPoolSafe-contract-MarginLiquidityPoolInterface-)
+### [Function `makeLiquidityPoolSafe(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-makeLiquidityPoolSafe-contract-LiquidityPoolInterface-)
 
 Enable full trading functionality for pool, undoing a previous `marginCallLiquidityPool`.
 
@@ -188,7 +188,7 @@ Liquidate trader due to funds running too low, close all positions and send `MAR
 
 - `_trader`: The trader address.
 
-### [Function `liquidateLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-MarginLiquidityPoolInterface-)
+### [Function `liquidateLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-LiquidityPoolInterface-)
 
 Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
 

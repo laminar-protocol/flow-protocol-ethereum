@@ -22,6 +22,8 @@
 
 - [`convertAmountToBase(uint256 rate, uint256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
 
+- [`totalHoldings()`](#MoneyMarketInterface-totalHoldings--)
+
 ## Events:
 
 - [`Minted(address recipient, uint256 baseTokenAmount, uint256 iTokenAmount)`](#MoneyMarketInterface-Minted-address-uint256-uint256-)
@@ -69,6 +71,10 @@ No description
 No description
 
 ### [Function `convertAmountToBase(uint256 rate, uint256 iTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
+
+No description
+
+### [Function `totalHoldings() → uint256`](#MoneyMarketInterface-totalHoldings--)
 
 No description
 

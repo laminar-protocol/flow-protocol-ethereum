@@ -16,7 +16,6 @@
   * interfaces
     * [CErc20Interface](docs/interfaces/CErc20Interface.md)
     * [LiquidityPoolInterface](docs/interfaces/LiquidityPoolInterface.md)
-    * [MarginLiquidityPoolInterface](docs/interfaces/MarginLiquidityPoolInterface.md)
     * [MoneyMarketInterface](docs/interfaces/MoneyMarketInterface.md)
     * [PriceOracleInterface](docs/interfaces/PriceOracleInterface.md)
   * libs
