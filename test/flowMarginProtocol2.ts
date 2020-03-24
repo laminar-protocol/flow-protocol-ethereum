@@ -42,6 +42,11 @@ contract('FlowMarginProtocol2', accounts => {
   let pair: MarginTradingPairInstance;
   let moneyMarket: MoneyMarketInstance;
 
+  let initialSwapRate: BN;
+  let initialTraderRiskThreshold: BN;
+  let initialLiquidityPoolENPThreshold: BN;
+  let initialLiquidityPoolELLThreshold: BN;
+
   before(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
@@ -53,6 +58,11 @@ contract('FlowMarginProtocol2', accounts => {
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
+
+    initialSwapRate = bn(2);
+    initialTraderRiskThreshold = bn(5);
+    initialLiquidityPoolENPThreshold = bn(4);
+    initialLiquidityPoolELLThreshold = bn(3);
   });
 
   beforeEach(async () => {
@@ -73,7 +83,14 @@ contract('FlowMarginProtocol2', accounts => {
     protocol = await TestFlowMarginProtocol2.at(
       flowMarginProtocolProxy.address,
     );
-    await protocol.initialize(oracle.address, moneyMarket.address);
+    await (protocol as any).initialize(
+      oracle.address,
+      moneyMarket.address,
+      initialSwapRate,
+      initialTraderRiskThreshold,
+      initialLiquidityPoolENPThreshold,
+      initialLiquidityPoolELLThreshold,
+    );
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
@@ -109,7 +126,62 @@ contract('FlowMarginProtocol2', accounts => {
     return newString;
   };
 
-  describe('unrealized profit loss', () => {
+  describe.only('when opening a position', () => {
+    it('opens', async () => {
+      const leverage = bn(20);
+      const depositInUsd = dollar(10);
+      const leveragedHeldInEuro = euro(100);
+      const price = 0; // accept all
+
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
+        from: alice,
+      });
+
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage,
+        leveragedHeldInEuro,
+        price,
+        { from: alice },
+      );
+
+      const marginLevel = await protocol.getMarginLevel.call(
+        liquidityPool.address,
+        alice,
+      );
+      const equity = await protocol.getEquityOfTrader.call(
+        liquidityPool.address,
+        alice,
+      );
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
+        liquidityPool.address,
+        alice,
+      );
+      const leveragedDebits = await protocol.getLeveragedDebitsOfTrader(
+        liquidityPool.address,
+        alice,
+      );
+      const balance = await protocol.balances(liquidityPool.address, alice);
+      console.log({
+        marginLevel: marginLevel.toString(),
+        equity: equity.toString(),
+        unrealizedPl: unrealizedPl.toString(),
+        balance: balance.toString(),
+        leveragedDebits: leveragedDebits.toString(),
+      });
+
+      // TODO test
+
+      const positionId = ((await protocol.nextPositionId()) as any).sub(bn(1));
+      await protocol.closePosition(positionId, price, { from: alice });
+
+      // TODO test
+    });
+  });
+
+  describe('when computing unrealized profit loss', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
       let bidPrice: BN;
