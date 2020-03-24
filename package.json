@@ -48,6 +48,7 @@
     "ganache-cli": "^6.9.1",
     "openzeppelin-test-helpers": "^0.5.1",
     "prettier": "^1.19.1",
+    "solc": "0.6.4",
     "solidity-docgen": "^0.4.1",
     "truffle": "5.1.10",
     "truffle-contract-size": "^1.0.1",
