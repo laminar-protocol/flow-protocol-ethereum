@@ -14,7 +14,7 @@ contract ProtocolOwnable is Initializable {
     }
 
     modifier onlyProtocol() {
-        require(isProtocol(), "Ownable: caller is not the owner");
+        require(isProtocol(), "Ownable: caller is not the protocol");
         _;
     }
 
