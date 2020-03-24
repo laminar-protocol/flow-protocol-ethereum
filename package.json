@@ -23,6 +23,9 @@
     "upgrade-contracts:kovan": "cross-env-shell CONTRACT_NAME=$CONTRACT_NAME NETWORK=kovan yarn truffle exec dev-scripts/upgradeContract.js --network kovan"
   },
   "devDependencies": {
+    "@nomiclabs/buidler": "^1.2.0",
+    "@nomiclabs/buidler-truffle5": "^1.2.0",
+    "@nomiclabs/buidler-web3": "^1.2.0",
     "@openzeppelin/contracts": "^3.0.0-rc.0",
     "@openzeppelin/upgrades": "^2.7.2",
     "@types/chai": "^4.2.10",

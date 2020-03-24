@@ -27,6 +27,10 @@ blockchain/history
 .tern-port
 package-lock.json
 
+# buidler
+artifacts
+cache
+
 # End of https://www.gitignore.io/api/soliditytruffle
 
 .vscode/
