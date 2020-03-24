@@ -16,7 +16,7 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
 
     uint constant MAX_UINT = 2**256 - 1;
 
-    MoneyMarketInterface private moneyMarket;
+    MoneyMarketInterface internal moneyMarket;
     uint private spread;
     uint private collateralRatio;
 
@@ -102,12 +102,12 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         allowedTokens[token] = false;
     }
 
-    function depositLiquidity(uint amount) external {
+    function depositLiquidity(uint amount) external override {
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), amount);
         moneyMarket.mint(amount);
     }
 
-    function withdrawLiquidity(uint amount) external onlyOwner {
+    function withdrawLiquidity(uint amount) external override onlyOwner {
         moneyMarket.redeemTo(msg.sender, amount);
     }
 
@@ -117,5 +117,9 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
 
     function withdrawCollateral(FlowProtocol protocol, FlowToken token) external onlyOwner {
         protocol.withdrawCollateral(token);
+    }
+
+    function getLiquidity() external override returns (uint256) {
+        return moneyMarket.totalHoldings();
     }
 }
