@@ -96,7 +96,7 @@ contract('FlowProtocol', accounts => {
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await liquidityPool.initialize(
+    await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address,
       fromPip(10),
