@@ -31,8 +31,9 @@ contract('LiquidityPool', accounts => {
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await (liquidityPool as any).methods['initialize(address,uint256)'](
+    await (liquidityPool as any).methods['initialize(address,address,uint256)'](
       moneyMarket.address,
+      protocol,
       helper.fromPip(10),
       {
         from: liquidityProvider,
