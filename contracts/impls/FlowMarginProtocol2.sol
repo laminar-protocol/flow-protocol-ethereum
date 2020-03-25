@@ -511,17 +511,14 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         Position memory _position,
         uint256 _price
     ) internal returns (int256, Percentage.Percent memory) {
-        Percentage.SignedPercent memory openPrice = Percentage.signedFromFraction(_position.leveragedDebits,_position.leveragedHeld);
+        Percentage.SignedPercent memory openPrice = Percentage.signedFromFraction(_position.leveragedDebits, _position.leveragedHeld);
         Percentage.SignedPercent memory openPriceAbs = openPrice.value >= 0
             ? Percentage.SignedPercent(openPrice.value)
             : Percentage.SignedPercent(-openPrice.value);
 
-        int256 bidPriceInWei = int256(_getBidPrice(_position.pool, _position.pair, _price).value);
-        int256 askPriceInWei = int256(_getAskPrice(_position.pool, _position.pair, _price).value);
-
         Percentage.SignedPercent memory currentPrice = _position.leverage > 0
-            ? Percentage.SignedPercent(bidPriceInWei)
-            : Percentage.SignedPercent(askPriceInWei);
+            ? Percentage.SignedPercent(int256(_getBidPrice(_position.pool, _position.pair, _price).value))
+            : Percentage.SignedPercent(int256(_getAskPrice(_position.pool, _position.pair, _price).value));
 
         Percentage.SignedPercent memory priceDelta = Percentage.signedSubPercent(currentPrice, openPriceAbs);
         int256 unrealized = _position.leveragedHeld.signedMulPercent(priceDelta);
