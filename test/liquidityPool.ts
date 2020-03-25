@@ -158,7 +158,7 @@ contract('LiquidityPool', accounts => {
     });
   });
 
-  describe('withdraw', () => {
+  describe.only('withdraw', () => {
     beforeEach(async () => {
       await moneyMarket.mintTo(liquidityPool.address, 1000, {
         from: liquidityProvider,
@@ -166,7 +166,9 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to withdraw by owner', async () => {
-      await liquidityPool.withdrawLiquidity(5000, { from: liquidityProvider });
+      await liquidityPool.withdrawLiquidityOwner(5000, {
+        from: liquidityProvider,
+      });
       expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(
         helper.bn(9500),
       );
@@ -177,7 +179,7 @@ contract('LiquidityPool', accounts => {
 
     it('should not be able to withdraw by others', async () => {
       await expectRevert(
-        liquidityPool.withdrawLiquidity(500, { from: badAddress }),
+        liquidityPool.withdrawLiquidityOwner(500, { from: badAddress }),
         helper.messages.onlyOwner,
       );
     });
