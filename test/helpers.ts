@@ -11,6 +11,8 @@ const MoneyMarket = artifacts.require('MoneyMarket');
 const Proxy = artifacts.require('Proxy');
 const IERC20 = artifacts.require('IERC20');
 
+export const fromEth = (val: number | string | BN): any =>
+  new BN(val.toString()).div(web3.utils.toWei(new BN(1)));
 export const fromPip = (val: number | string): any =>
   web3.utils.toWei(new BN(val)).div(new BN(10000));
 export const fromPercent = (val: number | string): any =>
