@@ -155,6 +155,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _baseTokenAmount The base token amount to withdraw.
      */
     function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public {
+        require(getFreeBalance(_pool, msg.sender) >= int256(_baseTokenAmount), "Not enough free balance to withdraw!");
+
         IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, _baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(_baseTokenAmount);
 
@@ -325,10 +327,29 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         * @param _pool The MarginLiquidityPool.
         */
     function liquidateLiquidityPool(LiquidityPoolInterface _pool) public {
-        // TODO
 
-        // close positions as much as possible, send fee back to caller
-        // emit PoolLiquidated(_pool);
+    /**
+    * @dev Sum of all open margin of a given trader.
+    * @param _pool The MarginLiquidityPool.
+    * @param _trader The trader address.
+    */
+    function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (int256) {
+        int256 accumulatedOpenMargin = 0;
+        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            accumulatedOpenMargin = accumulatedOpenMargin.add(positions[i].openMargin);
+        }
+    }
+
+    /**
+    * @dev Free balance: the balance available for withdraw.
+    * @param _pool The MarginLiquidityPool.
+    * @param _trader The trader address.
+    */
+    function getFreeBalance(LiquidityPoolInterface _pool, address _trader) public view returns (int256) {
+        // free_balance = max(balance - margin_held, zero)
+        return int256(balances[_pool][_trader]).sub(getMarginHeld(_pool, _trader));
     }
 
     // Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
