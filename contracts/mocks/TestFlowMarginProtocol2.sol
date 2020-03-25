@@ -4,7 +4,7 @@ import "../impls/FlowMarginProtocol2.sol";
 
 contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
     function testUnrealizedPl(
-        MarginLiquidityPoolInterface _pool,
+        LiquidityPoolInterface _pool,
         FlowToken _base,
         FlowToken _quote,
         int256 _leverage,
@@ -21,15 +21,31 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
         return _getUsdValue(_currencyToken, _amount);
     }
 
-    function getAskPrice(MarginLiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _max) public returns (uint256) {
-        TradingPair memory pair = TradingPair(_base, _quote);
-
-        return _getAskPriceInWei(_pool, pair, _max);
+    function getMarginLevel(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
+        return _getMarginLevel(_pool, _trader).value;
     }
 
-    function getBidPrice(MarginLiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _min) public returns (uint256) {
+    function getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
+        return _getEquityOfTrader(_pool, _trader);
+    }
+
+    function getLeveragedDebitsOfTrader(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+        return _getLeveragedDebitsOfTrader(_pool, _trader);
+    }
+
+    function getUnrealizedPlOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
+        return _getUnrealizedPlOfTrader(_pool, _trader);
+    }
+
+    function getAskPrice(LiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _max) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
-        return _getBidPriceInWei(_pool, pair, _min);
+        return _getAskPrice(_pool, pair, _max).value;
+    }
+
+    function getBidPrice(LiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _min) public returns (uint256) {
+        TradingPair memory pair = TradingPair(_base, _quote);
+
+        return _getBidPrice(_pool, pair, _min).value;
     }
 }

@@ -31,8 +31,9 @@ contract('LiquidityPool', accounts => {
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await (liquidityPool as any).methods['initialize(address,uint256)'](
+    await (liquidityPool as any).methods['initialize(address,address,uint256)'](
       moneyMarket.address,
+      protocol,
       helper.fromPip(10),
       {
         from: liquidityProvider,
@@ -157,7 +158,7 @@ contract('LiquidityPool', accounts => {
     });
   });
 
-  describe('withdraw', () => {
+  describe.only('withdraw', () => {
     beforeEach(async () => {
       await moneyMarket.mintTo(liquidityPool.address, 1000, {
         from: liquidityProvider,
@@ -165,7 +166,9 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to withdraw by owner', async () => {
-      await liquidityPool.withdrawLiquidity(5000, { from: liquidityProvider });
+      await liquidityPool.withdrawLiquidityOwner(5000, {
+        from: liquidityProvider,
+      });
       expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(
         helper.bn(9500),
       );
@@ -176,7 +179,7 @@ contract('LiquidityPool', accounts => {
 
     it('should not be able to withdraw by others', async () => {
       await expectRevert(
-        liquidityPool.withdrawLiquidity(500, { from: badAddress }),
+        liquidityPool.withdrawLiquidityOwner(500, { from: badAddress }),
         helper.messages.onlyOwner,
       );
     });

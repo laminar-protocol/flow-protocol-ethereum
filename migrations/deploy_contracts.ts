@@ -356,6 +356,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await (pool as any).initialize(
       // workaround since init is overloaded function which isnt supported by typechain yet
       moneyMarket.address,
+      protocol.address,
       web3.utils.toWei('0.003'),
     );
 
@@ -377,6 +378,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await (pool2 as any).initialize(
       // workaround since init is overloaded function which isnt supported by typechain yet
       moneyMarket.address,
+      marginProtocol.address,
       web3.utils.toWei('0.0031'),
     );
 

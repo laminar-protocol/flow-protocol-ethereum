@@ -1,5 +1,11 @@
 ## Functions:
 
+- [`depositLiquidity(uint256 _realized)`](#LiquidityPoolInterface-depositLiquidity-uint256-)
+
+- [`withdrawLiquidity(uint256 _realized)`](#LiquidityPoolInterface-withdrawLiquidity-uint256-)
+
+- [`getLiquidity()`](#LiquidityPoolInterface-getLiquidity--)
+
 - [`getBidSpread(address fToken)`](#LiquidityPoolInterface-getBidSpread-address-)
 
 - [`getAskSpread(address fToken)`](#LiquidityPoolInterface-getAskSpread-address-)
@@ -13,6 +19,18 @@
 - [`SpreadUpdated()`](#LiquidityPoolInterface-SpreadUpdated--)
 
 - [`AdditionalCollateralRatioUpdated()`](#LiquidityPoolInterface-AdditionalCollateralRatioUpdated--)
+
+### [Function `depositLiquidity(uint256 _realized)`](#LiquidityPoolInterface-depositLiquidity-uint256-)
+
+No description
+
+### [Function `withdrawLiquidity(uint256 _realized)`](#LiquidityPoolInterface-withdrawLiquidity-uint256-)
+
+No description
+
+### [Function `getLiquidity() → uint256`](#LiquidityPoolInterface-getLiquidity--)
+
+No description
 
 ### [Function `getBidSpread(address fToken) → uint256`](#LiquidityPoolInterface-getBidSpread-address-)
 

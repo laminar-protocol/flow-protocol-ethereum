@@ -9,6 +9,7 @@
     "verify": "cross-env-shell truffle run verify Proxy MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network $NETWORK",
     "lint": "yarn solium -d contracts/ && yarn eslint --ext .js,.ts subgraph && yarn tsc --noEmit --pretty",
     "test": "bash ./run_tests.sh",
+    "test:debug": "yarn buidler test",
     "docify": "node docify.js",
     "graph-node": "docker-compose up",
     "deploy-local": "sh deploy-local.sh",
@@ -23,6 +24,9 @@
     "upgrade-contracts:kovan": "cross-env-shell CONTRACT_NAME=$CONTRACT_NAME NETWORK=kovan yarn truffle exec dev-scripts/upgradeContract.js --network kovan"
   },
   "devDependencies": {
+    "@nomiclabs/buidler": "^1.2.0",
+    "@nomiclabs/buidler-truffle5": "^1.2.0",
+    "@nomiclabs/buidler-web3": "^1.2.0",
     "@openzeppelin/contracts": "^3.0.0-rc.0",
     "@openzeppelin/upgrades": "^2.7.2",
     "@types/chai": "^4.2.10",
@@ -44,6 +48,7 @@
     "ganache-cli": "^6.9.1",
     "openzeppelin-test-helpers": "^0.5.1",
     "prettier": "^1.19.1",
+    "solc": "0.6.4",
     "solidity-docgen": "^0.4.1",
     "truffle": "5.1.10",
     "truffle-contract-size": "^1.0.1",

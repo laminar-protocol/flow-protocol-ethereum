@@ -3,6 +3,12 @@ pragma solidity ^0.6.4;
 import "./MoneyMarketInterface.sol";
 
 interface LiquidityPoolInterface {
+    function depositLiquidity(uint256 _realized) external;
+
+    function withdrawLiquidity(uint256 _realized) external;
+
+    function getLiquidity() external returns (uint256);
+
     // return 0 means not available for this trade
     function getBidSpread(address fToken) external view returns (uint256);
     // return 0 means not available for this trade

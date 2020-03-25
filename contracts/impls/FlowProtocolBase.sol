@@ -23,6 +23,7 @@ contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGua
 
     uint public maxSpread;
 
+    int constant MAX_INT = 2**256 / 2 - 1;
     uint constant MAX_UINT = 2**256 - 1;
 
     function initialize(PriceOracleInterface _oracle, MoneyMarketInterface _moneyMarket) public initializer {

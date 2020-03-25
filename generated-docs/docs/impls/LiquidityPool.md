@@ -1,6 +1,6 @@
 ## Functions:
 
-- [`initialize(contract MoneyMarketInterface _moneyMarket, uint256 _spread)`](#LiquidityPool-initialize-contract-MoneyMarketInterface-uint256-)
+- [`initialize(contract MoneyMarketInterface _moneyMarket, address _protocol, uint256 _spread)`](#LiquidityPool-initialize-contract-MoneyMarketInterface-address-uint256-)
 
 - [`getBidSpread(address fToken)`](#LiquidityPool-getBidSpread-address-)
 
@@ -10,9 +10,9 @@
 
 - [`openPosition(address, uint256, address quoteToken, int256 leverage, uint256)`](#LiquidityPool-openPosition-address-uint256-address-int256-uint256-)
 
-- [`closeMarginPosition(contract FlowMarginProtocol protocol, contract MarginTradingPair pair, uint256 id)`](#LiquidityPool-closeMarginPosition-contract-FlowMarginProtocol-contract-MarginTradingPair-uint256-)
+- [`closeMarginPosition(contract FlowMarginProtocol _protocol, contract MarginTradingPair pair, uint256 id)`](#LiquidityPool-closeMarginPosition-contract-FlowMarginProtocol-contract-MarginTradingPair-uint256-)
 
-- [`approve(address protocol, uint256 amount)`](#LiquidityPool-approve-address-uint256-)
+- [`approve(address _protocol, uint256 amount)`](#LiquidityPool-approve-address-uint256-)
 
 - [`setSpread(uint256 value)`](#LiquidityPool-setSpread-uint256-)
 
@@ -26,11 +26,15 @@
 
 - [`withdrawLiquidity(uint256 amount)`](#LiquidityPool-withdrawLiquidity-uint256-)
 
-- [`addCollateral(contract FlowProtocol protocol, contract FlowToken token, uint256 baseTokenAmount)`](#LiquidityPool-addCollateral-contract-FlowProtocol-contract-FlowToken-uint256-)
+- [`withdrawLiquidityOwner(uint256 amount)`](#LiquidityPool-withdrawLiquidityOwner-uint256-)
 
-- [`withdrawCollateral(contract FlowProtocol protocol, contract FlowToken token)`](#LiquidityPool-withdrawCollateral-contract-FlowProtocol-contract-FlowToken-)
+- [`addCollateral(contract FlowProtocol _protocol, contract FlowToken token, uint256 baseTokenAmount)`](#LiquidityPool-addCollateral-contract-FlowProtocol-contract-FlowToken-uint256-)
 
-### [Function `initialize(contract MoneyMarketInterface _moneyMarket, uint256 _spread)`](#LiquidityPool-initialize-contract-MoneyMarketInterface-uint256-)
+- [`withdrawCollateral(contract FlowProtocol _protocol, contract FlowToken token)`](#LiquidityPool-withdrawCollateral-contract-FlowProtocol-contract-FlowToken-)
+
+- [`getLiquidity()`](#LiquidityPool-getLiquidity--)
+
+### [Function `initialize(contract MoneyMarketInterface _moneyMarket, address _protocol, uint256 _spread)`](#LiquidityPool-initialize-contract-MoneyMarketInterface-address-uint256-)
 
 No description
 
@@ -50,11 +54,11 @@ No description
 
 No description
 
-### [Function `closeMarginPosition(contract FlowMarginProtocol protocol, contract MarginTradingPair pair, uint256 id)`](#LiquidityPool-closeMarginPosition-contract-FlowMarginProtocol-contract-MarginTradingPair-uint256-)
+### [Function `closeMarginPosition(contract FlowMarginProtocol _protocol, contract MarginTradingPair pair, uint256 id)`](#LiquidityPool-closeMarginPosition-contract-FlowMarginProtocol-contract-MarginTradingPair-uint256-)
 
 No description
 
-### [Function `approve(address protocol, uint256 amount)`](#LiquidityPool-approve-address-uint256-)
+### [Function `approve(address _protocol, uint256 amount)`](#LiquidityPool-approve-address-uint256-)
 
 No description
 
@@ -82,10 +86,18 @@ No description
 
 No description
 
-### [Function `addCollateral(contract FlowProtocol protocol, contract FlowToken token, uint256 baseTokenAmount)`](#LiquidityPool-addCollateral-contract-FlowProtocol-contract-FlowToken-uint256-)
+### [Function `withdrawLiquidityOwner(uint256 amount)`](#LiquidityPool-withdrawLiquidityOwner-uint256-)
 
 No description
 
-### [Function `withdrawCollateral(contract FlowProtocol protocol, contract FlowToken token)`](#LiquidityPool-withdrawCollateral-contract-FlowProtocol-contract-FlowToken-)
+### [Function `addCollateral(contract FlowProtocol _protocol, contract FlowToken token, uint256 baseTokenAmount)`](#LiquidityPool-addCollateral-contract-FlowProtocol-contract-FlowToken-uint256-)
+
+No description
+
+### [Function `withdrawCollateral(contract FlowProtocol _protocol, contract FlowToken token)`](#LiquidityPool-withdrawCollateral-contract-FlowProtocol-contract-FlowToken-)
+
+No description
+
+### [Function `getLiquidity() → uint256`](#LiquidityPool-getLiquidity--)
 
 No description

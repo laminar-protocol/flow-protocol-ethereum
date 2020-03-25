@@ -16,16 +16,23 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
 
     uint constant MAX_UINT = 2**256 - 1;
 
-    MoneyMarketInterface private moneyMarket;
+    MoneyMarketInterface internal moneyMarket;
     uint private spread;
     uint private collateralRatio;
 
+    address public protocol;
     mapping (address => bool) public allowedTokens;
 
-    function initialize(MoneyMarketInterface _moneyMarket, uint _spread) public initializer {
+    modifier onlyProtocol() {
+        require(msg.sender == protocol, "Ownable: caller is not the protocol");
+        _;
+    }
+
+    function initialize(MoneyMarketInterface _moneyMarket, address _protocol, uint _spread) public initializer {
         UpgradeOwnable.initialize(msg.sender);
 
         moneyMarket = _moneyMarket;
+        protocol = _protocol;
         spread = _spread;
         collateralRatio = 0; // use fToken default
     }
@@ -74,12 +81,12 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         return true;
     }
 
-    function closeMarginPosition(FlowMarginProtocol protocol, MarginTradingPair pair, uint id) external onlyOwner {
-        protocol.closePosition(pair, id);
+    function closeMarginPosition(FlowMarginProtocol _protocol, MarginTradingPair pair, uint id) external onlyOwner {
+        _protocol.closePosition(pair, id);
     }
 
-    function approve(address protocol, uint amount) external onlyOwner {
-        moneyMarket.iToken().safeApprove(protocol, amount);
+    function approve(address _protocol, uint amount) external onlyOwner {
+        moneyMarket.iToken().safeApprove(_protocol, amount);
     }
 
     function setSpread(uint value) external onlyOwner {
@@ -102,20 +109,29 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         allowedTokens[token] = false;
     }
 
-    function depositLiquidity(uint amount) external {
+    function depositLiquidity(uint amount) external override {
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), amount);
+        moneyMarket.baseToken().approve(address(moneyMarket), amount);
         moneyMarket.mint(amount);
     }
 
-    function withdrawLiquidity(uint amount) external onlyOwner {
+    function withdrawLiquidity(uint amount) external override onlyProtocol {
         moneyMarket.redeemTo(msg.sender, amount);
     }
 
-    function addCollateral(FlowProtocol protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {
-        protocol.addCollateral(token, address(this), baseTokenAmount);
+    function withdrawLiquidityOwner(uint amount) external onlyOwner {
+        moneyMarket.redeemTo(msg.sender, amount);
     }
 
-    function withdrawCollateral(FlowProtocol protocol, FlowToken token) external onlyOwner {
-        protocol.withdrawCollateral(token);
+    function addCollateral(FlowProtocol _protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {
+        _protocol.addCollateral(token, address(this), baseTokenAmount);
+    }
+
+    function withdrawCollateral(FlowProtocol _protocol, FlowToken token) external onlyOwner {
+        _protocol.withdrawCollateral(token);
+    }
+
+    function getLiquidity() external override returns (uint256) {
+        return moneyMarket.totalHoldings();
     }
 }

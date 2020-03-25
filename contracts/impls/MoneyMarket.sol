@@ -182,7 +182,7 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         return totalHoldings().mul(1 ether).div(totalSupply);
     }
 
-    function totalHoldings() public view returns (uint) {
+    function totalHoldings() public view override returns (uint) {
         return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1 ether).add(_baseToken.balanceOf(address(this)));
     }
 

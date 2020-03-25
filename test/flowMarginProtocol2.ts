@@ -14,6 +14,7 @@ import {
 import {
   createTestToken,
   createMoneyMarket,
+  fromEth,
   fromPercent,
   fromPip,
   dollar,
@@ -42,6 +43,11 @@ contract('FlowMarginProtocol2', accounts => {
   let pair: MarginTradingPairInstance;
   let moneyMarket: MoneyMarketInstance;
 
+  let initialSwapRate: BN;
+  let initialTraderRiskThreshold: BN;
+  let initialLiquidityPoolENPThreshold: BN;
+  let initialLiquidityPoolELLThreshold: BN;
+
   before(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
@@ -53,6 +59,11 @@ contract('FlowMarginProtocol2', accounts => {
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
+
+    initialSwapRate = bn(2);
+    initialTraderRiskThreshold = fromPercent(5);
+    initialLiquidityPoolENPThreshold = bn(4);
+    initialLiquidityPoolELLThreshold = bn(3);
   });
 
   beforeEach(async () => {
@@ -73,7 +84,14 @@ contract('FlowMarginProtocol2', accounts => {
     protocol = await TestFlowMarginProtocol2.at(
       flowMarginProtocolProxy.address,
     );
-    await protocol.initialize(oracle.address, moneyMarket.address);
+    await (protocol as any).initialize(
+      oracle.address,
+      moneyMarket.address,
+      initialSwapRate,
+      initialTraderRiskThreshold,
+      initialLiquidityPoolENPThreshold,
+      initialLiquidityPoolELLThreshold,
+    );
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: bob });
@@ -85,10 +103,16 @@ contract('FlowMarginProtocol2', accounts => {
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await liquidityPool.initialize(moneyMarket.address, fromPip(10));
+    await (liquidityPool as any).initialize(
+      moneyMarket.address,
+      protocol.address,
+      fromPip(10),
+    );
 
     await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
+    await usd.approve(liquidityPool.address, constants.MAX_UINT256);
     await liquidityPool.enableToken(eur);
+    await liquidityPool.depositLiquidity(dollar(10000));
 
     await moneyMarket.mintTo(liquidityPool.address, dollar(10000), {
       from: liquidityProvider,
@@ -109,12 +133,114 @@ contract('FlowMarginProtocol2', accounts => {
     return newString;
   };
 
-  describe('unrealized profit loss', () => {
+  describe('when opening/closing a position', () => {
+    let leverage: BN;
+    let depositInUsd: BN;
+    let leveragedHeldInEuro: BN;
+    let price: BN;
+    let traderBalanceBefore: BN;
+    let positionId: BN;
+
+    beforeEach(async () => {
+      leverage = bn(20);
+      depositInUsd = dollar(80);
+      leveragedHeldInEuro = euro(100);
+      price = bn(0); // accept all
+
+      await protocol.deposit(liquidityPool.address, depositInUsd.toString(), {
+        from: alice,
+      });
+
+      traderBalanceBefore = (await protocol.balances(
+        liquidityPool.address,
+        alice,
+      )) as any;
+
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage.toString(),
+        leveragedHeldInEuro.toString(),
+        price.toString(),
+        { from: alice },
+      );
+
+      positionId = ((await protocol.nextPositionId()) as any).sub(bn(1));
+    });
+
+    it('computes new balance correctly when immediately closing', async () => {
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
+        liquidityPool.address,
+        alice,
+      );
+      await protocol.closePosition(positionId.toString(), price.toString(), {
+        from: alice,
+      });
+
+      const traderBalanceAfter = await protocol.balances(
+        liquidityPool.address,
+        alice,
+      );
+      const traderBalanceDifference = (traderBalanceAfter as any).sub(
+        traderBalanceBefore,
+      );
+
+      expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+    });
+
+    it('computes new balance correctly after a price drop', async () => {
+      await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
+        liquidityPool.address,
+        alice,
+      );
+
+      await protocol.closePosition(positionId.toString(), price.toString(), {
+        from: alice,
+      });
+
+      const traderBalanceAfter = await protocol.balances(
+        liquidityPool.address,
+        alice,
+      );
+      const traderBalanceDifference = (traderBalanceAfter as any).sub(
+        traderBalanceBefore,
+      );
+
+      expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+    });
+
+    it('computes new balance correctly after a price increase', async () => {
+      await oracle.feedPrice(eur, fromPercent(200), { from: owner });
+
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
+        liquidityPool.address,
+        alice,
+      );
+      await protocol.closePosition(positionId.toString(), price.toString(), {
+        from: alice,
+      });
+
+      const traderBalanceAfter = await protocol.balances(
+        liquidityPool.address,
+        alice,
+      );
+      const traderBalanceDifference = (traderBalanceAfter as any).sub(
+        traderBalanceBefore,
+      );
+
+      expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+    });
+  });
+
+  describe('when computing unrealized profit loss', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
       let bidPrice: BN;
       let leveragedHeldInEuro: BN;
-      let leveragedDebitsInWei: BN;
+      let leveragedDebits: BN;
 
       beforeEach(async () => {
         askPrice = (await protocol.getAskPrice.call(
@@ -132,7 +258,9 @@ contract('FlowMarginProtocol2', accounts => {
         )) as any;
 
         leveragedHeldInEuro = euro(100);
-        leveragedDebitsInWei = leveragedHeldInEuro.mul(askPrice);
+        leveragedDebits = fromEth(
+          leveragedHeldInEuro.mul(leverage.gte(bn(0)) ? askPrice : bidPrice),
+        );
       });
 
       it('should return correct unrealized PL at the beginning of a new position', async () => {
@@ -142,12 +270,15 @@ contract('FlowMarginProtocol2', accounts => {
           eur,
           leverage.toString(),
           leveragedHeldInEuro.toString(),
-          leveragedDebitsInWei.toString(),
+          leveragedDebits.toString(),
         );
-        const expectedPl = leveragedHeldInEuro.mul(
-          (leverage.gte(bn(0)) ? bidPrice : askPrice).sub(
-            leveragedDebitsInWei.div(leveragedHeldInEuro),
-          ),
+        const currentPrice = leverage.gte(bn(0)) ? bidPrice : askPrice;
+        const openPrice = leveragedDebits
+          .mul(bn(1e18))
+          .div(leveragedHeldInEuro);
+        // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
+        const expectedPl = fromEth(
+          currentPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
         expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
@@ -166,10 +297,14 @@ contract('FlowMarginProtocol2', accounts => {
           eur,
           leverage.toString(),
           leveragedHeldInEuro.toString(),
-          leveragedDebitsInWei.toString(),
+          leveragedDebits.toString(),
         );
-        const expectedPl = leveragedHeldInEuro.mul(
-          newPrice.sub(leveragedDebitsInWei.div(leveragedHeldInEuro)),
+        const openPrice = leveragedDebits
+          .mul(bn(1e18))
+          .div(leveragedHeldInEuro);
+        // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
+        const expectedPl = fromEth(
+          newPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
         expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
@@ -178,7 +313,7 @@ contract('FlowMarginProtocol2', accounts => {
       it('should return correct unrealized PL after a loss', async () => {
         await oracle.feedPrice(eur, fromPercent(60), { from: owner });
 
-        const newBidPrice: BN = (await protocol[
+        const newPrice: BN = (await protocol[
           leverage.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0)) as any;
 
@@ -188,10 +323,14 @@ contract('FlowMarginProtocol2', accounts => {
           eur,
           leverage.toString(),
           leveragedHeldInEuro.toString(),
-          leveragedDebitsInWei.toString(),
+          leveragedDebits.toString(),
         );
-        const expectedPl = leveragedHeldInEuro.mul(
-          newBidPrice.sub(leveragedDebitsInWei.div(leveragedHeldInEuro)),
+        const openPrice = leveragedDebits
+          .mul(bn(1e18))
+          .div(leveragedHeldInEuro);
+        // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
+        const expectedPl = fromEth(
+          newPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
         expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
