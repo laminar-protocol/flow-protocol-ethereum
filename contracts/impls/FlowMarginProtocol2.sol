@@ -64,6 +64,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     event TraderLiquidated(address indexed sender);
     event LiquidityPoolMarginCalled(address indexed liquidityPool);
     event LiquidityPoolBecameSafe(address indexed liquidityPool);
+    event LiquidityPoolLiquidated(address indexed liquidityPool);
 
     uint256 public nextPositionId;
 
@@ -75,9 +76,12 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
 
     uint256 public currentSwapRate;
-    Percentage.Percent public traderRiskThreshold;
-    uint256 public liquidityPoolENPThreshold;
-    uint256 public liquidityPoolELLThreshold;
+    Percentage.Percent public traderRiskMarginCallThreshold;
+    Percentage.Percent public traderRiskLiquidateThreshold;
+    uint256 public liquidityPoolENPMarginThreshold;
+    uint256 public liquidityPoolELLMarginThreshold;
+    uint256 public liquidityPoolENPLiquidateThreshold;
+    uint256 public liquidityPoolELLLiquidateThreshold;
 
     uint256 constant MARGIN_CALL_FEE = 3; // TODO
     uint256 constant LIQUIDATION_FEE = 3; // TODO
@@ -87,22 +91,28 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _oracle The price oracle
      * @param _moneyMarket The money market.
      * @param _initialSwapRate The initial swap rate.
-     * @param _initialTraderRiskThreshold The initial trader risk threshold as percentage.
+     * @param _initialTraderRiskMarginCallThreshold The initial trader risk threshold as percentage.
      */
     function initialize(
         PriceOracleInterface _oracle,
         MoneyMarketInterface _moneyMarket,
         uint256 _initialSwapRate,
-        uint256 _initialTraderRiskThreshold,
-        uint256 _initialLiquidityPoolENPThreshold,
-        uint256 _initialLiquidityPoolELLThreshold
+        uint256 _initialTraderRiskMarginCallThreshold,
+        uint256 _initialTraderRiskLiquidateThreshold,
+        uint256 _initialLiquidityPoolENPMarginThreshold,
+        uint256 _initialLiquidityPoolELLMarginThreshold,
+        uint256 _initialLiquidityPoolENPLiquidateThreshold,
+        uint256 _initialLiquidityPoolELLLiquidateThreshold
     ) public initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
 
         currentSwapRate = _initialSwapRate;
-        traderRiskThreshold = Percentage.Percent(_initialTraderRiskThreshold);
-        liquidityPoolENPThreshold = _initialLiquidityPoolENPThreshold;
-        liquidityPoolELLThreshold = _initialLiquidityPoolELLThreshold;
+        traderRiskMarginCallThreshold = Percentage.Percent(_initialTraderRiskMarginCallThreshold);
+        traderRiskLiquidateThreshold = Percentage.Percent(_initialTraderRiskLiquidateThreshold);
+        liquidityPoolENPMarginThreshold = _initialLiquidityPoolENPMarginThreshold;
+        liquidityPoolELLMarginThreshold = _initialLiquidityPoolELLMarginThreshold;
+        liquidityPoolENPLiquidateThreshold = _initialLiquidityPoolENPLiquidateThreshold;
+        liquidityPoolELLLiquidateThreshold = _initialLiquidityPoolELLLiquidateThreshold;
     }
 
     /**
@@ -114,27 +124,51 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     /**
-     * @dev Set new trader risk threshold, only for the owner.
-     * @param _newTraderRiskThreshold The new trader risk threshold as percentage.
+     * @dev Set new trader risk threshold for trader margin calls, only set by owner.
+     * @param _newTraderRiskMarginCallThreshold The new trader risk threshold as percentage.
      */
-    function setTraderRiskThreshold(uint256 _newTraderRiskThreshold) public onlyOwner {
-        traderRiskThreshold = Percentage.Percent(_newTraderRiskThreshold);
+    function setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold) public onlyOwner {
+        traderRiskMarginCallThreshold = Percentage.Percent(_newTraderRiskMarginCallThreshold);
+    }
+
+    /**
+     * @dev Set new trader risk threshold for trader liquidation, only set by owner.
+     * @param _newTraderRiskLiquidateThreshold The new trader risk threshold as percentage.
+     */
+    function setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold) public onlyOwner {
+        traderRiskLiquidateThreshold = Percentage.Percent(_newTraderRiskLiquidateThreshold);
     }
 
     /**
      * @dev Set new trader risk threshold, only for the owner.
-     * @param _newLiquidityPoolENPThreshold The new trader risk threshold.
+     * @param _newLiquidityPoolENPMarginThreshold The new trader risk threshold.
      */
-    function setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold) public onlyOwner {
-        liquidityPoolENPThreshold = _newLiquidityPoolENPThreshold;
+    function setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold) public onlyOwner {
+        liquidityPoolENPMarginThreshold = _newLiquidityPoolENPMarginThreshold;
     }
 
     /**
      * @dev Set new trader risk threshold, only for the owner.
-     * @param _newLiquidityPoolELLThreshold The new trader risk threshold.
+     * @param _newLiquidityPoolELLMarginThreshold The new trader risk threshold.
      */
-    function setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold) public onlyOwner {
-        liquidityPoolELLThreshold = _newLiquidityPoolELLThreshold;
+    function setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold) public onlyOwner {
+        liquidityPoolELLMarginThreshold = _newLiquidityPoolELLMarginThreshold;
+    }
+
+    /**
+     * @dev Set new trader risk threshold, only for the owner.
+     * @param _newLiquidityPoolENPLiquidateThreshold The new trader risk threshold.
+     */
+    function setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold) public onlyOwner {
+        liquidityPoolENPLiquidateThreshold = _newLiquidityPoolENPLiquidateThreshold;
+    }
+
+    /**
+     * @dev Set new trader risk threshold, only for the owner.
+     * @param _newLiquidityPoolELLLiquidateThreshold The new trader risk threshold.
+     */
+    function setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold) public onlyOwner {
+        liquidityPoolELLLiquidateThreshold = _newLiquidityPoolELLLiquidateThreshold;
     }
 
     /**
@@ -155,6 +189,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _baseTokenAmount The base token amount to withdraw.
      */
     function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public {
+        require(getFreeBalance(_pool, msg.sender) >= int256(_baseTokenAmount), "Not enough free balance to withdraw!");
+
         IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, _baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(_baseTokenAmount);
 
@@ -296,7 +332,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         emit LiquidityPoolMarginCalled(address(_pool));
     }
 
-     /**
+    /**
      * @dev Enable full trading functionality for pool, undoing a previous `marginCallLiquidityPool`.
      * @param _pool The MarginLiquidityPool.
      */
@@ -310,25 +346,71 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     /**
-        * @dev Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
-        * @param _trader The trader address.
-        */
-    function liquidateTrader(address _trader) public {
-        // TODO
+     * @dev Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
+     * @param _pool The MarginLiquidityPool.
+     * @param _trader The trader address.
+     */
+    function liquidateTrader(LiquidityPoolInterface _pool, address _trader) public {
+        Percentage.SignedPercent memory marginLevel = _getMarginLevel(_pool, _trader);
 
-        // close positions as much as possible, send fee back to caller
-        // emit TraderLiquidated(_trader);
+        require(marginLevel.value <= int256(traderRiskLiquidateThreshold.value), "Trader cannot be liquidated!");
+
+        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            closePosition(positions[i].id, 0);
+        }
+
+        traderIsMarginCalled[_pool][_trader] = false;
+
+        // TODO send MARGIN_CALL_FEE back to caller
+
+        emit TraderLiquidated(_trader);
     }
 
     /**
-        * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
-        * @param _pool The MarginLiquidityPool.
-        */
+    * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
+    * @param _pool The MarginLiquidityPool.
+    */
     function liquidateLiquidityPool(LiquidityPoolInterface _pool) public {
-        // TODO
-
         // close positions as much as possible, send fee back to caller
-        // emit PoolLiquidated(_pool);
+
+        (uint256 enp, uint256 ell) = _getEnpAndEll(_pool);
+        require(enp <= liquidityPoolENPLiquidateThreshold || ell <= liquidityPoolELLLiquidateThreshold, "Pool cannot be liquidated!");
+
+        Position[] memory positions = positionsByPool[_pool];
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            _liquidityPoolClosePosition(_pool, positions[i]);
+        }
+
+        poolIsMarginCalled[_pool] = false;
+
+        emit LiquidityPoolLiquidated(address(_pool));
+    }
+
+    /**
+    * @dev Sum of all open margin of a given trader.
+    * @param _pool The MarginLiquidityPool.
+    * @param _trader The trader address.
+    */
+    function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (int256) {
+        int256 accumulatedOpenMargin = 0;
+        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            accumulatedOpenMargin = accumulatedOpenMargin.add(positions[i].openMargin);
+        }
+    }
+
+    /**
+    * @dev Free balance: the balance available for withdraw.
+    * @param _pool The MarginLiquidityPool.
+    * @param _trader The trader address.
+    */
+    function getFreeBalance(LiquidityPoolInterface _pool, address _trader) public view returns (int256) {
+        // free_balance = max(balance - margin_held, zero)
+        return int256(balances[_pool][_trader]).sub(getMarginHeld(_pool, _trader));
     }
 
     // Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
@@ -336,7 +418,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 	// Return true if ensured safe or false if not.
     function _isPoolSafe(LiquidityPoolInterface _pool) internal returns (bool) {
         (uint256 enp, uint256 ell) = _getEnpAndEll(_pool);
-        bool isSafe = enp > liquidityPoolENPThreshold && ell > liquidityPoolELLThreshold;
+        bool isSafe = enp > liquidityPoolENPMarginThreshold && ell > liquidityPoolELLMarginThreshold;
 
         return isSafe;
     }
@@ -346,7 +428,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 	// Return true if ensured safe or false if not.
     function _isTraderSafe(LiquidityPoolInterface _pool, address _trader) internal returns (bool) {
         Percentage.SignedPercent memory marginLevel = _getMarginLevel(_pool, _trader);
-        bool isSafe = marginLevel.value > int256(traderRiskThreshold.value);
+        bool isSafe = marginLevel.value > int256(traderRiskMarginCallThreshold.value);
 
         return isSafe;
     }
@@ -411,7 +493,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         return totalBalance.sub(int256(accumulatedSwapRates));
     }
 
-	/// equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate)
+	// equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate)
     function _getEquityOfPool(LiquidityPoolInterface _pool) internal returns (int256) {
         uint256 liquidity = _pool.getLiquidity();
 
@@ -601,5 +683,27 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         uint256 accumulatedSwapRate = _position.swapRate.mul(daysSinceOpen);
 
         return accumulatedSwapRate;
+    }
+
+	// Force closure position to liquidate liquidity pool based on opened positions.
+    function _liquidityPoolClosePosition(LiquidityPoolInterface _pool, Position memory _position) internal returns (uint256) {
+        Percentage.Percent memory price = _getPrice(_position.pair.base, _position.pair.quote);
+        uint256 spread = _position.leverage > 0
+            ? _pool.getBidSpread(address(_position.pair.base))
+            : _pool.getAskSpread(address(_position.pair.quote));
+
+        uint256 leveragedHeldAbs = _position.leveragedHeld >= 0 ? uint256(_position.leveragedHeld) : uint256(-_position.leveragedHeld);
+        uint256 spreadProfit = leveragedHeldAbs.mul(spread.mulPercent(price));
+        uint256 spreadProfitInUsd = uint256(_getUsdValue(_position.pair.base, int256(spreadProfit)));
+
+        uint256 penalty = spreadProfitInUsd;
+        uint256 subAmount = spreadProfitInUsd.add(penalty);
+
+        closePosition(_position.id, 0);
+
+        uint256 realized = Math.min(_pool.getLiquidity(), subAmount);
+        _pool.withdrawLiquidity(realized);
+
+        return realized;
     }
 }
