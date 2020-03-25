@@ -1,14 +1,20 @@
 ## Functions:
 
-- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskThreshold, uint256 _initialLiquidityPoolENPThreshold, uint256 _initialLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-)
+- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
 
 - [`setSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol2-setSwapRate-uint256-)
 
-- [`setTraderRiskThreshold(uint256 _newTraderRiskThreshold)`](#FlowMarginProtocol2-setTraderRiskThreshold-uint256-)
+- [`setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold)`](#FlowMarginProtocol2-setTraderRiskMarginCallThreshold-uint256-)
 
-- [`setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPThreshold-uint256-)
+- [`setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold)`](#FlowMarginProtocol2-setTraderRiskLiquidateThreshold-uint256-)
 
-- [`setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLThreshold-uint256-)
+- [`setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPMarginThreshold-uint256-)
+
+- [`setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLMarginThreshold-uint256-)
+
+- [`setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPLiquidateThreshold-uint256-)
+
+- [`setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLLiquidateThreshold-uint256-)
 
 - [`deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
@@ -26,9 +32,13 @@
 
 - [`makeLiquidityPoolSafe(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-makeLiquidityPoolSafe-contract-LiquidityPoolInterface-)
 
-- [`liquidateTrader(address _trader)`](#FlowMarginProtocol2-liquidateTrader-address-)
+- [`liquidateTrader(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-liquidateTrader-contract-LiquidityPoolInterface-address-)
 
 - [`liquidateLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-LiquidityPoolInterface-)
+
+- [`getMarginHeld(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-getMarginHeld-contract-LiquidityPoolInterface-address-)
+
+- [`getFreeBalance(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-getFreeBalance-contract-LiquidityPoolInterface-address-)
 
 ## Events:
 
@@ -50,7 +60,9 @@
 
 - [`LiquidityPoolBecameSafe(address liquidityPool)`](#FlowMarginProtocol2-LiquidityPoolBecameSafe-address-)
 
-### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskThreshold, uint256 _initialLiquidityPoolENPThreshold, uint256 _initialLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-)
+- [`LiquidityPoolLiquidated(address liquidityPool)`](#FlowMarginProtocol2-LiquidityPoolLiquidated-address-)
+
+### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol2-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
 
 Initialize the FlowMarginProtocol.
 
@@ -62,7 +74,7 @@ Initialize the FlowMarginProtocol.
 
 - `_initialSwapRate`: The initial swap rate.
 
-- `_initialTraderRiskThreshold`: The initial trader risk threshold as percentage.
+- `_initialTraderRiskMarginCallThreshold`: The initial trader risk threshold as percentage.
 
 ### [Function `setSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol2-setSwapRate-uint256-)
 
@@ -72,29 +84,53 @@ Set new swap rate, only for the owner.
 
 - `_newSwapRate`: The new swap rate.
 
-### [Function `setTraderRiskThreshold(uint256 _newTraderRiskThreshold)`](#FlowMarginProtocol2-setTraderRiskThreshold-uint256-)
+### [Function `setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold)`](#FlowMarginProtocol2-setTraderRiskMarginCallThreshold-uint256-)
+
+Set new trader risk threshold for trader margin calls, only set by owner.
+
+#### Parameters:
+
+- `_newTraderRiskMarginCallThreshold`: The new trader risk threshold as percentage.
+
+### [Function `setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold)`](#FlowMarginProtocol2-setTraderRiskLiquidateThreshold-uint256-)
+
+Set new trader risk threshold for trader liquidation, only set by owner.
+
+#### Parameters:
+
+- `_newTraderRiskLiquidateThreshold`: The new trader risk threshold as percentage.
+
+### [Function `setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPMarginThreshold-uint256-)
 
 Set new trader risk threshold, only for the owner.
 
 #### Parameters:
 
-- `_newTraderRiskThreshold`: The new trader risk threshold as percentage.
+- `_newLiquidityPoolENPMarginThreshold`: The new trader risk threshold.
 
-### [Function `setLiquidityPoolENPThreshold(uint256 _newLiquidityPoolENPThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPThreshold-uint256-)
-
-Set new trader risk threshold, only for the owner.
-
-#### Parameters:
-
-- `_newLiquidityPoolENPThreshold`: The new trader risk threshold.
-
-### [Function `setLiquidityPoolELLThreshold(uint256 _newLiquidityPoolELLThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLThreshold-uint256-)
+### [Function `setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLMarginThreshold-uint256-)
 
 Set new trader risk threshold, only for the owner.
 
 #### Parameters:
 
-- `_newLiquidityPoolELLThreshold`: The new trader risk threshold.
+- `_newLiquidityPoolELLMarginThreshold`: The new trader risk threshold.
+
+### [Function `setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold)`](#FlowMarginProtocol2-setLiquidityPoolENPLiquidateThreshold-uint256-)
+
+Set new trader risk threshold, only for the owner.
+
+#### Parameters:
+
+- `_newLiquidityPoolENPLiquidateThreshold`: The new trader risk threshold.
+
+### [Function `setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLLiquidateThreshold-uint256-)
+
+Set new trader risk threshold, only for the owner.
+
+#### Parameters:
+
+- `_newLiquidityPoolELLLiquidateThreshold`: The new trader risk threshold.
 
 ### [Function `deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
@@ -180,11 +216,13 @@ Enable full trading functionality for pool, undoing a previous `marginCallLiquid
 
 - `_pool`: The MarginLiquidityPool.
 
-### [Function `liquidateTrader(address _trader)`](#FlowMarginProtocol2-liquidateTrader-address-)
+### [Function `liquidateTrader(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-liquidateTrader-contract-LiquidityPoolInterface-address-)
 
 Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
 
 #### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
 
 - `_trader`: The trader address.
 
@@ -195,6 +233,26 @@ Liquidate pool due to funds running too low, distribute funds to all users and s
 #### Parameters:
 
 - `_pool`: The MarginLiquidityPool.
+
+### [Function `getMarginHeld(contract LiquidityPoolInterface _pool, address _trader) → int256`](#FlowMarginProtocol2-getMarginHeld-contract-LiquidityPoolInterface-address-)
+
+Sum of all open margin of a given trader.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader address.
+
+### [Function `getFreeBalance(contract LiquidityPoolInterface _pool, address _trader) → int256`](#FlowMarginProtocol2-getFreeBalance-contract-LiquidityPoolInterface-address-)
+
+Free balance: the balance available for withdraw.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader address.
 
 ### Event `PositionOpened(address sender, address liquidityPool, address baseToken, address quoteToken, int256 leverage, int256 amount, uint256 price)` {#FlowMarginProtocol2-PositionOpened-address-address-address-address-int256-int256-uint256-}
 
@@ -229,5 +287,9 @@ No description
 No description
 
 ### Event `LiquidityPoolBecameSafe(address liquidityPool)` {#FlowMarginProtocol2-LiquidityPoolBecameSafe-address-}
+
+No description
+
+### Event `LiquidityPoolLiquidated(address liquidityPool)` {#FlowMarginProtocol2-LiquidityPoolLiquidated-address-}
 
 No description
