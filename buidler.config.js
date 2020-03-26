@@ -4,7 +4,7 @@ module.exports = {
   defaultNetwork: 'buidlerevm',
   networks: {
     buidlerevm: {
-      gas: 4712388,
+      gas: 8000000,
     },
   },
   solc: { version: '0.6.4', optimizer: { enabled: true, runs: 200 } },

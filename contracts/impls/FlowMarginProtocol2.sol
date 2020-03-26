@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
+import "@nomiclabs/buidler/console.sol";
+
 import "../libs/Percentage.sol";
 import "../libs/upgrades/UpgradeOwnable.sol";
 import "../libs/upgrades/UpgradeReentrancyGuard.sol";
@@ -18,7 +20,6 @@ import "../interfaces/LiquidityPoolInterface.sol";
 import "./FlowProtocolBase.sol";
 import "./FlowToken.sol";
 
-import "@nomiclabs/buidler/console.sol";
 
 contract FlowMarginProtocol2 is FlowProtocolBase {
     using Percentage for uint256;
@@ -77,6 +78,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     mapping (LiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
     mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
     mapping (LiquidityPoolInterface => bool) public poolHasPaidFees;
+    mapping (LiquidityPoolInterface => bool) public isRegisteredPool; // TODO check in all functions
     mapping (address => bool) public traderHasPaidFees;
 
     uint256 public currentSwapRate;
@@ -176,6 +178,14 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      */
     function setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold) public onlyOwner {
         liquidityPoolELLLiquidateThreshold = _newLiquidityPoolELLLiquidateThreshold;
+    }
+
+    function registerPool(LiquidityPoolInterface _pool) public {
+        uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), feeSum);
+
+        // TODO verify pool by owner
+        isRegisteredPool[_pool] = true;
     }
 
     /**
@@ -311,7 +321,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _trader The Trader.
      */
     function marginCallTrader(LiquidityPoolInterface _pool, address _trader) public {
-        require(!traderIsMarginCalled[_pool][_trader], "Trader already margin called!");
+        require(!traderIsMarginCalled[_pool][_trader], "Trader is already margin called!");
         require(!_isTraderSafe(_pool, _trader), "Trader cannot be margin called!");
 
         traderIsMarginCalled[_pool][_trader] = true;
@@ -394,8 +404,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     function liquidateLiquidityPool(LiquidityPoolInterface _pool) public {
         // close positions as much as possible, send fee back to caller
 
-        (uint256 enp, uint256 ell) = _getEnpAndEll(_pool);
-        require(enp <= liquidityPoolENPLiquidateThreshold || ell <= liquidityPoolELLLiquidateThreshold, "Pool cannot be liquidated!");
+        (Percentage.Percent memory enp, Percentage.Percent memory ell) = _getEnpAndEll(_pool);
+        require(enp.value <= liquidityPoolENPLiquidateThreshold || ell.value <= liquidityPoolELLLiquidateThreshold, "Pool cannot be liquidated!");
 
         Position[] memory positions = positionsByPool[_pool];
 
@@ -438,8 +448,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 	//
 	// Return true if ensured safe or false if not.
     function _isPoolSafe(LiquidityPoolInterface _pool) internal returns (bool) {
-        (uint256 enp, uint256 ell) = _getEnpAndEll(_pool);
-        bool isSafe = enp > liquidityPoolENPMarginThreshold && ell > liquidityPoolELLMarginThreshold;
+        (Percentage.Percent memory enp, Percentage.Percent memory ell) = _getEnpAndEll(_pool);
+        bool isSafe = enp.value > liquidityPoolENPMarginThreshold && ell.value > liquidityPoolELLMarginThreshold;
 
         return isSafe;
     }
@@ -461,11 +471,11 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     //
     // ENP - Equity to Net Position ratio of a liquidity pool.
     // ELL - Equity to Longest Leg ratio of a liquidity pool.
-    function _getEnpAndEll(LiquidityPoolInterface _pool) internal returns (uint256, uint256) {
+    function _getEnpAndEll(LiquidityPoolInterface _pool) internal returns (Percentage.Percent memory, Percentage.Percent memory) {
         int256 equity = _getEquityOfPool(_pool);
 
         if (equity < 0) {
-            return (0, 0);
+            return (Percentage.Percent(0), Percentage.Percent(0));
         }
 
         (int256 net, int256 positive, int256 nonPositive) = (int256(0), int256(0), int256(0));
@@ -485,10 +495,10 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         }
 
         uint256 netAbs = net >= 0 ? uint256(net) : uint256(-net);
-        uint256 enp = netAbs == 0 ? MAX_UINT : uint256(equity).div(netAbs);
+        Percentage.Percent memory enp = netAbs == 0 ? Percentage.Percent(MAX_UINT) : uint256(equity).fromFraction(netAbs);
 
         uint256 longestLeg = Math.max(uint256(positive), uint256(-nonPositive));
-        uint256 ell = longestLeg == 0 ? MAX_UINT : uint256(equity).div(longestLeg);
+        Percentage.Percent memory ell = longestLeg == 0 ? Percentage.Percent(MAX_UINT) : uint256(equity).fromFraction(longestLeg);
 
         return (enp, ell);
     }

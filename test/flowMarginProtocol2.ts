@@ -67,10 +67,10 @@ contract('FlowMarginProtocol2', accounts => {
     initialSwapRate = bn(2);
     initialTraderRiskMarginCallThreshold = fromPercent(5);
     initialTraderRiskLiquidateThreshold = fromPercent(2);
-    initialLiquidityPoolENPMarginThreshold = bn(4);
-    initialLiquidityPoolELLMarginThreshold = bn(3);
-    initialLiquidityPoolENPLiquidateThreshold = bn(2);
-    initialLiquidityPoolELLLiquidateThreshold = bn(1);
+    initialLiquidityPoolENPMarginThreshold = fromPercent(50);
+    initialLiquidityPoolELLMarginThreshold = fromPercent(10);
+    initialLiquidityPoolENPLiquidateThreshold = fromPercent(20);
+    initialLiquidityPoolELLLiquidateThreshold = fromPercent(2);
 
     usd = await createTestToken(
       [liquidityProvider, dollar(20000)],
@@ -120,9 +120,21 @@ contract('FlowMarginProtocol2', accounts => {
     await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
     await liquidityPool.enableToken(eur);
-    await liquidityPool.depositLiquidity(dollar(10000));
 
-    await moneyMarket.mintTo(liquidityPool.address, dollar(10000), {
+    await usd.approve(liquidityPool.address, dollar(10000), {
+      from: liquidityProvider,
+    });
+    await liquidityPool.depositLiquidity(dollar(10000), {
+      from: liquidityProvider,
+    });
+
+    const feeSum = ((await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()) as any).add(
+      await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
+    );
+    await usd.approve(protocol.address, feeSum, {
+      from: liquidityProvider,
+    });
+    await protocol.registerPool(liquidityPool.address, {
       from: liquidityProvider,
     });
 
@@ -381,6 +393,156 @@ contract('FlowMarginProtocol2', accounts => {
             from: bob,
           }),
           messages.traderCannotBeMarginCalled,
+        );
+      });
+    });
+  });
+
+  describe('when margin calling a pool', () => {
+    let leverage: BN;
+    let depositInUsd: BN;
+    let leveragedHeldInEuro: BN;
+    let price: BN;
+    let LIQUIDITY_POOL_MARGIN_CALL_FEE: BN;
+
+    beforeEach(async () => {
+      leverage = bn(20);
+      depositInUsd = dollar(80);
+      leveragedHeldInEuro = euro(100);
+      price = bn(0); // accept all
+      LIQUIDITY_POOL_MARGIN_CALL_FEE = (await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE()) as any;
+
+      await protocol.deposit(liquidityPool.address, depositInUsd.toString(), {
+        from: alice,
+      });
+
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage.toString(),
+        leveragedHeldInEuro.toString(),
+        price.toString(),
+        { from: alice },
+      );
+    });
+
+    describe('when pool is below margin call threshold', () => {
+      beforeEach(async () => {
+        await liquidityPool.withdrawLiquidityOwner(dollar(99500));
+      });
+
+      it('allows margin calling of pool', async () => {
+        try {
+          await protocol.marginCallLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+        } catch (error) {
+          console.log(error);
+          expect.fail(
+            `Margin call transaction should not have been reverted: ${error}`,
+          );
+        }
+      });
+
+      it('sends fee back to caller', async () => {
+        const balanceBefore = await usd.balanceOf(bob);
+        await protocol.marginCallLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+        const balanceAfter = await usd.balanceOf(bob);
+
+        expect(balanceAfter).to.be.bignumber.equal(
+          (balanceBefore as any).add(LIQUIDITY_POOL_MARGIN_CALL_FEE),
+        );
+      });
+
+      it('does not allow margin calling twice', async () => {
+        await protocol.marginCallLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+
+        await expectRevert(
+          protocol.marginCallLiquidityPool(liquidityPool.address, {
+            from: bob,
+          }),
+          messages.poolAlreadyMarginCalled,
+        );
+      });
+
+      it('does not allow making safe calls', async () => {
+        await protocol.marginCallLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+
+        await expectRevert(
+          protocol.makeLiquidityPoolSafe(liquidityPool.address, {
+            from: alice,
+          }),
+          messages.poolCannotBeMadeSafe,
+        );
+      });
+
+      describe('when margin called pool becomes safe again', () => {
+        beforeEach(async () => {
+          await protocol.marginCallLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+
+          await usd.approve(liquidityPool.address, dollar(5000), {
+            from: liquidityProvider,
+          });
+          await liquidityPool.depositLiquidity(dollar(5000), {
+            from: liquidityProvider,
+          });
+        });
+
+        it('allows making pool safe again', async () => {
+          try {
+            await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
+              from: bob,
+            });
+          } catch (error) {
+            expect.fail(
+              `Making safe transaction should not have been reverted: ${error}`,
+            );
+          }
+        });
+
+        it('requires to send back the LIQUIDITY_POOL_MARGIN_CALL_FEE', async () => {
+          const balanceBefore = await usd.balanceOf(alice);
+          await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
+            from: alice,
+          });
+          const balanceAfter = await usd.balanceOf(alice);
+
+          expect(balanceAfter).to.be.bignumber.equal(
+            (balanceBefore as any).sub(LIQUIDITY_POOL_MARGIN_CALL_FEE),
+          );
+        });
+
+        it('does not allow making safe calls twice', async () => {
+          await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
+            from: alice,
+          });
+
+          await expectRevert(
+            protocol.makeLiquidityPoolSafe(liquidityPool.address, {
+              from: alice,
+            }),
+            messages.poolNotMarginCalled,
+          );
+        });
+      });
+    });
+
+    describe('when pool is above margin call threshold', () => {
+      it('does not allow margin calling of pool', async () => {
+        await expectRevert(
+          protocol.marginCallLiquidityPool(liquidityPool.address, {
+            from: bob,
+          }),
+          messages.poolCannotBeMarginCalled,
         );
       });
     });
