@@ -256,28 +256,16 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             traderHasPaidFees[_pool][msg.sender] = true;
         }
 
-        TradingPair memory pair = TradingPair(_base, _quote);
-
-        (int256 heldSignum, int256 debitSignum) = _leverage > 0 ? (int256(1), int256(-1)) :  (int256(-1), int256(1));
         Percentage.Percent memory debitsPrice = (_leverage > 0)
-            ? _getAskPrice(_pool, pair, _price)
-            : _getBidPrice(_pool, pair, _price);
-
-        int256 leveragedDebits = _leveragedHeld.signedMulPercent(Percentage.SignedPercent(int256(debitsPrice.value)));
-        int256 leveragedHeldInUsd = _getUsdValue(pair.base, leveragedDebits);
-        int256 openMargin = leveragedHeldInUsd.div(_leverage);
+            ? _getAskPrice(_pool, TradingPair(_base, _quote), _price)
+            : _getBidPrice(_pool, TradingPair(_base, _quote), _price);
 
         _insertPosition(
-            msg.sender,
             _pool,
-            pair,
+            TradingPair(_base, _quote),
             _leverage,
-            _leveragedHeld.mul(heldSignum),
-            leveragedDebits.mul(debitSignum),
-            leveragedHeldInUsd.mul(debitSignum),
-            openMargin,
-            currentSwapRate,
-            now
+            _leveragedHeld,
+            debitsPrice
         );
 
         // TODO higher threshold?
@@ -673,36 +661,37 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     function _insertPosition(
-        address _owner,
         LiquidityPoolInterface _pool,
         TradingPair memory _pair,
         int256 _leverage,
         int256 _leveragedHeld,
-        int256 _leveragedDebits,
-        int256 _leveragedDebitsInUsd,
-        int256 _openMargin,
-        uint256 _swapRate,
-        uint256 _timeWhenOpened
+        Percentage.Percent memory _debitsPrice
     ) internal {
         uint256 positionId = nextPositionId;
-        nextPositionId++; // It is safe to have this overflow and unwrap
+        nextPositionId++;
+
+        (int256 heldSignum, int256 debitSignum) = _leverage > 0 ? (int256(1), int256(-1)) :  (int256(-1), int256(1));
+
+        int256 leveragedDebits = _leveragedHeld.signedMulPercent(Percentage.SignedPercent(int256(_debitsPrice.value)));
+        int256 leveragedHeldInUsd = _getUsdValue(_pair.base, leveragedDebits);
+        int256 openMargin = leveragedHeldInUsd.div(_leverage);
 
         Position memory position = Position(
             positionId,
-            _owner,
+            msg.sender,
             _pool,
             _pair,
             _leverage,
-            _leveragedHeld,
-            _leveragedDebits,
-            _leveragedDebitsInUsd,
-            _openMargin,
-            _swapRate,
-            _timeWhenOpened
+            _leveragedHeld.mul(heldSignum),
+            leveragedDebits.mul(debitSignum),
+            leveragedHeldInUsd.mul(debitSignum),
+            openMargin,
+            currentSwapRate,
+            now
         );
 
         positionsById[positionId] = position;
-        positionsByPoolAndTrader[_pool][_owner].push(position);
+        positionsByPoolAndTrader[_pool][msg.sender].push(position);
         positionsByPool[_pool].push(position);
     }
 
