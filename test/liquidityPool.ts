@@ -158,7 +158,7 @@ contract('LiquidityPool', accounts => {
     });
   });
 
-  describe.only('withdraw', () => {
+  describe('withdraw', () => {
     beforeEach(async () => {
       await moneyMarket.mintTo(liquidityPool.address, 1000, {
         from: liquidityProvider,

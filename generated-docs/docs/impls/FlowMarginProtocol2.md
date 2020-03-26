@@ -182,7 +182,7 @@ Close the given position with a min/max price. Set price to 0 if you want to use
 
 ### [Function `marginCallTrader(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-marginCallTrader-contract-LiquidityPoolInterface-address-)
 
-Margin call a trader, reducing his allowed trading functionality given a MarginLiquidityPool.
+Margin call a trader, reducing his allowed trading functionality given a MarginLiquidityPool send `TRADER_MARGIN_CALL_FEE` to caller..
 
 #### Parameters:
 
@@ -202,7 +202,7 @@ Enable full trading functionality for trader, undoing a previous `marginCallTrad
 
 ### [Function `marginCallLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-marginCallLiquidityPool-contract-LiquidityPoolInterface-)
 
-Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders.
+Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders send `LIQUIDITY_POOL_MARGIN_CALL_FEE` to caller..
 
 #### Parameters:
 
@@ -218,7 +218,7 @@ Enable full trading functionality for pool, undoing a previous `marginCallLiquid
 
 ### [Function `liquidateTrader(contract LiquidityPoolInterface _pool, address _trader)`](#FlowMarginProtocol2-liquidateTrader-contract-LiquidityPoolInterface-address-)
 
-Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
+Liquidate trader due to funds running too low, close all positions and send `TRADER_LIQUIDATION_FEE` to caller.
 
 #### Parameters:
 
@@ -228,7 +228,7 @@ Liquidate trader due to funds running too low, close all positions and send `MAR
 
 ### [Function `liquidateLiquidityPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-liquidateLiquidityPool-contract-LiquidityPoolInterface-)
 
-Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
+Liquidate pool due to funds running too low, distribute funds to all users and send `LIQUIDITY_POOL_LIQUIDATION_FEE` to caller.
 
 #### Parameters:
 

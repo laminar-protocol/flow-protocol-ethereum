@@ -71,4 +71,8 @@ export const messages = {
     'Only position owner or liquidity pool can close a open position',
   askPriceTooHigh: 'Ask price too high',
   bidPriceTooLow: 'Bid price too low',
+  traderCannotBeMarginCalled: 'Trader cannot be margin called!',
+  traderAlreadyMarginCalled: 'Trader already margin called!',
+  traderNotMarginCalled: 'Trader is not margin called!',
+  traderCannotBeMadeSafe: 'Trader cannot become safe!',
 };

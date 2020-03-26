@@ -18,6 +18,8 @@ import "../interfaces/LiquidityPoolInterface.sol";
 import "./FlowProtocolBase.sol";
 import "./FlowToken.sol";
 
+import "@nomiclabs/buidler/console.sol";
+
 contract FlowMarginProtocol2 is FlowProtocolBase {
     using Percentage for uint256;
     using Percentage for int256;
@@ -74,6 +76,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     mapping (LiquidityPoolInterface => mapping(address => uint256)) public balances;
     mapping (LiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
     mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
+    mapping (LiquidityPoolInterface => bool) public poolHasPaidFees;
+    mapping (address => bool) public traderHasPaidFees;
 
     uint256 public currentSwapRate;
     Percentage.Percent public traderRiskMarginCallThreshold;
@@ -83,8 +87,11 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     uint256 public liquidityPoolENPLiquidateThreshold;
     uint256 public liquidityPoolELLLiquidateThreshold;
 
-    uint256 constant MARGIN_CALL_FEE = 3; // TODO
-    uint256 constant LIQUIDATION_FEE = 3; // TODO
+    uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
+    uint256 constant public LIQUIDITY_POOL_MARGIN_CALL_FEE = 1000 ether; // TODO
+
+    uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
+    uint256 constant public LIQUIDITY_POOL_LIQUIDATION_FEE = 3000 ether; // TODO
 
     /**
      * @dev Initialize the FlowMarginProtocol.
@@ -190,6 +197,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      */
     function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public {
         require(getFreeBalance(_pool, msg.sender) >= int256(_baseTokenAmount), "Not enough free balance to withdraw!");
+        // TODO should be allowed to withdraw more than this
 
         IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, _baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(_baseTokenAmount);
@@ -214,6 +222,12 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         int256 _leveragedHeld,
         uint256 _price
     ) public {
+        if (!traderHasPaidFees[msg.sender]) {
+            uint256 lockedFeesAmount = TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
+            IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), lockedFeesAmount);
+            traderHasPaidFees[msg.sender] = true;
+        }
+
         TradingPair memory pair = TradingPair(_base, _quote);
 
         (int256 heldSignum, int256 debitSignum) = _leverage > 0 ? (int256(1), int256(-1)) :  (int256(-1), int256(1));
@@ -292,7 +306,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     /**
-     * @dev Margin call a trader, reducing his allowed trading functionality given a MarginLiquidityPool.
+     * @dev Margin call a trader, reducing his allowed trading functionality given a MarginLiquidityPool send `TRADER_MARGIN_CALL_FEE` to caller..
      * @param _pool The MarginLiquidityPool.
      * @param _trader The Trader.
      */
@@ -301,6 +315,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         require(!_isTraderSafe(_pool, _trader), "Trader cannot be margin called!");
 
         traderIsMarginCalled[_pool][_trader] = true;
+        IERC20(moneyMarket.baseToken()).safeTransfer(msg.sender, TRADER_MARGIN_CALL_FEE);
 
         emit TraderMarginCalled(address(_pool), _trader);
     }
@@ -315,12 +330,13 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         require(_isTraderSafe(_pool, _trader), "Trader cannot become safe!");
 
         traderIsMarginCalled[_pool][_trader] = false;
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), TRADER_MARGIN_CALL_FEE);
 
         emit TraderBecameSafe(address(_pool), _trader);
     }
 
     /**
-     * @dev Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders.
+     * @dev Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders send `LIQUIDITY_POOL_MARGIN_CALL_FEE` to caller..
      * @param _pool The MarginLiquidityPool.
      */
     function marginCallLiquidityPool(LiquidityPoolInterface _pool) public {
@@ -328,6 +344,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         require(!_isPoolSafe(_pool), "Pool cannot be margin called!");
 
         poolIsMarginCalled[_pool] = true;
+        IERC20(moneyMarket.baseToken()).safeTransfer(msg.sender, LIQUIDITY_POOL_MARGIN_CALL_FEE);
 
         emit LiquidityPoolMarginCalled(address(_pool));
     }
@@ -341,12 +358,13 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         require(_isPoolSafe(_pool), "Pool cannot become safe!");
 
         poolIsMarginCalled[_pool] = false;
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), LIQUIDITY_POOL_MARGIN_CALL_FEE);
 
         emit LiquidityPoolBecameSafe(address(_pool));
     }
 
     /**
-     * @dev Liquidate trader due to funds running too low, close all positions and send `MARGIN_CALL_FEE` to caller.
+     * @dev Liquidate trader due to funds running too low, close all positions and send `TRADER_LIQUIDATION_FEE` to caller.
      * @param _pool The MarginLiquidityPool.
      * @param _trader The trader address.
      */
@@ -362,14 +380,15 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         }
 
         traderIsMarginCalled[_pool][_trader] = false;
+        traderHasPaidFees[msg.sender] = false;
 
-        // TODO send MARGIN_CALL_FEE back to caller
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, TRADER_LIQUIDATION_FEE);
 
         emit TraderLiquidated(_trader);
     }
 
     /**
-    * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `MARGIN_CALL_FEE` to caller.
+    * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `LIQUIDITY_POOL_LIQUIDATION_FEE` to caller.
     * @param _pool The MarginLiquidityPool.
     */
     function liquidateLiquidityPool(LiquidityPoolInterface _pool) public {
@@ -385,6 +404,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         }
 
         poolIsMarginCalled[_pool] = false;
+
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, LIQUIDITY_POOL_LIQUIDATION_FEE);
 
         emit LiquidityPoolLiquidated(address(_pool));
     }
