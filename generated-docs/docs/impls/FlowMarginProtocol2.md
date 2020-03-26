@@ -16,6 +16,8 @@
 
 - [`setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol2-setLiquidityPoolELLLiquidateThreshold-uint256-)
 
+- [`registerPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-registerPool-contract-LiquidityPoolInterface-)
+
 - [`deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
 - [`withdraw(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-withdraw-contract-LiquidityPoolInterface-uint256-)
@@ -131,6 +133,10 @@ Set new trader risk threshold, only for the owner.
 #### Parameters:
 
 - `_newLiquidityPoolELLLiquidateThreshold`: The new trader risk threshold.
+
+### [Function `registerPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-registerPool-contract-LiquidityPoolInterface-)
+
+No description
 
 ### [Function `deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
