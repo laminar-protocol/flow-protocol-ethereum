@@ -137,6 +137,7 @@ contract('FlowMarginProtocol2', accounts => {
     await protocol.registerPool(liquidityPool.address, {
       from: liquidityProvider,
     });
+    await protocol.verifyPool(liquidityPool.address);
 
     await oracle.feedPrice(usd.address, fromPercent(100), { from: owner });
     await oracle.feedPrice(eur, fromPercent(120), { from: owner });
