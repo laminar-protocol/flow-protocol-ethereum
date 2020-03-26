@@ -18,6 +18,10 @@
 
 - [`registerPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-registerPool-contract-LiquidityPoolInterface-)
 
+- [`verifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-verifyPool-contract-LiquidityPoolInterface-)
+
+- [`unverifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-unverifyPool-contract-LiquidityPoolInterface-)
+
 - [`deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
 - [`withdraw(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-withdraw-contract-LiquidityPoolInterface-uint256-)
@@ -136,7 +140,27 @@ Set new trader risk threshold, only for the owner.
 
 ### [Function `registerPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-registerPool-contract-LiquidityPoolInterface-)
 
-No description
+Register a new pool by sending the combined margin and liquidation fees.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+### [Function `verifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-verifyPool-contract-LiquidityPoolInterface-)
+
+Verify a new pool, only for the owner.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+### [Function `unverifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol2-unverifyPool-contract-LiquidityPoolInterface-)
+
+Unverify a pool, only for the owner.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
 
 ### [Function `deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol2-deposit-contract-LiquidityPoolInterface-uint256-)
 
