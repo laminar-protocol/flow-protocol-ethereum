@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
+import "@nomiclabs/buidler/console.sol";
+
 import "../interfaces/CErc20Interface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";
@@ -183,7 +185,11 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
     }
 
     function totalHoldings() public view override returns (uint) {
-        return cToken.balanceOf(address(this)).mul(cToken.exchangeRateStored()).div(1 ether).add(_baseToken.balanceOf(address(this)));
+        uint256 cTokenBalance = cToken.balanceOf(address(this));
+        uint256 exchangedCTokenBalance = cTokenBalance.mul(cToken.exchangeRateStored()).div(1 ether);
+        uint256 baseTokenBalance = _baseToken.balanceOf(address(this));
+
+        return exchangedCTokenBalance.add(baseTokenBalance);
     }
 
     function convertAmountFromBase(uint rate, uint _baseTokenAmount) public override pure returns (uint) {
