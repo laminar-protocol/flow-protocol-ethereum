@@ -72,7 +72,11 @@ export const messages = {
   askPriceTooHigh: 'Ask price too high',
   bidPriceTooLow: 'Bid price too low',
   traderCannotBeMarginCalled: 'Trader cannot be margin called!',
-  traderAlreadyMarginCalled: 'Trader already margin called!',
+  traderAlreadyMarginCalled: 'Trader is already margin called!',
   traderNotMarginCalled: 'Trader is not margin called!',
   traderCannotBeMadeSafe: 'Trader cannot become safe!',
+  poolCannotBeMarginCalled: 'Pool cannot be margin called!',
+  poolAlreadyMarginCalled: 'Pool is already margin called!',
+  poolNotMarginCalled: 'Pool is not margin called!',
+  poolCannotBeMadeSafe: 'Pool cannot become safe!',
 };
