@@ -299,7 +299,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _positionId The id of the position to close.
      * @param _price The max/min price when closing the position..
      */
-    function closePosition(uint256 _positionId, uint256 _price) public nonReentrant poolIsRegistered(_pool) {
+    function closePosition(uint256 _positionId, uint256 _price) public nonReentrant poolIsRegistered(positionsById[_positionId].pool) {
         Position memory position = positionsById[_positionId];
         (int256 unrealizedPl, Percentage.Percent memory marketPrice) = _getUnrealizedPlAndMarketPriceOfPosition(position, _price);
         uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPosition(position);
