@@ -1,4 +1,4 @@
-import { constants } from 'openzeppelin-test-helpers';
+import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import BN from 'bn.js';
 
@@ -20,6 +20,7 @@ import {
   dollar,
   euro,
   bn,
+  messages,
 } from './helpers';
 
 const Proxy = artifacts.require('Proxy');
@@ -44,11 +45,14 @@ contract('FlowMarginProtocol2', accounts => {
   let moneyMarket: MoneyMarketInstance;
 
   let initialSwapRate: BN;
-  let initialTraderRiskThreshold: BN;
-  let initialLiquidityPoolENPThreshold: BN;
-  let initialLiquidityPoolELLThreshold: BN;
+  let initialTraderRiskMarginCallThreshold: BN;
+  let initialTraderRiskLiquidateThreshold: BN;
+  let initialLiquidityPoolENPMarginThreshold: BN;
+  let initialLiquidityPoolELLMarginThreshold: BN;
+  let initialLiquidityPoolENPLiquidateThreshold: BN;
+  let initialLiquidityPoolELLLiquidateThreshold: BN;
 
-  before(async () => {
+  beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
     oracleProxy.upgradeTo(oracleImpl.address);
@@ -61,12 +65,13 @@ contract('FlowMarginProtocol2', accounts => {
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
 
     initialSwapRate = bn(2);
-    initialTraderRiskThreshold = fromPercent(5);
-    initialLiquidityPoolENPThreshold = bn(4);
-    initialLiquidityPoolELLThreshold = bn(3);
-  });
+    initialTraderRiskMarginCallThreshold = fromPercent(5);
+    initialTraderRiskLiquidateThreshold = fromPercent(2);
+    initialLiquidityPoolENPMarginThreshold = bn(4);
+    initialLiquidityPoolELLMarginThreshold = bn(3);
+    initialLiquidityPoolENPLiquidateThreshold = bn(2);
+    initialLiquidityPoolELLLiquidateThreshold = bn(1);
 
-  beforeEach(async () => {
     usd = await createTestToken(
       [liquidityProvider, dollar(20000)],
       [alice, dollar(10000)],
@@ -88,9 +93,12 @@ contract('FlowMarginProtocol2', accounts => {
       oracle.address,
       moneyMarket.address,
       initialSwapRate,
-      initialTraderRiskThreshold,
-      initialLiquidityPoolENPThreshold,
-      initialLiquidityPoolELLThreshold,
+      initialTraderRiskMarginCallThreshold,
+      initialTraderRiskLiquidateThreshold,
+      initialLiquidityPoolENPMarginThreshold,
+      initialLiquidityPoolELLMarginThreshold,
+      initialLiquidityPoolENPLiquidateThreshold,
+      initialLiquidityPoolELLLiquidateThreshold,
     );
 
     await usd.approve(protocol.address, constants.MAX_UINT256, { from: alice });
@@ -232,6 +240,149 @@ contract('FlowMarginProtocol2', accounts => {
       );
 
       expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+    });
+  });
+
+  describe('when margin calling a trader', () => {
+    let leverage: BN;
+    let depositInUsd: BN;
+    let leveragedHeldInEuro: BN;
+    let price: BN;
+    let TRADER_MARGIN_CALL_FEE: BN;
+
+    beforeEach(async () => {
+      leverage = bn(20);
+      depositInUsd = dollar(80);
+      leveragedHeldInEuro = euro(100);
+      price = bn(0); // accept all
+      TRADER_MARGIN_CALL_FEE = (await protocol.TRADER_MARGIN_CALL_FEE()) as any;
+
+      await protocol.deposit(liquidityPool.address, depositInUsd.toString(), {
+        from: alice,
+      });
+
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage.toString(),
+        leveragedHeldInEuro.toString(),
+        price.toString(),
+        { from: alice },
+      );
+    });
+
+    describe('when trader is below margin call threshold', () => {
+      beforeEach(async () => {
+        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
+      });
+
+      it('allows margin calling of trader', async () => {
+        try {
+          await protocol.marginCallTrader(liquidityPool.address, alice, {
+            from: bob,
+          });
+        } catch (error) {
+          expect.fail(
+            `Margin call transaction should not have been reverted: ${error}`,
+          );
+        }
+      });
+
+      it('sends fee back to caller', async () => {
+        const balanceBefore = await usd.balanceOf(bob);
+        await protocol.marginCallTrader(liquidityPool.address, alice, {
+          from: bob,
+        });
+        const balanceAfter = await usd.balanceOf(bob);
+
+        expect(balanceAfter).to.be.bignumber.equal(
+          (balanceBefore as any).add(TRADER_MARGIN_CALL_FEE),
+        );
+      });
+
+      it('does not allow margin calling twice', async () => {
+        await protocol.marginCallTrader(liquidityPool.address, alice, {
+          from: bob,
+        });
+
+        await expectRevert(
+          protocol.marginCallTrader(liquidityPool.address, alice, {
+            from: bob,
+          }),
+          messages.traderAlreadyMarginCalled,
+        );
+      });
+
+      it('does not allow making safe calls', async () => {
+        await protocol.marginCallTrader(liquidityPool.address, alice, {
+          from: bob,
+        });
+
+        await expectRevert(
+          protocol.makeTraderSafe(liquidityPool.address, alice, {
+            from: alice,
+          }),
+          messages.traderCannotBeMadeSafe,
+        );
+      });
+
+      describe('when margin called trader becomes safe again', () => {
+        beforeEach(async () => {
+          await protocol.marginCallTrader(liquidityPool.address, alice, {
+            from: bob,
+          });
+          await oracle.feedPrice(eur, fromPercent(120), { from: owner });
+        });
+
+        it('allows making trader safe again', async () => {
+          try {
+            await protocol.makeTraderSafe(liquidityPool.address, alice, {
+              from: bob,
+            });
+          } catch (error) {
+            expect.fail(
+              `Making safe transaction should not have been reverted: ${error}`,
+            );
+          }
+        });
+
+        it('requires to send back the TRADER_MARGIN_CALL_FEE', async () => {
+          const balanceBefore = await usd.balanceOf(alice);
+          await protocol.makeTraderSafe(liquidityPool.address, alice, {
+            from: alice,
+          });
+          const balanceAfter = await usd.balanceOf(alice);
+
+          expect(balanceAfter).to.be.bignumber.equal(
+            (balanceBefore as any).sub(TRADER_MARGIN_CALL_FEE),
+          );
+        });
+
+        it('does not allow making safe calls twice', async () => {
+          await protocol.makeTraderSafe(liquidityPool.address, alice, {
+            from: alice,
+          });
+
+          await expectRevert(
+            protocol.makeTraderSafe(liquidityPool.address, alice, {
+              from: alice,
+            }),
+            messages.traderNotMarginCalled,
+          );
+        });
+      });
+    });
+
+    describe('when trader is above margin call threshold', () => {
+      it('does not allow margin calling of trader', async () => {
+        await expectRevert(
+          protocol.marginCallTrader(liquidityPool.address, alice, {
+            from: bob,
+          }),
+          messages.traderCannotBeMarginCalled,
+        );
+      });
     });
   });
 
