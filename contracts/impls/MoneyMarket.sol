@@ -17,7 +17,7 @@ import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 import "./FlowToken.sol";
 import "./MintableToken.sol";
 
-contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface { // TODO rename V1
+contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;

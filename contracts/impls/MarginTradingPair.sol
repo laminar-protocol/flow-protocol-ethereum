@@ -17,6 +17,7 @@ contract MarginTradingPair is Initializable, UpgradeOwnable {
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
+    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     MoneyMarketInterface public moneyMarket;
 
     address public quoteToken;

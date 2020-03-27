@@ -18,6 +18,7 @@ contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGua
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
+    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     PriceOracleInterface public oracle;
     MoneyMarketInterface public moneyMarket;
 

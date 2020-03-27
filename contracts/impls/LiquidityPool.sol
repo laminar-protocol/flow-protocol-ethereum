@@ -14,6 +14,7 @@ import "./MarginTradingPair.sol";
 contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface {
     using SafeERC20 for IERC20;
 
+    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     uint constant MAX_UINT = 2**256 - 1;
 
     MoneyMarketInterface internal moneyMarket;
