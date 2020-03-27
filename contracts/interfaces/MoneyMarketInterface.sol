@@ -15,10 +15,13 @@ interface MoneyMarketInterface {
     function redeemBaseToken(uint baseTokenAmount) external;
     function redeemBaseTokenTo(address recipient, uint baseTokenAmount) external;
 
+    function convertAmountFromBase(uint _baseTokenAmount) external view returns (uint);
     function convertAmountFromBase(uint rate, uint baseTokenAmount) external pure returns (uint);
+    function convertAmountToBase(uint iTokenAmount) external view returns (uint);
     function convertAmountToBase(uint rate, uint iTokenAmount) external pure returns (uint);
 
     function totalHoldings() external view returns (uint);
+
 
     event Minted(address indexed recipient, uint baseTokenAmount, uint iTokenAmount);
     event Redeemed(address indexed recipient, uint baseTokenAmount, uint iTokenAmount);

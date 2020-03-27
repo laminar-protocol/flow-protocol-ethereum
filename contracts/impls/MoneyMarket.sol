@@ -192,11 +192,19 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         return exchangedCTokenBalance.add(baseTokenBalance);
     }
 
-    function convertAmountFromBase(uint rate, uint _baseTokenAmount) public override pure returns (uint) {
+    function convertAmountFromBase(uint _baseTokenAmount) public view override returns (uint) {
+        return convertAmountFromBase(exchangeRate(), _baseTokenAmount);
+    }
+
+    function convertAmountFromBase(uint rate, uint _baseTokenAmount) public pure override returns (uint) {
         return _baseTokenAmount.mul(1 ether).div(rate);
     }
 
-    function convertAmountToBase(uint rate, uint iTokenAmount) public override pure returns (uint) {
+    function convertAmountToBase(uint iTokenAmount) public view override returns (uint) {
+        return convertAmountToBase(exchangeRate(), iTokenAmount);
+    }
+
+    function convertAmountToBase(uint rate, uint iTokenAmount) public pure override returns (uint) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 }
