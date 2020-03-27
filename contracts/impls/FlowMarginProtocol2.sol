@@ -224,6 +224,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _baseTokenAmount The base token amount to deposit.
      */
     function deposit(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         uint256 iTokenAmount = moneyMarket.mint(_baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].add(iTokenAmount);
 
