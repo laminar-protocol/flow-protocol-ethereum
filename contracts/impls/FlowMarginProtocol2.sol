@@ -314,7 +314,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             uint256 realized = Math.min(LiquidityPoolInterface(position.pool).getLiquidity(), balanceDeltaAbs);
             LiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
 
-            uint256 iTokenAmount = moneyMarket.mint(realized);
+            uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(iTokenAmount);
         } else {
             // trader has loss
@@ -323,7 +323,6 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             LiquidityPoolInterface(position.pool).depositLiquidity(realized);
 
             uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
-            moneyMarket.redeem(iTokenAmount);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(iTokenAmount);
         }
 
