@@ -17,7 +17,7 @@ import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 import "./FlowToken.sol";
 import "./MintableToken.sol";
 
-contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface { // TODO rename V1
+contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
@@ -94,11 +94,11 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         return _baseTokenAmount;
     }
 
-    function redeemBaseToken(uint _baseTokenAmount) external override {
-        redeemBaseTokenTo(msg.sender, _baseTokenAmount);
+    function redeemBaseToken(uint _baseTokenAmount) external override returns (uint) {
+        return redeemBaseTokenTo(msg.sender, _baseTokenAmount);
     }
 
-    function redeemBaseTokenTo(address recipient, uint _baseTokenAmount) public nonReentrant override {
+    function redeemBaseTokenTo(address recipient, uint _baseTokenAmount) public nonReentrant override returns (uint) {
         uint iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
 
         MintableToken(address(_iToken)).burn(msg.sender, iTokenAmount);
@@ -108,6 +108,8 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         _baseToken.safeTransfer(recipient, _baseTokenAmount);
 
         emit Redeemed(recipient, _baseTokenAmount, iTokenAmount);
+
+        return iTokenAmount;
     }
 
     function rebalance() external nonReentrant {
@@ -192,11 +194,19 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         return exchangedCTokenBalance.add(baseTokenBalance);
     }
 
-    function convertAmountFromBase(uint rate, uint _baseTokenAmount) public override pure returns (uint) {
+    function convertAmountFromBase(uint _baseTokenAmount) public view override returns (uint) {
+        return convertAmountFromBase(exchangeRate(), _baseTokenAmount);
+    }
+
+    function convertAmountFromBase(uint rate, uint _baseTokenAmount) public pure override returns (uint) {
         return _baseTokenAmount.mul(1 ether).div(rate);
     }
 
-    function convertAmountToBase(uint rate, uint iTokenAmount) public override pure returns (uint) {
+    function convertAmountToBase(uint iTokenAmount) public view override returns (uint) {
+        return convertAmountToBase(exchangeRate(), iTokenAmount);
+    }
+
+    function convertAmountToBase(uint rate, uint iTokenAmount) public pure override returns (uint) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 }

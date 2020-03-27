@@ -16,6 +16,7 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
+    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     uint constant MAX_UINT = 2**256 - 1;
 
     MoneyMarketInterface moneyMarket;

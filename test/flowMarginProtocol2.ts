@@ -12,6 +12,7 @@ import {
   IERC20Instance,
 } from 'types/truffle-contracts';
 import {
+  convertFromBaseToken,
   createTestToken,
   createMoneyMarket,
   fromEth,
@@ -207,7 +208,9 @@ contract('FlowMarginProtocol2', accounts => {
         traderBalanceBefore,
       );
 
-      expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+      expect(traderBalanceDifference).to.be.bignumber.equal(
+        convertFromBaseToken(unrealizedPl.toString()),
+      );
     });
 
     it('computes new balance correctly after a price drop', async () => {
@@ -230,7 +233,9 @@ contract('FlowMarginProtocol2', accounts => {
         traderBalanceBefore,
       );
 
-      expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+      expect(traderBalanceDifference).to.be.bignumber.equal(
+        convertFromBaseToken(unrealizedPl.toString()),
+      );
     });
 
     it('computes new balance correctly after a price increase', async () => {
@@ -252,7 +257,9 @@ contract('FlowMarginProtocol2', accounts => {
         traderBalanceBefore,
       );
 
-      expect(traderBalanceDifference).to.be.bignumber.equal(unrealizedPl);
+      expect(traderBalanceDifference).to.be.bignumber.equal(
+        convertFromBaseToken(unrealizedPl.toString()),
+      );
     });
   });
 
