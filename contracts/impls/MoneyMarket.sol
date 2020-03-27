@@ -94,11 +94,11 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         return _baseTokenAmount;
     }
 
-    function redeemBaseToken(uint _baseTokenAmount) external override {
-        redeemBaseTokenTo(msg.sender, _baseTokenAmount);
+    function redeemBaseToken(uint _baseTokenAmount) external override returns (uint) {
+        return redeemBaseTokenTo(msg.sender, _baseTokenAmount);
     }
 
-    function redeemBaseTokenTo(address recipient, uint _baseTokenAmount) public nonReentrant override {
+    function redeemBaseTokenTo(address recipient, uint _baseTokenAmount) public nonReentrant override returns (uint) {
         uint iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
 
         MintableToken(address(_iToken)).burn(msg.sender, iTokenAmount);
@@ -108,6 +108,8 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         _baseToken.safeTransfer(recipient, _baseTokenAmount);
 
         emit Redeemed(recipient, _baseTokenAmount, iTokenAmount);
+
+        return iTokenAmount;
     }
 
     function rebalance() external nonReentrant {

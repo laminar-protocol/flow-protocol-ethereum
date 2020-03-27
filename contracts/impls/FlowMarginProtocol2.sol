@@ -233,13 +233,13 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     /**
      * @dev Withdraw amount from pool balance.
      * @param _pool The MarginLiquidityPool.
-     * @param iTokenAmount The iToken amount to withdraw.
+     * @param _baseTokenAmount The base token amount to withdraw.
      */
-    function withdraw(LiquidityPoolInterface _pool, uint256 iTokenAmount) public nonReentrant poolIsVerified(_pool) {
+    function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
+        uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
         require(getFreeBalance(_pool, msg.sender) >= int256(iTokenAmount), "Not enough free balance to withdraw!");
         // TODO should be allowed to withdraw more than this
 
-        moneyMarket.redeem(iTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(iTokenAmount);
 
         emit Withdrew(msg.sender, iTokenAmount);
