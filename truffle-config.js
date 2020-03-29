@@ -61,7 +61,7 @@ module.exports = {
   mocha: {
     reporter: 'eth-gas-reporter',
     reporterOptions : {
-      currency: 'NZD',
+      currency: 'USD',
       coinmarketcap: process.env.COINMARKETCAP_API_KEY,
       excludeContracts: ['Migrations', 'Proxy']
     }
