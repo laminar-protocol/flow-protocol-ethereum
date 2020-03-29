@@ -63,7 +63,21 @@ module.exports = {
     reporterOptions : {
       currency: 'USD',
       coinmarketcap: process.env.COINMARKETCAP_API_KEY,
-      excludeContracts: ['Migrations', 'Proxy']
+      excludeContracts: [
+        'Migrations',
+        'Proxy',
+        'ArraysImpl',
+        'FlowMarginProtocolNewVersion',
+        'FlowProtocolNewVersion',
+        'FlowTokenNewVersion',
+        'LiquidityPoolNewVersion',
+        'MarginTradingPairNewVersion',
+        'MoneyMarketNewVersion',
+        'QuickImpl',
+        'SimplePriceOracleNewVersion',
+        'TestCToken',
+        'TestToken',
+      ]
     }
   }
 };
