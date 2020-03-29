@@ -10,6 +10,7 @@ before_script:
 script:
   - yarn lint
   - yarn test
+  - yarn codechecks
   - cd subgraph
   - yarn build
 

@@ -24,6 +24,7 @@
     "upgrade-contracts:kovan": "cross-env-shell CONTRACT_NAME=$CONTRACT_NAME NETWORK=kovan yarn truffle exec dev-scripts/upgradeContract.js --network kovan"
   },
   "devDependencies": {
+    "@codechecks/client": "^0.1.10",
     "@nomiclabs/buidler": "^1.2.0",
     "@nomiclabs/buidler-truffle5": "^1.2.0",
     "@nomiclabs/buidler-web3": "^1.2.0",
@@ -44,6 +45,7 @@
     "eslint-import-resolver-typescript": "^2.0.0",
     "eslint-plugin-import": "^2.20.1",
     "eslint-plugin-prettier": "^3.1.2",
+    "eth-gas-reporter": "^0.2.16",
     "ethlint": "^1.2.5",
     "ganache-cli": "^6.9.1",
     "openzeppelin-test-helpers": "^0.5.1",
