@@ -556,6 +556,134 @@ contract('FlowMarginProtocol2', accounts => {
     });
   });
 
+  const insertPositions = async (positionCount: number, trader: string) => {
+    for (let i = 0; i < positionCount / 2; i += 1) {
+      console.log(`Open Position ${i}`);
+      const leverage = bn(20).mul(i % 2 === 0 ? bn(1) : bn(-1));
+      const leveragedHeldInEuro = euro(2);
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage.toString(),
+        leveragedHeldInEuro.toString(),
+        0,
+        { from: trader },
+      );
+    }
+  };
+
+  describe('when checking the trader safety', () => {
+    beforeEach(async () => {
+      await protocol.deposit(liquidityPool.address, dollar(1000).toString(), {
+        from: alice,
+      });
+      await protocol.deposit(liquidityPool.address, dollar(1000).toString(), {
+        from: bob,
+      });
+    });
+
+    describe('when the trader has 5 positions', () => {
+      beforeEach(async function testSetup() {
+        await insertPositions(5, alice);
+      });
+
+      it('returns if trader is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsTraderSafe(liquidityPool.address, alice);
+
+        expect(isSafe).to.be.true;
+      });
+    });
+
+    describe('when the trader has 25 positions', () => {
+      beforeEach(async function testSetup() {
+        this.timeout(0);
+
+        await insertPositions(25, alice);
+      });
+
+      it.skip('returns if trader is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsTraderSafe(liquidityPool.address, alice);
+
+        expect(isSafe).to.be.true;
+      }).timeout(0);
+    });
+
+    describe('when the trader has 50 positions', () => {
+      beforeEach(async function testSetup() {
+        this.timeout(0);
+
+        await insertPositions(50, alice);
+      });
+
+      it.skip('returns if pool is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsTraderSafe(liquidityPool.address, alice);
+
+        expect(isSafe).to.be.true;
+      }).timeout(0);
+    });
+  });
+
+  describe('when checking the pool safety', () => {
+    beforeEach(async () => {
+      await protocol.deposit(liquidityPool.address, dollar(1000).toString(), {
+        from: alice,
+      });
+      await protocol.deposit(liquidityPool.address, dollar(1000).toString(), {
+        from: bob,
+      });
+    });
+
+    describe('when the pool has 10 positions', () => {
+      beforeEach(async function testSetup() {
+        await insertPositions(5, alice);
+        await insertPositions(5, bob);
+      });
+
+      it('returns if pool is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsPoolSafe(liquidityPool.address);
+
+        expect(isSafe).to.be.true;
+      });
+    });
+
+    describe('when the pool has 50 positions', () => {
+      beforeEach(async function testSetup() {
+        this.timeout(0);
+
+        await insertPositions(25, alice);
+        await insertPositions(25, bob);
+      });
+
+      it.skip('returns if pool is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsPoolSafe(liquidityPool.address);
+
+        expect(isSafe).to.be.true;
+      }).timeout(0);
+    });
+
+    describe('when the pool has 100 positions', () => {
+      beforeEach(async function testSetup() {
+        this.timeout(0);
+
+        await insertPositions(50, alice);
+        await insertPositions(50, bob);
+      });
+
+      it.skip('returns if pool is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsPoolSafe(liquidityPool.address);
+
+        expect(isSafe).to.be.true;
+      }).timeout(0);
+    });
+  });
+
   describe('when computing unrealized profit loss', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
