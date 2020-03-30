@@ -48,4 +48,12 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
 
         return _getBidPrice(_pool, pair, _min).value;
     }
+
+    function getIsPoolSafe(LiquidityPoolInterface _pool) public returns (bool) {
+        return _isPoolSafe(_pool);
+    }
+
+    function getIsTraderSafe(LiquidityPoolInterface _pool, address _trader) public returns (bool) {
+        return _isTraderSafe(_pool, _trader);
+    }
 }
