@@ -44,7 +44,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         // USD value of leveraged debits on open position.
         int256 leveragedDebitsInUsd;
-        int256 openMargin;
+        uint256 openMargin;
 
         uint256 swapRate;
         uint256 timeWhenOpened;
@@ -237,10 +237,9 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
      * @param _baseTokenAmount The base token amount to withdraw.
      */
     function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
-        uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
-        require(getFreeBalance(_pool, msg.sender) >= int256(iTokenAmount), "Not enough free balance to withdraw!");
-        // TODO should be allowed to withdraw more than this
+        require(getFreeMargin(_pool, msg.sender) >= _baseTokenAmount, "Not enough free balance to withdraw!");
 
+        uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(iTokenAmount);
 
         emit Withdrew(msg.sender, iTokenAmount);
@@ -280,9 +279,6 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             _leveragedHeld,
             debitsPrice
         );
-
-        // TODO higher threshold?
-        require(_isTraderSafe(_pool, msg.sender), "Trader has not enough balance to safely open position!");
 
         emit PositionOpened(
             msg.sender,
@@ -448,26 +444,33 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     * @param _pool The MarginLiquidityPool.
     * @param _trader The trader address.
     */
-    function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (int256) {
-        int256 accumulatedOpenMargin = 0;
+    function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+        uint256 accumulatedOpenMargin = 0;
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
         for (uint256 i = 0; i < positions.length; i++) {
             accumulatedOpenMargin = accumulatedOpenMargin.add(positions[i].openMargin);
         }
+
+        return accumulatedOpenMargin;
     }
 
     /**
-    * @dev Free balance: the balance available for withdraw.
+    * @dev Get the free margin: the free margin of the trader.
     * @param _pool The MarginLiquidityPool.
     * @param _trader The trader address.
+    * @return The free margin amount (int256).
     */
-    function getFreeBalance(LiquidityPoolInterface _pool, address _trader) public view returns (int256) {
-        uint256 iTokenAmount = balances[_pool][_trader];
-        uint256 baseTokenBalance = moneyMarket.convertAmountToBase(iTokenAmount);
+    function getFreeMargin(LiquidityPoolInterface _pool, address _trader) public returns (uint256) {
+        int256 equity = _getEquityOfTrader(_pool, _trader);
+        uint256 marginHeld = getMarginHeld(_pool, _trader);
 
-        // free_balance = max(balance - margin_held, zero)
-        return int256(baseTokenBalance).sub(getMarginHeld(_pool, _trader));
+        if (equity < 0) {
+            return 0;
+        }
+
+        // freeMargin = equity - marginHeld
+        return uint256(equity).sub(marginHeld);
     }
 
     // Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
@@ -694,7 +697,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         int256 leveragedDebits = _leveragedHeld.signedMulPercent(Percentage.SignedPercent(int256(_debitsPrice.value)));
         int256 leveragedHeldInUsd = _getUsdValue(_pair.base, leveragedDebits);
-        int256 openMargin = leveragedHeldInUsd.div(_leverage);
+        uint256 openMargin = uint256(leveragedHeldInUsd.div(_leverage));
 
         Position memory position = Position(
             positionId,
@@ -713,6 +716,8 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         positionsById[positionId] = position;
         positionsByPoolAndTrader[_pool][msg.sender].push(position);
         positionsByPool[_pool].push(position);
+
+        require(getFreeMargin(_pool, msg.sender) >= openMargin, "Trader has not enough balance to safely open position!");
     }
 
     function _removePositionFromTraderList(Position memory _position, uint256 _positionId) internal {
