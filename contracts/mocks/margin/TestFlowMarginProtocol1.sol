@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../impls/FlowMarginProtocol2.sol";
+import "../../impls/FlowMarginProtocol2.sol";
 
-contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
+contract TestFlowMarginProtocol1 is FlowMarginProtocol2 {
     function testUnrealizedPl(
         LiquidityPoolInterface _pool,
         FlowToken _base,
