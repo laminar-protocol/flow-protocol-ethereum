@@ -730,12 +730,13 @@ contract('FlowMarginProtocol2', accounts => {
     });
   });
 
-  describe('when computing unrealized profit loss', () => {
+  describe.only('when computing unrealized profit loss along with market price', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
       let bidPrice: BN;
       let leveragedHeldInEuro: BN;
       let leveragedDebits: BN;
+      let maxPrice: BN;
 
       beforeEach(async () => {
         askPrice = (await protocol1.getAskPrice.call(
@@ -756,16 +757,18 @@ contract('FlowMarginProtocol2', accounts => {
         leveragedDebits = fromEth(
           leveragedHeldInEuro.mul(leverage.gte(bn(0)) ? askPrice : bidPrice),
         );
+        maxPrice = bn(0);
       });
 
       it('should return correct unrealized PL at the beginning of a new position', async () => {
-        const unrealizedPl = await protocol1.testUnrealizedPl.call(
+        const unrealizedPl = await protocol1.getUnrealizedPlAndMarketPriceOfPosition.call(
           liquidityPool.address,
           usd.address,
           eur,
           leverage.toString(),
           leveragedHeldInEuro.toString(),
           leveragedDebits.toString(),
+          maxPrice.toString(),
         );
         const currentPrice = leverage.gte(bn(0)) ? bidPrice : askPrice;
         const openPrice = leveragedDebits
@@ -776,7 +779,8 @@ contract('FlowMarginProtocol2', accounts => {
           currentPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
-        expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
+        expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
+        expect(unrealizedPl['1']).to.be.bignumber.equal(currentPrice);
       });
 
       it('should return correct unrealized PL after a profit', async () => {
@@ -786,13 +790,14 @@ contract('FlowMarginProtocol2', accounts => {
           leverage.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0)) as any;
 
-        const unrealizedPl = await protocol1.testUnrealizedPl.call(
+        const unrealizedPl = await protocol1.getUnrealizedPlAndMarketPriceOfPosition.call(
           liquidityPool.address,
           usd.address,
           eur,
           leverage.toString(),
           leveragedHeldInEuro.toString(),
           leveragedDebits.toString(),
+          maxPrice.toString(),
         );
         const openPrice = leveragedDebits
           .mul(bn(1e18))
@@ -802,7 +807,8 @@ contract('FlowMarginProtocol2', accounts => {
           newPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
-        expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
+        expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
+        expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
       });
 
       it('should return correct unrealized PL after a loss', async () => {
@@ -812,13 +818,14 @@ contract('FlowMarginProtocol2', accounts => {
           leverage.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0)) as any;
 
-        const unrealizedPl = await protocol1.testUnrealizedPl.call(
+        const unrealizedPl = await protocol1.getUnrealizedPlAndMarketPriceOfPosition.call(
           liquidityPool.address,
           usd.address,
           eur,
           leverage.toString(),
           leveragedHeldInEuro.toString(),
           leveragedDebits.toString(),
+          maxPrice.toString(),
         );
         const openPrice = leveragedDebits
           .mul(bn(1e18))
@@ -828,7 +835,8 @@ contract('FlowMarginProtocol2', accounts => {
           newPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
-        expect(unrealizedPl).to.be.bignumber.equal(expectedPl);
+        expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
+        expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
       });
     };
 

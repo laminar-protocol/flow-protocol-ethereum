@@ -599,20 +599,6 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         return bidPrice;
     }
 
-    // Unrealized profit and loss of a given trader(USD value). It is the sum of unrealized profit and loss of all positions
-	// opened by a trader.
-    function _getUnrealizedPlOfTrader(LiquidityPoolInterface _pool, address _trader) internal returns (int256) {
-        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
-
-        int256 accumulatedUnrealized = int256(0);
-
-        for (uint256 i = 0; i < positions.length; i++) {
-            accumulatedUnrealized = accumulatedUnrealized.add(_getUnrealizedPlOfPosition(positions[i]));
-        }
-
-        return accumulatedUnrealized;
-    }
-
     function _getSwapRatesOfTrader(LiquidityPoolInterface _pool, address _trader) internal view returns (uint256) {
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
@@ -638,6 +624,19 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         }
 
         return accumulatedLeveragedDebits;
+    }
+
+    // Unrealized profit and loss of a given trader(USD value). It is the sum of unrealized profit and loss of all positions
+	// opened by a trader.
+    function _getUnrealizedPlOfTrader(LiquidityPoolInterface _pool, address _trader) internal returns (int256) {
+        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
+        int256 accumulatedUnrealized = 0;
+
+        for (uint256 i = 0; i < positions.length; i++) {
+            accumulatedUnrealized = accumulatedUnrealized.add(_getUnrealizedPlOfPosition(positions[i]));
+        }
+
+        return accumulatedUnrealized;
     }
 
     // Unrealized profit and loss of a position(USD value), based on current market price.
