@@ -558,7 +558,7 @@ contract('FlowMarginProtocol2', accounts => {
 
   const insertPositions = async (positionCount: number, trader: string) => {
     for (let i = 0; i < positionCount / 2; i += 1) {
-      console.log(`Open Position ${i}`);
+      // console.log(`Open Position ${i}`);
       const leverage = bn(20).mul(i % 2 === 0 ? bn(1) : bn(-1));
       const leveragedHeldInEuro = euro(2);
       await protocol.openPosition(
@@ -573,7 +573,7 @@ contract('FlowMarginProtocol2', accounts => {
     }
   };
 
-  describe('when checking the trader safety', () => {
+  describe.skip('when checking the trader safety', () => {
     beforeEach(async () => {
       await protocol.deposit(liquidityPool.address, dollar(1000).toString(), {
         from: alice,
@@ -627,7 +627,7 @@ contract('FlowMarginProtocol2', accounts => {
     });
   });
 
-  describe('when checking the pool safety', () => {
+  describe.skip('when checking the pool safety', () => {
     beforeEach(async () => {
       await protocol.deposit(liquidityPool.address, dollar(1000).toString(), {
         from: alice,
