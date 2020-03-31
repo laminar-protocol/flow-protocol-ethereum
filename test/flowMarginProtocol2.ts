@@ -966,4 +966,14 @@ contract('FlowMarginProtocol2', accounts => {
       expect(positionsByBobAfter).to.eql(positionsByBobBefore);
     });
   });
+
+  describe('when getting the latest price', () => {
+    it('should return the correct latest price', async () => {
+      const price1 = await protocol2.getPrice.call(usd.address, eur);
+      const price2 = await protocol2.getPrice.call(eur, usd.address);
+
+      expect(price1).to.be.bignumber.equal(fromPercent(120));
+      expect(price2).to.be.bignumber.equal(bn('833333333333333333'));
+    });
+  });
 });

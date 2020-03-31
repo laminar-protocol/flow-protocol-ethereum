@@ -20,4 +20,8 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
 
         return positionIds;
     }
+
+    function getPrice(IERC20 _baseCurrencyId, IERC20 _quoteCurrencyId) public returns (uint256) {
+        return _getPrice(_baseCurrencyId, _quoteCurrencyId).value;
+    }
 }

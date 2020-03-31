@@ -17,7 +17,7 @@ contract TestFlowMarginProtocol1 is FlowMarginProtocol2 {
         return _getUnrealizedPlOfPosition(position);
     }
 
-    function testGetUsdValue(IERC20 _currencyToken, int256 _amount) public returns (int256) {
+    function getUsdValue(IERC20 _currencyToken, int256 _amount) public returns (int256) {
         return _getUsdValue(_currencyToken, _amount);
     }
 
