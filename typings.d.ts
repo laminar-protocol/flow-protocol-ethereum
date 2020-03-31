@@ -5,6 +5,15 @@ declare module 'openzeppelin-test-helpers' {
   ) => Promise<any>;
   export const time: {
     increase: (n: number) => Promise<any>;
+    latest: () => Promise<any>;
+    duration: {
+      seconds: (n: number) => any;
+      minutes: (n: number) => any;
+      hours: (n: number) => any;
+      days: (n: number) => any;
+      weeks: (n: number) => any;
+      years: (n: number) => any;
+    };
   };
   export const constants: any;
 }
