@@ -56,4 +56,12 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
     function getIsTraderSafe(LiquidityPoolInterface _pool, address _trader) public returns (bool) {
         return _isTraderSafe(_pool, _trader);
     }
+
+    function getAccumulatedSwapRateOfPosition(uint256 _swapRate, uint256 _timeWhenOpened) public view returns (uint256) {
+        TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
+        LiquidityPoolInterface pool = LiquidityPoolInterface(address(0));
+        Position memory position = Position(0, msg.sender, pool, pair, 0, 0, 0, 0, 0, _swapRate, _timeWhenOpened);
+
+        return _getAccumulatedSwapRateOfPosition(position);
+    }
 }

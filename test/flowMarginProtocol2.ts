@@ -1,4 +1,4 @@
-import { expectRevert, constants } from 'openzeppelin-test-helpers';
+import { expectRevert, constants, time } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import BN from 'bn.js';
 
@@ -807,6 +807,39 @@ contract('FlowMarginProtocol2', accounts => {
 
     describe('when given a short position', () => {
       itComputesPlWithLeverageCorrectly(bn(-20));
+    });
+  });
+
+  describe('when computing the accumulated swap rate', () => {
+    it('should return the correct accumulated swap rate', async () => {
+      const daysOfPosition = 20;
+      const ageOfPosition = time.duration.days(daysOfPosition);
+      const swapRate = bn(5);
+      const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
+      const accSwapRate = await protocol.getAccumulatedSwapRateOfPosition(
+        swapRate,
+        timeWhenOpened,
+      );
+
+      const expectedAccSwapRate = swapRate.mul(bn(daysOfPosition));
+
+      expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
+    });
+
+    it('counts only full days', async () => {
+      const daysOfPosition = 20;
+      const ageOfPosition = time.duration
+        .days(daysOfPosition)
+        .sub(time.duration.seconds(5));
+      const swapRate = bn(5);
+      const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
+      const accSwapRate = await protocol.getAccumulatedSwapRateOfPosition(
+        swapRate,
+        timeWhenOpened,
+      );
+
+      const expectedAccSwapRate = swapRate.mul(bn(daysOfPosition - 1));
+      expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
     });
   });
 });
