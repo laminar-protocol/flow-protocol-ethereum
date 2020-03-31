@@ -976,4 +976,20 @@ contract('FlowMarginProtocol2', accounts => {
       expect(price2).to.be.bignumber.equal(bn('833333333333333333'));
     });
   });
+
+  describe('when getting the value in USD', () => {
+    it('should return the correct USD value', async () => {
+      const value = bn(120);
+      const usdValue = await protocol1.getUsdValue.call(eur, value);
+
+      expect(usdValue).to.be.bignumber.equal(bn(120 * 1.2));
+    });
+
+    it('should be identical when passing USD', async () => {
+      const value = bn(120);
+      const usdValue = await protocol1.getUsdValue.call(usd.address, value);
+
+      expect(usdValue).to.be.bignumber.equal(value);
+    });
+  });
 });
