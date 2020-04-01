@@ -56,7 +56,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         address baseToken,
         address indexed quoteToken,
         int256 leverage,
-        int256 amount,
+        uint256 amount,
         uint256 price
     );
     event PositionClosed(address indexed sender, uint256 positionId, uint256 price);
@@ -259,7 +259,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         FlowToken _base,
         FlowToken _quote,
         int256 _leverage,
-        int256 _leveragedHeld,
+        uint256 _leveragedHeld,
         uint256 _price
     ) public nonReentrant poolIsVerified(_pool) {
         if (!traderHasPaidFees[_pool][msg.sender]) {
@@ -464,7 +464,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         int256 equity = _getEquityOfTrader(_pool, _trader);
         uint256 marginHeld = getMarginHeld(_pool, _trader);
 
-        if (equity < 0) {
+        if (equity < int256(marginHeld)) {
             return 0;
         }
 
@@ -652,7 +652,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         uint256 _price
     ) internal returns (int256, Percentage.Percent memory) {
         Percentage.SignedPercent memory openPrice = Percentage.signedFromFraction(_position.leveragedDebits, _position.leveragedHeld);
-        Percentage.SignedPercent memory openPriceAbs = openPrice.value >= 0
+        Percentage.SignedPercent memory openPriceAbs = openPrice.value >= 0 // TODO isnt openPrice always negative ?
             ? Percentage.SignedPercent(openPrice.value)
             : Percentage.SignedPercent(-openPrice.value);
 
@@ -685,7 +685,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         LiquidityPoolInterface _pool,
         TradingPair memory _pair,
         int256 _leverage,
-        int256 _leveragedHeld,
+        uint256 _leveragedHeld,
         Percentage.Percent memory _debitsPrice
     ) internal {
         uint256 positionId = nextPositionId;
@@ -693,9 +693,9 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         (int256 heldSignum, int256 debitSignum) = _leverage > 0 ? (int256(1), int256(-1)) :  (int256(-1), int256(1));
 
-        int256 leveragedDebits = _leveragedHeld.signedMulPercent(Percentage.SignedPercent(int256(_debitsPrice.value)));
-        int256 leveragedHeldInUsd = _getUsdValue(_pair.base, leveragedDebits);
-        uint256 openMargin = uint256(leveragedHeldInUsd.div(_leverage));
+        uint256 leveragedDebits = _leveragedHeld.mulPercent(_debitsPrice);
+        uint256 leveragedHeldInUsd = uint256(_getUsdValue(_pair.base, int256(leveragedDebits)));
+        uint256 openMargin = uint256(int256(leveragedHeldInUsd).mul(heldSignum).div(_leverage));
 
         Position memory position = Position(
             positionId,
@@ -703,19 +703,19 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             _pool,
             _pair,
             _leverage,
-            _leveragedHeld.mul(heldSignum),
-            leveragedDebits.mul(debitSignum),
-            leveragedHeldInUsd.mul(debitSignum),
+            int256(_leveragedHeld).mul(heldSignum),
+            int256(leveragedDebits).mul(debitSignum),
+            int256(leveragedHeldInUsd).mul(debitSignum),
             openMargin,
             currentSwapRate,
             now
         );
 
+        require(getFreeMargin(_pool, msg.sender) >= openMargin, "OP1");
+
         positionsById[positionId] = position;
         positionsByPoolAndTrader[_pool][msg.sender].push(position);
         positionsByPool[_pool].push(position);
-
-        require(getFreeMargin(_pool, msg.sender) >= openMargin, "OP1");
     }
 
     function _removePositionFromLists(Position memory _position) internal {
