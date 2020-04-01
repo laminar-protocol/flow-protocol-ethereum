@@ -297,7 +297,7 @@ contract('FlowMarginProtocol2', accounts => {
     });
   });
 
-  describe('when margin calling a trader', () => {
+  describe.skip('when margin calling a trader', () => {
     let leverage: BN;
     let depositInUsd: BN;
     let leveragedHeldInEuro: BN;
@@ -440,7 +440,7 @@ contract('FlowMarginProtocol2', accounts => {
     });
   });
 
-  describe('when margin calling a pool', () => {
+  describe.skip('when margin calling a pool', () => {
     let leverage: BN;
     let depositInUsd: BN;
     let leveragedHeldInEuro: BN;
