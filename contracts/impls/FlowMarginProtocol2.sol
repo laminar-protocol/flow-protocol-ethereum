@@ -44,7 +44,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         // USD value of leveraged debits on open position.
         int256 leveragedDebitsInUsd;
-        uint256 openMargin;
+        uint256 marginHeld;
 
         uint256 swapRate;
         uint256 timeWhenOpened;
@@ -439,19 +439,19 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     }
 
     /**
-    * @dev Sum of all open margin of a given trader.
+    * @dev Sum of all margin held of a given trader.
     * @param _pool The MarginLiquidityPool.
     * @param _trader The trader address.
     */
     function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
-        uint256 accumulatedOpenMargin = 0;
+        uint256 accumulatedMarginHeld = 0;
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
         for (uint256 i = 0; i < positions.length; i++) {
-            accumulatedOpenMargin = accumulatedOpenMargin.add(positions[i].openMargin);
+            accumulatedMarginHeld = accumulatedMarginHeld.add(positions[i].marginHeld);
         }
 
-        return accumulatedOpenMargin;
+        return accumulatedMarginHeld;
     }
 
     /**
@@ -695,7 +695,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
 
         uint256 leveragedDebits = _leveragedHeld.mulPercent(_debitsPrice);
         uint256 leveragedHeldInUsd = uint256(_getUsdValue(_pair.base, int256(leveragedDebits)));
-        uint256 openMargin = uint256(int256(leveragedHeldInUsd).mul(heldSignum).div(_leverage));
+        uint256 marginHeld = uint256(int256(leveragedHeldInUsd).mul(heldSignum).div(_leverage));
 
         Position memory position = Position(
             positionId,
@@ -706,12 +706,12 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             int256(_leveragedHeld).mul(heldSignum),
             int256(leveragedDebits).mul(debitSignum),
             int256(leveragedHeldInUsd).mul(debitSignum),
-            openMargin,
+            marginHeld,
             currentSwapRate,
             now
         );
 
-        require(getFreeMargin(_pool, msg.sender) >= openMargin, "OP1");
+        require(getFreeMargin(_pool, msg.sender) >= marginHeld, "OP1");
 
         positionsById[positionId] = position;
         positionsByPoolAndTrader[_pool][msg.sender].push(position);
