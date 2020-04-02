@@ -24,4 +24,12 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
     function getPrice(IERC20 _baseCurrencyId, IERC20 _quoteCurrencyId) public returns (uint256) {
         return _getPrice(_baseCurrencyId, _quoteCurrencyId).value;
     }
+
+    function getLeveragedDebitsOfTrader(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+        return _getLeveragedDebitsOfTrader(_pool, _trader);
+    }
+
+    function getSwapRatesOfTrader(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+        return _getSwapRatesOfTrader(_pool, _trader);
+    }
 }
