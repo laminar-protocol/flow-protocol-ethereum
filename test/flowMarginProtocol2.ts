@@ -48,6 +48,10 @@ contract('FlowMarginProtocol2', accounts => {
   let pair: MarginTradingPairInstance;
   let moneyMarket: MoneyMarketInstance;
 
+  let initialSpread: BN;
+  let initialUsdPrice: BN;
+  let initialEurPrice: BN;
+
   let initialSwapRate: BN;
   let initialTraderRiskMarginCallThreshold: BN;
   let initialTraderRiskLiquidateThreshold: BN;
@@ -67,6 +71,10 @@ contract('FlowMarginProtocol2', accounts => {
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
+
+    initialSpread = fromPip(10);
+    initialUsdPrice = fromPercent(100);
+    initialEurPrice = fromPercent(120);
 
     initialSwapRate = bn(2);
     initialTraderRiskMarginCallThreshold = fromPercent(5);
@@ -142,7 +150,7 @@ contract('FlowMarginProtocol2', accounts => {
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol1.address,
-      fromPip(10),
+      initialSpread,
     );
 
     await liquidityPool.approve(protocol1.address, constants.MAX_UINT256);
@@ -174,8 +182,10 @@ contract('FlowMarginProtocol2', accounts => {
     });
     await protocol2.verifyPool(liquidityPool.address);
 
-    await oracle.feedPrice(usd.address, fromPercent(100), { from: owner });
-    await oracle.feedPrice(eur, fromPercent(120), { from: owner });
+    await oracle.feedPrice(usd.address, initialUsdPrice.toString(), {
+      from: owner,
+    });
+    await oracle.feedPrice(eur, initialEurPrice.toString(), { from: owner });
   });
 
   // eslint-disable-next-line
@@ -1232,6 +1242,78 @@ contract('FlowMarginProtocol2', accounts => {
       const usdValue = await protocol1.getUsdValue.call(usd.address, value);
 
       expect(usdValue).to.be.bignumber.equal(value);
+    });
+  });
+
+  describe('when getting the ask price', () => {
+    it('should return the correct ask price', async () => {
+      const askPrice = await protocol1.getAskPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
+
+      // askPrice = price + (price * spread)
+      const expectedAskPrice = initialEurPrice.add(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      expect(askPrice).to.be.bignumber.equal(expectedAskPrice);
+    });
+
+    it('reverts when passed max price is too low', async () => {
+      const expectedAskPrice = initialEurPrice.add(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      const maxPrice = expectedAskPrice.sub(bn(1));
+
+      await expectRevert(
+        protocol1.getAskPrice.call(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          maxPrice.toString(),
+        ),
+        messages.marginAskPriceTooHigh,
+      );
+    });
+  });
+
+  describe('when getting the bid price', () => {
+    it('should return the correct ask price', async () => {
+      const bidPrice = await protocol1.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
+
+      // bidPrice = price - (price * spread)
+      const expectedBidPrice = initialEurPrice.sub(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      expect(bidPrice).to.be.bignumber.equal(expectedBidPrice);
+    });
+
+    it('reverts when passed min price is too high', async () => {
+      const expectedBidPrice = initialEurPrice.sub(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      const minPrice = expectedBidPrice.add(bn(1));
+
+      await expectRevert(
+        protocol1.getBidPrice.call(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          minPrice.toString(),
+        ),
+        messages.marginBidPriceTooLow,
+      );
     });
   });
 });
