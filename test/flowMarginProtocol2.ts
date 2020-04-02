@@ -14,6 +14,7 @@ import {
 } from 'types/truffle-contracts';
 import {
   convertFromBaseToken,
+  convertToBaseToken,
   createTestToken,
   createMoneyMarket,
   fromEth,
@@ -48,6 +49,10 @@ contract('FlowMarginProtocol2', accounts => {
   let pair: MarginTradingPairInstance;
   let moneyMarket: MoneyMarketInstance;
 
+  let initialSpread: BN;
+  let initialUsdPrice: BN;
+  let initialEurPrice: BN;
+
   let initialSwapRate: BN;
   let initialTraderRiskMarginCallThreshold: BN;
   let initialTraderRiskLiquidateThreshold: BN;
@@ -67,6 +72,10 @@ contract('FlowMarginProtocol2', accounts => {
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
+
+    initialSpread = fromPip(10);
+    initialUsdPrice = fromPercent(100);
+    initialEurPrice = fromPercent(120);
 
     initialSwapRate = bn(2);
     initialTraderRiskMarginCallThreshold = fromPercent(5);
@@ -142,7 +151,7 @@ contract('FlowMarginProtocol2', accounts => {
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol1.address,
-      fromPip(10),
+      initialSpread,
     );
 
     await liquidityPool.approve(protocol1.address, constants.MAX_UINT256);
@@ -174,8 +183,10 @@ contract('FlowMarginProtocol2', accounts => {
     });
     await protocol2.verifyPool(liquidityPool.address);
 
-    await oracle.feedPrice(usd.address, fromPercent(100), { from: owner });
-    await oracle.feedPrice(eur, fromPercent(120), { from: owner });
+    await oracle.feedPrice(usd.address, initialUsdPrice.toString(), {
+      from: owner,
+    });
+    await oracle.feedPrice(eur, initialEurPrice.toString(), { from: owner });
   });
 
   // eslint-disable-next-line
@@ -1061,7 +1072,14 @@ contract('FlowMarginProtocol2', accounts => {
     });
   });
 
-  describe('when removing a position from the lists', () => {
+  describe('when using internal helper functions', () => {
+    let leveragedHeld1: BN;
+    let leveragedHeld2: BN;
+    let leverage1: BN;
+    let leverage2: BN;
+    let initialAskPrice: BN;
+    let initialBidPrice: BN;
+
     beforeEach(async () => {
       await protocol2.deposit(liquidityPool.address, dollar(1000), {
         from: alice,
@@ -1070,12 +1088,31 @@ contract('FlowMarginProtocol2', accounts => {
         from: bob,
       });
 
+      initialAskPrice = (await protocol1.getAskPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      )) as any;
+
+      initialBidPrice = (await protocol1.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      )) as any;
+
+      leveragedHeld1 = euro(10);
+      leveragedHeld2 = euro(5);
+      leverage1 = bn(20);
+      leverage2 = bn(-20);
+
       await protocol2.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
-        20,
-        euro(2),
+        leverage1.toString(),
+        leveragedHeld1.toString(),
         0,
         { from: alice },
       );
@@ -1083,8 +1120,8 @@ contract('FlowMarginProtocol2', accounts => {
         liquidityPool.address,
         usd.address,
         eur,
-        20,
-        euro(2),
+        leverage2.toString(),
+        leveragedHeld2.toString(),
         0,
         { from: alice },
       );
@@ -1099,43 +1136,135 @@ contract('FlowMarginProtocol2', accounts => {
       );
     });
 
-    it('should remove the correct position from all lists', async () => {
-      const positionsByPoolBefore = await protocol2.getPositionsByPool(
-        liquidityPool.address,
-        constants.ZERO_ADDRESS,
-      );
-      const positionsByAliceBefore = await protocol2.getPositionsByPool(
-        liquidityPool.address,
-        alice,
-      );
-      const positionsByBobBefore = await protocol2.getPositionsByPool(
-        liquidityPool.address,
-        bob,
-      );
+    describe('when computing equity of trader', () => {
+      it('should return the correct equity', async () => {
+        const aliceEquity = await protocol2.getEquityOfTrader.call(
+          liquidityPool.address,
+          alice,
+        );
+        const bobEquity = await protocol2.getEquityOfTrader.call(
+          liquidityPool.address,
+          bob,
+        );
 
-      await protocol2.removePositionFromPoolList(liquidityPool.address, 1, {
-        from: alice,
+        // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
+
+        const aliceBalance = convertToBaseToken(
+          (await protocol2.balances(liquidityPool.address, alice)).toString(),
+        ) as any;
+        const aliceUnrealized = await protocol2.getUnrealizedPlOfTrader.call(
+          liquidityPool.address,
+          alice,
+        );
+        const aliceSwapRates = await protocol2.getSwapRatesOfTrader(
+          liquidityPool.address,
+          alice,
+        );
+        const aliceExpectedEquity = aliceBalance
+          .add(aliceUnrealized)
+          .sub(aliceSwapRates);
+
+        const bobBalance = convertToBaseToken(
+          (await protocol2.balances(liquidityPool.address, bob)).toString(),
+        ) as any;
+        const bobUnrealized = await protocol2.getUnrealizedPlOfTrader.call(
+          liquidityPool.address,
+          bob,
+        );
+        const bobSwapRates = await protocol2.getSwapRatesOfTrader(
+          liquidityPool.address,
+          bob,
+        );
+        const bobExpectedEquity = bobBalance
+          .add(bobUnrealized)
+          .sub(bobSwapRates);
+
+        expect(aliceEquity).to.be.bignumber.equal(aliceExpectedEquity);
+        expect(bobEquity).to.be.bignumber.equal(bobExpectedEquity);
       });
+    });
 
-      const positionsByPoolAfter = await protocol2.getPositionsByPool(
-        liquidityPool.address,
-        constants.ZERO_ADDRESS,
-      );
-      const positionsByAliceAfter = await protocol2.getPositionsByPool(
-        liquidityPool.address,
-        alice,
-      );
-      const positionsByBobAfter = await protocol2.getPositionsByPool(
-        liquidityPool.address,
-        bob,
-      );
+    describe('when removing a position from the lists', () => {
+      it('should remove the correct position from all lists', async () => {
+        const positionsByPoolBefore = await protocol2.getPositionsByPool(
+          liquidityPool.address,
+          constants.ZERO_ADDRESS,
+        );
+        const positionsByAliceBefore = await protocol2.getPositionsByPool(
+          liquidityPool.address,
+          alice,
+        );
+        const positionsByBobBefore = await protocol2.getPositionsByPool(
+          liquidityPool.address,
+          bob,
+        );
 
-      positionsByPoolBefore.splice(1, 1);
-      positionsByAliceBefore.splice(1, 1);
+        await protocol2.removePositionFromPoolList(liquidityPool.address, 1, {
+          from: alice,
+        });
 
-      expect(positionsByPoolAfter).to.eql(positionsByPoolBefore);
-      expect(positionsByAliceAfter).to.eql(positionsByAliceBefore);
-      expect(positionsByBobAfter).to.eql(positionsByBobBefore);
+        const positionsByPoolAfter = await protocol2.getPositionsByPool(
+          liquidityPool.address,
+          constants.ZERO_ADDRESS,
+        );
+        const positionsByAliceAfter = await protocol2.getPositionsByPool(
+          liquidityPool.address,
+          alice,
+        );
+        const positionsByBobAfter = await protocol2.getPositionsByPool(
+          liquidityPool.address,
+          bob,
+        );
+
+        positionsByPoolBefore.splice(1, 1);
+        positionsByAliceBefore.splice(1, 1);
+
+        expect(positionsByPoolAfter).to.eql(positionsByPoolBefore);
+        expect(positionsByAliceAfter).to.eql(positionsByAliceBefore);
+        expect(positionsByBobAfter).to.eql(positionsByBobBefore);
+      });
+    });
+
+    describe('when getting accumulated leveraged debits of a trader', () => {
+      it('should return the correct value', async () => {
+        const leveragedDebits = await protocol2.getLeveragedDebitsOfTrader(
+          liquidityPool.address,
+          alice,
+        );
+
+        const leveragedDebit1 = fromEth(
+          leveragedHeld1.mul(
+            leverage1.isNeg() ? initialBidPrice : initialAskPrice,
+          ),
+        );
+        const leveragedDebit2 = fromEth(
+          leveragedHeld2.mul(
+            leverage2.isNeg() ? initialBidPrice : initialAskPrice,
+          ),
+        );
+        const expectedLeveragedDebits = leveragedDebit1.add(leveragedDebit2);
+
+        expect(leveragedDebits).to.be.bignumber.equal(expectedLeveragedDebits);
+      });
+    });
+
+    describe('when getting accumulated swap rates of all positions from a trader', () => {
+      it('should return the correct value', async () => {
+        const alicePositionCount = bn(2);
+        const daysOfPosition = 5;
+        await time.increase(time.duration.days(daysOfPosition));
+
+        const accSwapRates = await protocol2.getSwapRatesOfTrader(
+          liquidityPool.address,
+          alice,
+        );
+
+        const expectedAccSwapRate = initialSwapRate
+          .mul(bn(daysOfPosition))
+          .mul(alicePositionCount);
+
+        expect(accSwapRates).to.be.bignumber.equal(expectedAccSwapRate);
+      });
     });
   });
 
@@ -1162,6 +1291,78 @@ contract('FlowMarginProtocol2', accounts => {
       const usdValue = await protocol1.getUsdValue.call(usd.address, value);
 
       expect(usdValue).to.be.bignumber.equal(value);
+    });
+  });
+
+  describe('when getting the ask price', () => {
+    it('should return the correct ask price', async () => {
+      const askPrice = await protocol1.getAskPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
+
+      // askPrice = price + (price * spread)
+      const expectedAskPrice = initialEurPrice.add(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      expect(askPrice).to.be.bignumber.equal(expectedAskPrice);
+    });
+
+    it('reverts when passed max price is too low', async () => {
+      const expectedAskPrice = initialEurPrice.add(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      const maxPrice = expectedAskPrice.sub(bn(1));
+
+      await expectRevert(
+        protocol1.getAskPrice.call(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          maxPrice.toString(),
+        ),
+        messages.marginAskPriceTooHigh,
+      );
+    });
+  });
+
+  describe('when getting the bid price', () => {
+    it('should return the correct ask price', async () => {
+      const bidPrice = await protocol1.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
+
+      // bidPrice = price - (price * spread)
+      const expectedBidPrice = initialEurPrice.sub(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      expect(bidPrice).to.be.bignumber.equal(expectedBidPrice);
+    });
+
+    it('reverts when passed min price is too high', async () => {
+      const expectedBidPrice = initialEurPrice.sub(
+        fromEth(initialEurPrice.mul(initialSpread)),
+      );
+
+      const minPrice = expectedBidPrice.add(bn(1));
+
+      await expectRevert(
+        protocol1.getBidPrice.call(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          minPrice.toString(),
+        ),
+        messages.marginBidPriceTooLow,
+      );
     });
   });
 });

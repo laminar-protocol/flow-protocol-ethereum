@@ -28,6 +28,8 @@ export const bn = (val: number | string | bigint): any =>
   new BN(val.toString());
 export const convertFromBaseToken = (baseTokenAmount: number | string) =>
   new BN(baseTokenAmount).mul(new BN(10));
+export const convertToBaseToken = (baseTokenAmount: number | string) =>
+  new BN(baseTokenAmount).div(new BN(10));
 
 export const ZERO = new BN(0);
 
