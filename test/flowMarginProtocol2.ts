@@ -436,6 +436,69 @@ contract('FlowMarginProtocol2', accounts => {
         expect(marginHeldBob).to.be.bignumber.equal(expectedMarginHeldBob);
       });
     });
+
+    describe('when getting the free margin of a trader', () => {
+      it('should return the correct value', async () => {
+        const freeMarginAlice = await protocol1.getFreeMargin.call(
+          liquidityPool.address,
+          alice,
+        );
+        const freeMarginBob = await protocol1.getFreeMargin.call(
+          liquidityPool.address,
+          bob,
+        );
+
+        const marginHeldAlice = await protocol1.getMarginHeld(
+          liquidityPool.address,
+          alice,
+        );
+        const marginHeldBob = await protocol1.getMarginHeld(
+          liquidityPool.address,
+          bob,
+        );
+        const equityAlice = await protocol1.getEquityOfTrader.call(
+          liquidityPool.address,
+          alice,
+        );
+        const equityBob = await protocol1.getEquityOfTrader.call(
+          liquidityPool.address,
+          bob,
+        );
+
+        const expectedFreeMarginAlice = (equityAlice as any).sub(
+          marginHeldAlice,
+        );
+        const expectedFreeMarginBob = (equityBob as any).sub(marginHeldBob);
+
+        expect(freeMarginAlice).to.be.bignumber.equal(expectedFreeMarginAlice);
+        expect(freeMarginBob).to.be.bignumber.equal(expectedFreeMarginBob);
+      });
+
+      describe('when the equity is less that the margin held', () => {
+        beforeEach(async () => {
+          await protocol1.openPosition(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            1,
+            euro(800),
+            0,
+            { from: alice },
+          );
+
+          await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+        });
+
+        it('should return 0', async () => {
+          const freeMarginAlice = await protocol1.getFreeMargin.call(
+            liquidityPool.address,
+            alice,
+          );
+
+          expect(freeMarginAlice).to.be.bignumber.equal(bn(0));
+        });
+      });
+    });
   });
 
   describe.skip('when margin calling a trader', () => {

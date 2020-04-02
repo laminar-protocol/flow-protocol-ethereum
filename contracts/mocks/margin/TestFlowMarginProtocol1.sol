@@ -59,4 +59,8 @@ contract TestFlowMarginProtocol1 is FlowMarginProtocol2 {
 
         return _getAccumulatedSwapRateOfPosition(position);
     }
+
+    function getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
+        return _getEquityOfTrader(_pool, _trader);
+    }
 }

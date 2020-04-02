@@ -465,7 +465,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         int256 equity = _getEquityOfTrader(_pool, _trader);
         uint256 marginHeld = getMarginHeld(_pool, _trader);
 
-        if (equity < int256(marginHeld)) {
+        if (equity <= int256(marginHeld)) {
             return 0;
         }
 
