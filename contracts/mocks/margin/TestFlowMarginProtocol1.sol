@@ -1,23 +1,26 @@
 pragma solidity ^0.6.4;
 
-import "../impls/FlowMarginProtocol2.sol";
+import "../../impls/FlowMarginProtocol2.sol";
 
-contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
-    function testUnrealizedPl(
+contract TestFlowMarginProtocol1 is FlowMarginProtocol2 {
+    function getUnrealizedPlAndMarketPriceOfPosition(
         LiquidityPoolInterface _pool,
         FlowToken _base,
         FlowToken _quote,
         int256 _leverage,
         int256 _leveragedHeld,
-        int256 _leveragedDebits
-    ) public returns(int256) {
+        int256 _leveragedDebits,
+        uint256 maxPrice
+    ) public returns(int256, uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
         Position memory position = Position(0, msg.sender, _pool, pair, _leverage, _leveragedHeld, _leveragedDebits, 0, 0, 0, 0);
 
-        return _getUnrealizedPlOfPosition(position);
+        (int256 unrealized, Percentage.Percent memory price) = _getUnrealizedPlAndMarketPriceOfPosition(position, maxPrice);
+
+        return (unrealized, price.value);
     }
 
-    function testGetUsdValue(IERC20 _currencyToken, int256 _amount) public returns (int256) {
+    function getUsdValue(IERC20 _currencyToken, int256 _amount) public returns (int256) {
         return _getUsdValue(_currencyToken, _amount);
     }
 
@@ -55,5 +58,13 @@ contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
 
     function getIsTraderSafe(LiquidityPoolInterface _pool, address _trader) public returns (bool) {
         return _isTraderSafe(_pool, _trader);
+    }
+
+    function getAccumulatedSwapRateOfPosition(uint256 _swapRate, uint256 _timeWhenOpened) public view returns (uint256) {
+        TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
+        LiquidityPoolInterface pool = LiquidityPoolInterface(address(0));
+        Position memory position = Position(0, msg.sender, pool, pair, 0, 0, 0, 0, 0, _swapRate, _timeWhenOpened);
+
+        return _getAccumulatedSwapRateOfPosition(position);
     }
 }
