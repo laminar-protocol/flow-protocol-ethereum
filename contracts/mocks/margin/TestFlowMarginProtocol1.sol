@@ -28,10 +28,6 @@ contract TestFlowMarginProtocol1 is FlowMarginProtocol2 {
         return _getMarginLevel(_pool, _trader).value;
     }
 
-    function getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
-        return _getEquityOfTrader(_pool, _trader);
-    }
-
     function getUnrealizedPlOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
         return _getUnrealizedPlOfTrader(_pool, _trader);
     }

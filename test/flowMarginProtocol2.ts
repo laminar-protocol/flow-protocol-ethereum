@@ -14,6 +14,7 @@ import {
 } from 'types/truffle-contracts';
 import {
   convertFromBaseToken,
+  convertToBaseToken,
   createTestToken,
   createMoneyMarket,
   fromEth,
@@ -1133,6 +1134,54 @@ contract('FlowMarginProtocol2', accounts => {
         0,
         { from: bob },
       );
+    });
+
+    describe('when computing equity of trader', () => {
+      it('should return the correct equity', async () => {
+        const aliceEquity = await protocol2.getEquityOfTrader.call(
+          liquidityPool.address,
+          alice,
+        );
+        const bobEquity = await protocol2.getEquityOfTrader.call(
+          liquidityPool.address,
+          bob,
+        );
+
+        // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
+
+        const aliceBalance = convertToBaseToken(
+          (await protocol2.balances(liquidityPool.address, alice)).toString(),
+        ) as any;
+        const aliceUnrealized = await protocol2.getUnrealizedPlOfTrader.call(
+          liquidityPool.address,
+          alice,
+        );
+        const aliceSwapRates = await protocol2.getSwapRatesOfTrader(
+          liquidityPool.address,
+          alice,
+        );
+        const aliceExpectedEquity = aliceBalance
+          .add(aliceUnrealized)
+          .sub(aliceSwapRates);
+
+        const bobBalance = convertToBaseToken(
+          (await protocol2.balances(liquidityPool.address, bob)).toString(),
+        ) as any;
+        const bobUnrealized = await protocol2.getUnrealizedPlOfTrader.call(
+          liquidityPool.address,
+          bob,
+        );
+        const bobSwapRates = await protocol2.getSwapRatesOfTrader(
+          liquidityPool.address,
+          bob,
+        );
+        const bobExpectedEquity = bobBalance
+          .add(bobUnrealized)
+          .sub(bobSwapRates);
+
+        expect(aliceEquity).to.be.bignumber.equal(aliceExpectedEquity);
+        expect(bobEquity).to.be.bignumber.equal(bobExpectedEquity);
+      });
     });
 
     describe('when removing a position from the lists', () => {
