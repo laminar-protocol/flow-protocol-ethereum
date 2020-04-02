@@ -442,6 +442,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     * @dev Sum of all margin held of a given trader.
     * @param _pool The MarginLiquidityPool.
     * @param _trader The trader address.
+    * @return The margin held sum.
     */
     function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
         uint256 accumulatedMarginHeld = 0;

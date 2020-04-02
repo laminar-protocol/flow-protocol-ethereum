@@ -189,16 +189,17 @@ contract('FlowMarginProtocol2', accounts => {
     await oracle.feedPrice(eur, initialEurPrice.toString(), { from: owner });
   });
 
-  // eslint-disable-next-line
-  const removeLastZeroes = (stringWithZeroes: string) => {
-    let newString = stringWithZeroes;
-
-    while (newString.endsWith('0')) {
-      newString = newString.slice(0, -1);
-    }
-
-    return newString;
-  };
+  const getLeveragedDebits = ({
+    leveragedHeld,
+    leverage,
+    askPrice,
+    bidPrice,
+  }: {
+    leveragedHeld: BN;
+    leverage: BN;
+    askPrice: BN;
+    bidPrice: BN;
+  }) => fromEth(leveragedHeld.mul(leverage.isNeg() ? bidPrice : askPrice));
 
   describe('when opening/closing a position', () => {
     let leverage: BN;
@@ -305,6 +306,135 @@ contract('FlowMarginProtocol2', accounts => {
       expect(traderBalanceDifference).to.be.bignumber.equal(
         convertFromBaseToken(unrealizedPl.toString()),
       );
+    });
+  });
+
+  describe('when there are some positions in the pool', () => {
+    let leveragedHeld1: BN;
+    let leveragedHeld2: BN;
+    let leveragedHeld3: BN;
+    let leveragedHeld4: BN;
+    let leverage1: BN;
+    let leverage2: BN;
+    let leverage3: BN;
+    let leverage4: BN;
+    let initialAskPrice: BN;
+    let initialBidPrice: BN;
+
+    beforeEach(async () => {
+      await protocol1.deposit(liquidityPool.address, dollar(1000), {
+        from: alice,
+      });
+      await protocol1.deposit(liquidityPool.address, dollar(1000), {
+        from: bob,
+      });
+
+      initialAskPrice = (await protocol1.getAskPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      )) as any;
+
+      initialBidPrice = (await protocol1.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      )) as any;
+
+      leveragedHeld1 = euro(10);
+      leveragedHeld2 = euro(5);
+      leveragedHeld3 = euro(4);
+      leveragedHeld4 = euro(2);
+      leverage1 = bn(20);
+      leverage2 = bn(-20);
+      leverage3 = bn(-5);
+      leverage4 = bn(20);
+
+      await protocol1.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage1.toString(),
+        leveragedHeld1.toString(),
+        0,
+        { from: alice },
+      );
+      await protocol1.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage2.toString(),
+        leveragedHeld2.toString(),
+        0,
+        { from: alice },
+      );
+      await protocol1.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage3.toString(),
+        leveragedHeld3.toString(),
+        0,
+        { from: alice },
+      );
+      await protocol1.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage4.toString(),
+        leveragedHeld4.toString(),
+        0,
+        { from: bob },
+      );
+    });
+
+    describe('when getting accumulated margin held of a trader', () => {
+      it('should return the correct value', async () => {
+        const marginHeldAlice = await protocol1.getMarginHeld(
+          liquidityPool.address,
+          alice,
+        );
+        const marginHeldBob = await protocol1.getMarginHeld(
+          liquidityPool.address,
+          bob,
+        );
+
+        const prices = { askPrice: initialAskPrice, bidPrice: initialBidPrice };
+
+        const leveragedDebitAlice1 = getLeveragedDebits({
+          leveragedHeld: leveragedHeld1,
+          leverage: leverage1,
+          ...prices,
+        });
+        const leveragedDebitAlice2 = getLeveragedDebits({
+          leveragedHeld: leveragedHeld2,
+          leverage: leverage2,
+          ...prices,
+        });
+        const leveragedDebitAlice3 = getLeveragedDebits({
+          leveragedHeld: leveragedHeld3,
+          leverage: leverage3,
+          ...prices,
+        });
+        const leveragedDebitBob = getLeveragedDebits({
+          leveragedHeld: leveragedHeld4,
+          leverage: leverage4,
+          ...prices,
+        });
+
+        const expectedMarginHeldAlice = leveragedDebitAlice1
+          .div(leverage1)
+          .abs()
+          .add(leveragedDebitAlice2.div(leverage2).abs())
+          .add(leveragedDebitAlice3.div(leverage3).abs());
+
+        const expectedMarginHeldBob = leveragedDebitBob.div(leverage4).abs();
+
+        expect(marginHeldAlice).to.be.bignumber.equal(expectedMarginHeldAlice);
+        expect(marginHeldBob).to.be.bignumber.equal(expectedMarginHeldBob);
+      });
     });
   });
 
@@ -766,7 +896,7 @@ contract('FlowMarginProtocol2', accounts => {
 
         leveragedHeldInEuro = euro(100);
         leveragedDebits = fromEth(
-          leveragedHeldInEuro.mul(leverage.gte(bn(0)) ? askPrice : bidPrice),
+          leveragedHeldInEuro.mul(!leverage.isNeg() ? askPrice : bidPrice),
         );
         maxPrice = bn(0);
       });
@@ -781,7 +911,7 @@ contract('FlowMarginProtocol2', accounts => {
           leveragedDebits.toString(),
           maxPrice.toString(),
         );
-        const currentPrice = leverage.gte(bn(0)) ? bidPrice : askPrice;
+        const currentPrice = !leverage.isNeg() ? bidPrice : askPrice;
         const openPrice = leveragedDebits
           .mul(bn(1e18))
           .div(leveragedHeldInEuro);
@@ -798,7 +928,7 @@ contract('FlowMarginProtocol2', accounts => {
         await oracle.feedPrice(eur, fromPercent(240), { from: owner });
 
         const newPrice: BN = (await protocol1[
-          leverage.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
+          !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0)) as any;
 
         const unrealizedPl = await protocol1.getUnrealizedPlAndMarketPriceOfPosition.call(
@@ -826,7 +956,7 @@ contract('FlowMarginProtocol2', accounts => {
         await oracle.feedPrice(eur, fromPercent(60), { from: owner });
 
         const newPrice: BN = (await protocol1[
-          leverage.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
+          !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0)) as any;
 
         const unrealizedPl = await protocol1.getUnrealizedPlAndMarketPriceOfPosition.call(
@@ -918,10 +1048,10 @@ contract('FlowMarginProtocol2', accounts => {
       leverage1 = bn(20);
       leverage2 = bn(-20);
       leveragedDebits1 = fromEth(
-        leveragedHeldInEuro1.mul(leverage1.gte(bn(0)) ? askPrice : bidPrice),
+        leveragedHeldInEuro1.mul(!leverage1.isNeg() ? askPrice : bidPrice),
       );
       leveragedDebits2 = fromEth(
-        leveragedHeldInEuro2.mul(leverage2.gte(bn(0)) ? askPrice : bidPrice),
+        leveragedHeldInEuro2.mul(!leverage2.isNeg() ? askPrice : bidPrice),
       );
 
       await protocol1.deposit(liquidityPool.address, dollar(1000), {
@@ -953,8 +1083,8 @@ contract('FlowMarginProtocol2', accounts => {
         liquidityPool.address,
         alice,
       );
-      const currentPrice1 = leverage1.gte(bn(0)) ? bidPrice : askPrice;
-      const currentPrice2 = leverage2.gte(bn(0)) ? bidPrice : askPrice;
+      const currentPrice1 = !leverage1.isNeg() ? bidPrice : askPrice;
+      const currentPrice2 = !leverage2.isNeg() ? bidPrice : askPrice;
       const openPrice1 = leveragedDebits1
         .mul(bn(1e18))
         .div(leveragedHeldInEuro1);
@@ -962,10 +1092,10 @@ contract('FlowMarginProtocol2', accounts => {
         .mul(bn(1e18))
         .div(leveragedHeldInEuro2);
       // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-      const priceDelta1 = leverage1.gte(bn(0))
+      const priceDelta1 = !leverage1.isNeg()
         ? currentPrice1.sub(openPrice1)
         : openPrice1.sub(currentPrice1);
-      const priceDelta2 = leverage2.gte(bn(0))
+      const priceDelta2 = !leverage2.isNeg()
         ? currentPrice2.sub(openPrice2)
         : openPrice2.sub(currentPrice2);
       const expectedPl1 = fromEth(priceDelta1.mul(leveragedHeldInEuro1));
@@ -982,10 +1112,10 @@ contract('FlowMarginProtocol2', accounts => {
         alice,
       );
       const newPrice1: BN = (await protocol1[
-        leverage1.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
+        !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0)) as any;
       const newPrice2: BN = (await protocol1[
-        leverage2.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
+        !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0)) as any;
       const openPrice1 = leveragedDebits1
         .mul(bn(1e18))
@@ -994,10 +1124,10 @@ contract('FlowMarginProtocol2', accounts => {
         .mul(bn(1e18))
         .div(leveragedHeldInEuro2);
       // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-      const priceDelta1 = leverage1.gte(bn(0))
+      const priceDelta1 = !leverage1.isNeg()
         ? newPrice1.sub(openPrice1)
         : openPrice1.sub(newPrice1);
-      const priceDelta2 = leverage2.gte(bn(0))
+      const priceDelta2 = !leverage2.isNeg()
         ? newPrice2.sub(openPrice2)
         : openPrice2.sub(newPrice2);
       const expectedPl1 = fromEth(priceDelta1.mul(leveragedHeldInEuro1));
@@ -1014,10 +1144,10 @@ contract('FlowMarginProtocol2', accounts => {
         alice,
       );
       const newPrice1: BN = (await protocol1[
-        leverage1.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
+        !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0)) as any;
       const newPrice2: BN = (await protocol1[
-        leverage2.gte(bn(0)) ? 'getBidPrice' : 'getAskPrice'
+        !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0)) as any;
       const openPrice1 = leveragedDebits1
         .mul(bn(1e18))
@@ -1026,10 +1156,10 @@ contract('FlowMarginProtocol2', accounts => {
         .mul(bn(1e18))
         .div(leveragedHeldInEuro2);
       // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-      const priceDelta1 = leverage1.gte(bn(0))
+      const priceDelta1 = !leverage1.isNeg()
         ? newPrice1.sub(openPrice1)
         : openPrice1.sub(newPrice1);
-      const priceDelta2 = leverage2.gte(bn(0))
+      const priceDelta2 = !leverage2.isNeg()
         ? newPrice2.sub(openPrice2)
         : openPrice2.sub(newPrice2);
       const expectedPl1 = fromEth(priceDelta1.mul(leveragedHeldInEuro1));
