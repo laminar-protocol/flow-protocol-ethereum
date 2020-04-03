@@ -319,7 +319,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             LiquidityPoolInterface(position.pool).depositLiquidity(realized);
 
             uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(iTokenAmount);
+            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(iTokenAmount, "CP1");
         }
 
 		// remove position
@@ -442,6 +442,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     * @dev Sum of all margin held of a given trader.
     * @param _pool The MarginLiquidityPool.
     * @param _trader The trader address.
+    * @return The margin held sum.
     */
     function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
         uint256 accumulatedMarginHeld = 0;
@@ -464,7 +465,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         int256 equity = _getEquityOfTrader(_pool, _trader);
         uint256 marginHeld = getMarginHeld(_pool, _trader);
 
-        if (equity < int256(marginHeld)) {
+        if (equity <= int256(marginHeld)) {
             return 0;
         }
 
