@@ -1330,8 +1330,6 @@ contract('FlowMarginProtocol2', accounts => {
     });
 
     describe('when computing equity of trader', () => {
-      // TODO test negative trader balances
-
       it('should return the correct equity', async () => {
         const aliceEquity = await protocol2.getEquityOfTrader.call(
           liquidityPool.address,
@@ -1376,6 +1374,56 @@ contract('FlowMarginProtocol2', accounts => {
 
         expect(aliceEquity).to.be.bignumber.equal(aliceExpectedEquity);
         expect(bobEquity).to.be.bignumber.equal(bobExpectedEquity);
+      });
+
+      describe('when trader has negative balance', () => {
+        beforeEach(async () => {
+          await protocol2.openPosition(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            20,
+            dollar(8000),
+            0,
+            { from: bob },
+          );
+          await protocol2.openPosition(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            -20,
+            dollar(8000),
+            0,
+            { from: bob },
+          );
+
+          await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+          await protocol2.closePosition(3, 0, { from: bob }); // close bob' loss position
+        });
+
+        it('should return the correct equity', async () => {
+          const bobEquity = await protocol2.getEquityOfTrader.call(
+            liquidityPool.address,
+            bob,
+          );
+
+          const bobBalance = convertToBaseToken(
+            (await protocol2.balances(liquidityPool.address, bob)).toString(),
+          );
+          const bobUnrealized = await protocol2.getUnrealizedPlOfTrader.call(
+            liquidityPool.address,
+            bob,
+          );
+          const bobSwapRates = await protocol2.getSwapRatesOfTrader(
+            liquidityPool.address,
+            bob,
+          );
+          const bobExpectedEquity = (bobBalance as any)
+            .add(bobUnrealized)
+            .sub(bobSwapRates);
+
+          expect(bobEquity).to.be.bignumber.equal(bobExpectedEquity);
+        });
       });
     });
 
