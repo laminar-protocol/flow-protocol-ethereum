@@ -77,7 +77,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     mapping (LiquidityPoolInterface => Position[]) internal positionsByPool;
 
     // protocol state per pool
-    mapping (LiquidityPoolInterface => mapping(address => uint256)) public balances;
+    mapping (LiquidityPoolInterface => mapping(address => int256)) public balances;
     mapping (LiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
     mapping (LiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
     mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
@@ -226,7 +226,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     function deposit(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         uint256 iTokenAmount = moneyMarket.mint(_baseTokenAmount);
-        balances[_pool][msg.sender] = balances[_pool][msg.sender].add(iTokenAmount);
+        balances[_pool][msg.sender] = balances[_pool][msg.sender].add(int256(iTokenAmount));
 
         emit Deposited(msg.sender, _baseTokenAmount);
     }
@@ -240,7 +240,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         require(getFreeMargin(_pool, msg.sender) >= _baseTokenAmount, "W1");
 
         uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
-        balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(iTokenAmount);
+        balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(iTokenAmount));
 
         emit Withdrew(msg.sender, iTokenAmount);
     }
@@ -302,24 +302,27 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
         uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPosition(position);
         int256 balanceDelta = unrealizedPl.sub(int256(accumulatedSwapRate));
 
-        // realizing
-        uint256 balanceDeltaAbs = balanceDelta >= 0 ? uint256(balanceDelta) : uint256(-balanceDelta);
-
         if (balanceDelta >= 0) {
-            // trader has profit
-            uint256 realized = Math.min(LiquidityPoolInterface(position.pool).getLiquidity(), balanceDeltaAbs);
+            // trader has profit, max realizable is the pool's liquidity
+            uint256 realized = Math.min(LiquidityPoolInterface(position.pool).getLiquidity(), uint256(balanceDelta));
             LiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
 
             uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(iTokenAmount);
+            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(iTokenAmount));
         } else {
-            // trader has loss
-            uint256 realized = Math.min(FlowToken(position.pair.base).balanceOf(address(this)), balanceDeltaAbs);
-            FlowToken(position.pair.base).approve(address(position.pool), realized);
-            LiquidityPoolInterface(position.pool).depositLiquidity(realized);
+            // trader has loss, max realizable is the trader's equity
+            int256 equity = _getEquityOfTrader(position.pool, msg.sender);
+            uint256 balanceDeltaAbs = uint256(-balanceDelta);
+            int256 equityWithoutCurrentPosition = equity.add(int256(balanceDeltaAbs));
+            uint256 realized = equityWithoutCurrentPosition <= 0
+                ? 0
+                : Math.min(uint256(equityWithoutCurrentPosition), balanceDeltaAbs);
+            uint256 toSendRealized = Math.min(FlowToken(position.pair.base).balanceOf(address(this)), realized);
+            FlowToken(position.pair.base).approve(address(position.pool), toSendRealized);
+            LiquidityPoolInterface(position.pool).depositLiquidity(toSendRealized);
 
             uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(iTokenAmount, "CP1");
+            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(int256(iTokenAmount));
         }
 
 		// remove position
@@ -548,7 +551,11 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
     function _getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) internal returns (int256) {
         int256 unrealized = _getUnrealizedPlOfTrader(_pool, _trader);
         uint256 accumulatedSwapRates = _getSwapRatesOfTrader(_pool, _trader);
-        int256 totalBalance = int256(moneyMarket.convertAmountToBase(balances[_pool][_trader])).add(unrealized);
+        int256 traderBalance = balances[_pool][_trader];
+        uint256 traderBalanceAbs = traderBalance >= 0 ? uint256(traderBalance) : uint256(-traderBalance);
+        uint256 traderBalanceBaseTokenAbs = moneyMarket.convertAmountToBase(traderBalanceAbs);
+        int256 traderBalanceBaseToken = traderBalance >= 0 ? int256(traderBalanceBaseTokenAbs) : int256(-traderBalanceBaseTokenAbs);
+        int256 totalBalance = traderBalanceBaseToken.add(unrealized);
 
         return totalBalance.sub(int256(accumulatedSwapRates));
     }
