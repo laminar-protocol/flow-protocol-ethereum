@@ -319,7 +319,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             LiquidityPoolInterface(position.pool).depositLiquidity(realized);
 
             uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(iTokenAmount);
+            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(iTokenAmount, "CP1");
         }
 
 		// remove position
