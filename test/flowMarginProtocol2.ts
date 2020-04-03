@@ -1330,6 +1330,8 @@ contract('FlowMarginProtocol2', accounts => {
     });
 
     describe('when computing equity of trader', () => {
+      // TODO test negative trader balances
+
       it('should return the correct equity', async () => {
         const aliceEquity = await protocol2.getEquityOfTrader.call(
           liquidityPool.address,
