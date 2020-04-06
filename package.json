@@ -4,7 +4,7 @@
   "author": "Bryan Chen <bryan@laminar.one>",
   "private": true,
   "scripts": {
-    "generate": "yarn truffle compile && yarn typechain --target truffle-v5 \"./build/**/!(Proxy).json\" && yarn typechain --target web3-v1 './build/**/*.json'",
+    "generate": "yarn truffle compile && yarn typechain --target truffle-v5 \"./build/**/!(Proxy).json\" && yarn typechain --target web3-v1 './build/**/!(Proxy).json'",
     "prepare": "yarn generate && cd subgraph && yarn && cross-env NETWORK=kovan yarn codegen",
     "verify": "cross-env-shell truffle run verify Proxy MoneyMarket FlowProtocol FlowToken LiquidityPool SimplePriceOracle FlowMarginProtocol MarginTradingPair --network $NETWORK",
     "lint": "yarn solium -d contracts/ && yarn eslint --ext .js,.ts subgraph && yarn tsc --noEmit --pretty",
