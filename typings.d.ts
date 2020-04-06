@@ -16,6 +16,11 @@ declare module 'openzeppelin-test-helpers' {
     };
   };
   export const constants: any;
+  export const expectEvent: (
+    receipt: Truffle.TransactionResponse,
+    eventName: string,
+    eventArgs: {},
+  ) => Promise<any>;
 }
 
 declare namespace Chai {

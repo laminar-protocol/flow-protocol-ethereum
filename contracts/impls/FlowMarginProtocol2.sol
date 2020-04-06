@@ -317,7 +317,7 @@ contract FlowMarginProtocol2 is FlowProtocolBase {
             uint256 realized = equityWithoutCurrentPosition <= 0
                 ? 0
                 : Math.min(uint256(equityWithoutCurrentPosition), balanceDeltaAbs);
-            uint256 toSendRealized = Math.min(FlowToken(position.pair.base).balanceOf(address(this)), realized);
+            uint256 toSendRealized = Math.min(FlowToken(position.pair.base).balanceOf(address(this)), realized); // TODO can this ever happen?
             FlowToken(position.pair.base).approve(address(position.pool), toSendRealized);
             LiquidityPoolInterface(position.pool).depositLiquidity(toSendRealized);
 
