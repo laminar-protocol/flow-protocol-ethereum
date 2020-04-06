@@ -2,7 +2,7 @@
 * contracts
   * impls
     * [FlowMarginProtocol](docs/impls/FlowMarginProtocol.md)
-    * [FlowMarginProtocol2](docs/impls/FlowMarginProtocol2.md)
+    * [FlowMarginProtocol](docs/impls/FlowMarginProtocol.md)
     * [FlowProtocol](docs/impls/FlowProtocol.md)
     * [FlowProtocolBase](docs/impls/FlowProtocolBase.md)
     * [FlowToken](docs/impls/FlowToken.md)
@@ -33,7 +33,7 @@
     * [ArraysImpl](docs/mocks/ArraysImpl.md)
     * [FaucetInterface](docs/mocks/FaucetInterface.md)
     * [TestCToken](docs/mocks/TestCToken.md)
-    * [TestFlowMarginProtocol2](docs/mocks/TestFlowMarginProtocol2.md)
+    * [TestFlowMarginProtocol](docs/mocks/TestFlowMarginProtocol.md)
     * [TestToken](docs/mocks/TestToken.md)
     * upgrades
       * [FlowMarginProtocolNewVersion](docs/mocks/upgrades/FlowMarginProtocolNewVersion.md)
