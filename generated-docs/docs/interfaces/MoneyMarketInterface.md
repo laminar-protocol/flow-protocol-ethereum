@@ -18,7 +18,11 @@
 
 - [`redeemBaseTokenTo(address recipient, uint256 baseTokenAmount)`](#MoneyMarketInterface-redeemBaseTokenTo-address-uint256-)
 
+- [`convertAmountFromBase(uint256 _baseTokenAmount)`](#MoneyMarketInterface-convertAmountFromBase-uint256-)
+
 - [`convertAmountFromBase(uint256 rate, uint256 baseTokenAmount)`](#MoneyMarketInterface-convertAmountFromBase-uint256-uint256-)
+
+- [`convertAmountToBase(uint256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-uint256-)
 
 - [`convertAmountToBase(uint256 rate, uint256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
 
@@ -58,15 +62,23 @@ No description
 
 No description
 
-### [Function `redeemBaseToken(uint256 baseTokenAmount)`](#MoneyMarketInterface-redeemBaseToken-uint256-)
+### [Function `redeemBaseToken(uint256 baseTokenAmount) → uint256`](#MoneyMarketInterface-redeemBaseToken-uint256-)
 
 No description
 
-### [Function `redeemBaseTokenTo(address recipient, uint256 baseTokenAmount)`](#MoneyMarketInterface-redeemBaseTokenTo-address-uint256-)
+### [Function `redeemBaseTokenTo(address recipient, uint256 baseTokenAmount) → uint256`](#MoneyMarketInterface-redeemBaseTokenTo-address-uint256-)
+
+No description
+
+### [Function `convertAmountFromBase(uint256 _baseTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountFromBase-uint256-)
 
 No description
 
 ### [Function `convertAmountFromBase(uint256 rate, uint256 baseTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountFromBase-uint256-uint256-)
+
+No description
+
+### [Function `convertAmountToBase(uint256 iTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountToBase-uint256-)
 
 No description
 
