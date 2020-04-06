@@ -28,7 +28,8 @@
       }
     ],
     "name": "CollateralAdded",
-    "type": "event"
+    "type": "event",
+    "signature": "0x662b1bd33d13e6d2e62a602e837f7cfe4cb4c5cac45a3fdaa54a25c61c920072"
   },
   {
     "anonymous": false,
@@ -59,7 +60,8 @@
       }
     ],
     "name": "CollateralWithdrew",
-    "type": "event"
+    "type": "event",
+    "signature": "0x80595a8ea28d7589dd6ff0f9a296c35f1c7feb1dac2108a03df3e7e67333442b"
   },
   {
     "anonymous": false,
@@ -90,7 +92,8 @@
       }
     ],
     "name": "FlowTokenDeposited",
-    "type": "event"
+    "type": "event",
+    "signature": "0x89631865ef455b9e9614764c30db1d4659c8b42fe04f45247ceb235a9b044064"
   },
   {
     "anonymous": false,
@@ -121,7 +124,8 @@
       }
     ],
     "name": "FlowTokenWithdrew",
-    "type": "event"
+    "type": "event",
+    "signature": "0x7314c2fb8c65d5c0c77a8bf2f4162ad44844105ecbeb0b3a69730bcb9628d3ec"
   },
   {
     "anonymous": false,
@@ -158,7 +162,8 @@
       }
     ],
     "name": "Liquidated",
-    "type": "event"
+    "type": "event",
+    "signature": "0xd1ef587d13fefe63f9bc582e973aad46877ef08cfe790838721bd521c53caf56"
   },
   {
     "anonymous": false,
@@ -195,7 +200,8 @@
       }
     ],
     "name": "Minted",
-    "type": "event"
+    "type": "event",
+    "signature": "0x913df59304c6b5e94c14d2ee67fdbe4e2e03154082b6cd95bf3425c83d69867a"
   },
   {
     "anonymous": false,
@@ -208,7 +214,8 @@
       }
     ],
     "name": "NewFlowToken",
-    "type": "event"
+    "type": "event",
+    "signature": "0x6bd975d071dfd497660bd5ae865b666b114ec713401efb3004c311fb4748d6ad"
   },
   {
     "anonymous": false,
@@ -227,7 +234,8 @@
       }
     ],
     "name": "OwnershipTransferred",
-    "type": "event"
+    "type": "event",
+    "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
   },
   {
     "anonymous": false,
@@ -264,7 +272,8 @@
       }
     ],
     "name": "Redeemed",
-    "type": "event"
+    "type": "event",
+    "signature": "0xda4c370e4f539b8e19d66144cad73d70fbf440a544e56ff38e28e38ed47801a8"
   },
   {
     "inputs": [
@@ -282,14 +291,16 @@
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x485cc955"
   },
   {
     "inputs": [],
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x8129fc1c"
   },
   {
     "inputs": [
@@ -302,7 +313,8 @@
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0xc4d66de8"
   },
   {
     "inputs": [],
@@ -315,7 +327,9 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0x8f32d59b"
   },
   {
     "inputs": [],
@@ -328,7 +342,9 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0x796e8f90"
   },
   {
     "inputs": [],
@@ -341,7 +357,9 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0xd6d75f51"
   },
   {
     "inputs": [],
@@ -354,7 +372,9 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0x7dc0d1d0"
   },
   {
     "inputs": [],
@@ -367,14 +387,17 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0x8da5cb5b"
   },
   {
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x715018a6"
   },
   {
     "inputs": [
@@ -387,7 +410,8 @@
     "name": "setMaxSpread",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0xbef648db"
   },
   {
     "inputs": [
@@ -406,7 +430,9 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0x753d7563"
   },
   {
     "inputs": [
@@ -425,7 +451,9 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function"
+    "type": "function",
+    "constant": true,
+    "signature": "0x04c2320b"
   },
   {
     "inputs": [
@@ -438,7 +466,8 @@
     "name": "transferOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0xf2fde38b"
   },
   {
     "inputs": [
@@ -451,7 +480,8 @@
     "name": "addFlowToken",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x304e9f3b"
   },
   {
     "inputs": [
@@ -480,7 +510,8 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0xc6c3bbe6"
   },
   {
     "inputs": [
@@ -514,7 +545,8 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0xefdcaa72"
   },
   {
     "inputs": [
@@ -543,7 +575,8 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x0e6dfcd5"
   },
   {
     "inputs": [
@@ -577,7 +610,8 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x5ed0231b"
   },
   {
     "inputs": [
@@ -606,7 +640,8 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x26c01303"
   },
   {
     "inputs": [
@@ -629,7 +664,8 @@
     "name": "addCollateral",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x59781034"
   },
   {
     "inputs": [
@@ -648,7 +684,8 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x928d300e"
   },
   {
     "inputs": [
@@ -666,7 +703,8 @@
     "name": "deposit",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0x47e7ef24"
   },
   {
     "inputs": [
@@ -684,6 +722,7 @@
     "name": "withdraw",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function"
+    "type": "function",
+    "signature": "0xf3fef3a3"
   }
 ]

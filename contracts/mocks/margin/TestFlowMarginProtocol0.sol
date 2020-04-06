@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../../impls/FlowMarginProtocol2.sol";
+import "../../impls/FlowMarginProtocol.sol";
 
-contract TestFlowMarginProtocol0 is FlowMarginProtocol2 {
+contract TestFlowMarginProtocol0 is FlowMarginProtocol {
     function getPositionById(uint256 _id)
         public
         view

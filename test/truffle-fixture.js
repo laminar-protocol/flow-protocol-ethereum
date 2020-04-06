@@ -5,7 +5,6 @@ const FlowToken = artifacts.require('FlowToken');
 const LiquidityPool = artifacts.require('LiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
-const FlowMarginProtocol2 = artifacts.require('FlowMarginProtocol2');
 const MarginTradingPair = artifacts.require('MarginTradingPair');
 
 module.exports = async () => {
@@ -23,8 +22,6 @@ module.exports = async () => {
   SimplePriceOracle.setAsDeployed(simplePriceOracle);
   const flowMarginProtocol = await FlowMarginProtocol.new();
   FlowMarginProtocol.setAsDeployed(flowMarginProtocol);
-  const flowMarginProtocol2 = await FlowMarginProtocol2.new();
-  FlowMarginProtocol2.setAsDeployed(flowMarginProtocol2);
   const marginTradingPair = await MarginTradingPair.new();
   MarginTradingPair.setAsDeployed(marginTradingPair);
 };

@@ -82,10 +82,6 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         return true;
     }
 
-    function closeMarginPosition(FlowMarginProtocol _protocol, MarginTradingPair pair, uint id) external onlyOwner {
-        _protocol.closePosition(pair, id);
-    }
-
     function approve(address _protocol, uint amount) external onlyOwner {
         moneyMarket.iToken().safeApprove(_protocol, amount);
     }

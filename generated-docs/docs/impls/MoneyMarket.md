@@ -28,7 +28,11 @@
 
 - [`totalHoldings()`](#MoneyMarket-totalHoldings--)
 
+- [`convertAmountFromBase(uint256 _baseTokenAmount)`](#MoneyMarket-convertAmountFromBase-uint256-)
+
 - [`convertAmountFromBase(uint256 rate, uint256 _baseTokenAmount)`](#MoneyMarket-convertAmountFromBase-uint256-uint256-)
+
+- [`convertAmountToBase(uint256 iTokenAmount)`](#MoneyMarket-convertAmountToBase-uint256-)
 
 - [`convertAmountToBase(uint256 rate, uint256 iTokenAmount)`](#MoneyMarket-convertAmountToBase-uint256-uint256-)
 
@@ -60,11 +64,11 @@ No description
 
 No description
 
-### [Function `redeemBaseToken(uint256 _baseTokenAmount)`](#MoneyMarket-redeemBaseToken-uint256-)
+### [Function `redeemBaseToken(uint256 _baseTokenAmount) → uint256`](#MoneyMarket-redeemBaseToken-uint256-)
 
 No description
 
-### [Function `redeemBaseTokenTo(address recipient, uint256 _baseTokenAmount)`](#MoneyMarket-redeemBaseTokenTo-address-uint256-)
+### [Function `redeemBaseTokenTo(address recipient, uint256 _baseTokenAmount) → uint256`](#MoneyMarket-redeemBaseTokenTo-address-uint256-)
 
 No description
 
@@ -88,7 +92,15 @@ No description
 
 No description
 
+### [Function `convertAmountFromBase(uint256 _baseTokenAmount) → uint256`](#MoneyMarket-convertAmountFromBase-uint256-)
+
+No description
+
 ### [Function `convertAmountFromBase(uint256 rate, uint256 _baseTokenAmount) → uint256`](#MoneyMarket-convertAmountFromBase-uint256-uint256-)
+
+No description
+
+### [Function `convertAmountToBase(uint256 iTokenAmount) → uint256`](#MoneyMarket-convertAmountToBase-uint256-)
 
 No description
 

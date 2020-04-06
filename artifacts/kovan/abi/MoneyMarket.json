@@ -378,7 +378,13 @@
       }
     ],
     "name": "redeemBaseToken",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xa1bce477"
@@ -397,7 +403,13 @@
       }
     ],
     "name": "redeemBaseTokenTo",
-    "outputs": [],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf776b15f"
@@ -489,6 +501,27 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "_baseTokenAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "convertAmountFromBase",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x777354b4"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "rate",
         "type": "uint256"
       },
@@ -510,6 +543,27 @@
     "type": "function",
     "constant": true,
     "signature": "0xf8014a0b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "iTokenAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "convertAmountToBase",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x22bf7a18"
   },
   {
     "inputs": [

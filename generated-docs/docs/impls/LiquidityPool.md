@@ -10,8 +10,6 @@
 
 - [`openPosition(address, uint256, address quoteToken, int256 leverage, uint256)`](#LiquidityPool-openPosition-address-uint256-address-int256-uint256-)
 
-- [`closeMarginPosition(contract FlowMarginProtocol _protocol, contract MarginTradingPair pair, uint256 id)`](#LiquidityPool-closeMarginPosition-contract-FlowMarginProtocol-contract-MarginTradingPair-uint256-)
-
 - [`approve(address _protocol, uint256 amount)`](#LiquidityPool-approve-address-uint256-)
 
 - [`setSpread(uint256 value)`](#LiquidityPool-setSpread-uint256-)
@@ -51,10 +49,6 @@ No description
 No description
 
 ### [Function `openPosition(address, uint256, address quoteToken, int256 leverage, uint256) → bool`](#LiquidityPool-openPosition-address-uint256-address-int256-uint256-)
-
-No description
-
-### [Function `closeMarginPosition(contract FlowMarginProtocol _protocol, contract MarginTradingPair pair, uint256 id)`](#LiquidityPool-closeMarginPosition-contract-FlowMarginProtocol-contract-MarginTradingPair-uint256-)
 
 No description
 

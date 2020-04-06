@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../../impls/FlowMarginProtocol2.sol";
+import "../../impls/FlowMarginProtocol.sol";
 
-contract TestFlowMarginProtocol2 is FlowMarginProtocol2 {
+contract TestFlowMarginProtocol is FlowMarginProtocol {
     function removePositionFromPoolList(LiquidityPoolInterface _pool, uint256 _positionId) public {
         TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
         Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, 0, 0);
