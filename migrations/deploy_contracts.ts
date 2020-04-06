@@ -214,7 +214,25 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const marginProtocol = await FlowMarginProtocol.at(
       flowMarginProtocolProxy.address,
     );
-    await marginProtocol.initialize(oracle.address, moneyMarket.address);
+    const initialSwapRate = web3.utils.toWei('1'); // 1 USD per day TODO: per ? amount
+    const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.05');
+    const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.02');
+    const initialLiquidityPoolENPMarginThreshold = web3.utils.toWei('0.5');
+    const initialLiquidityPoolELLMarginThreshold = web3.utils.toWei('0.1');
+    const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.2');
+    const initialLiquidityPoolELLLiquidateThreshold = web3.utils.toWei('0.02');
+
+    await (marginProtocol as any).initialize(
+      oracle.address,
+      moneyMarket.address,
+      initialSwapRate,
+      initialTraderRiskMarginCallThreshold,
+      initialTraderRiskLiquidateThreshold,
+      initialLiquidityPoolENPMarginThreshold,
+      initialLiquidityPoolELLMarginThreshold,
+      initialLiquidityPoolENPLiquidateThreshold,
+      initialLiquidityPoolELLLiquidateThreshold,
+    );
 
     await deployer.deploy(MarginTradingPair);
     const marginTradingPairImpl = await MarginTradingPair.deployed();

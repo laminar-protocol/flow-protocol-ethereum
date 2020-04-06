@@ -754,6 +754,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         }
     }
 
+    // TODO should be based on leveraged amount as well
     // accumulated interest rate = rate * days
     function _getAccumulatedSwapRateOfPosition(Position memory _position) internal view returns (uint256) {
         uint256 timeDeltaInSeconds = now.sub(_position.timeWhenOpened);
