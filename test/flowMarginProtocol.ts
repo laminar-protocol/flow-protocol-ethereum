@@ -159,11 +159,16 @@ contract('FlowMarginProtocol', accounts => {
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
     await (liquidityPool as any).initialize(
       moneyMarket.address,
-      protocols[1].address,
+      protocols[0].address, // need 3 pools or only use first one for withdraw tests
       initialSpread,
     );
 
-    await liquidityPool.approve(protocols[1].address, constants.MAX_UINT256);
+    for (let index = 0; index < protocols.length; index += 1) {
+      await liquidityPool.approve(
+        protocols[index].address,
+        constants.MAX_UINT256,
+      );
+    }
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
     await liquidityPool.enableToken(eur);
     await liquidityPool.enableToken(jpy);
@@ -207,7 +212,7 @@ contract('FlowMarginProtocol', accounts => {
     bidPrice: BN;
   }) => fromEth(leveragedHeld.mul(leverage.isNeg() ? bidPrice : askPrice));
 
-  const getPositionByPool = async ({
+  const getLastPositionByPool = async ({
     protocol,
     pool,
   }: {
@@ -230,7 +235,7 @@ contract('FlowMarginProtocol', accounts => {
     };
   };
 
-  const getPositionByPoolAndTrader = async ({
+  const getLastPositionByPoolAndTrader = async ({
     protocol,
     pool,
     trader,
@@ -360,11 +365,11 @@ contract('FlowMarginProtocol', accounts => {
       price: leverage.isNeg() ? bidPrice : askPrice,
     });
 
-    const positionByPool = await getPositionByPool({
+    const positionByPool = await getLastPositionByPool({
       protocol: protocols[0],
       pool: expectedPool,
     });
-    const positionByPoolAndTrader = await getPositionByPoolAndTrader({
+    const positionByPoolAndTrader = await getLastPositionByPoolAndTrader({
       protocol: protocols[0],
       pool: expectedPool,
       trader: expectedOwner,
@@ -550,89 +555,320 @@ contract('FlowMarginProtocol', accounts => {
         );
       });
     });
+  });
 
-    /* it('computes new balance correctly when immediately closing', async () => {
-      const unrealizedPl = await protocols[1].getUnrealizedPlOfTrader.call(
-        liquidityPool.address,
-        alice,
-      );
-      await protocols[1].closePosition(
-        positionId,
-        price,
-        {
-          from: alice,
-        },
-      );
+  const expectCorrectlyClosedPosition = async ({
+    id,
+    expectedOwner,
+    expectedPool,
+    expectedLeverage,
+    traderBalanceBefore,
+    poolLiquidityBefore,
+    leveragedHeldInQuote,
+    baseToken = usd.address,
+    quoteToken = eur,
+    initialAskPrice,
+    initialBidPrice,
+    receipt,
+  }: {
+    id: BN;
+    expectedPool: string;
+    expectedOwner: string;
+    expectedLeverage: BN;
+    leveragedHeldInQuote: BN;
+    traderBalanceBefore: BN;
+    poolLiquidityBefore: BN;
+    baseToken?: string;
+    quoteToken?: string;
+    initialAskPrice: BN;
+    initialBidPrice: BN;
+    receipt: Truffle.TransactionResponse;
+  }) => {
+    const position = await protocols[0].getPositionById(id);
 
-      const traderBalanceAfter = await protocols[1].balances(
-        liquidityPool.address,
-        alice,
-      );
-      const traderBalanceDifference = traderBalanceAfter.sub(
-        traderBalanceBefore,
-      );
+    const tokenToInitialPrice: { [key: string]: BN } = {};
+    tokenToInitialPrice[usd.address] = initialUsdPrice;
+    tokenToInitialPrice[eur] = initialEurPrice;
+    tokenToInitialPrice[jpy] = initialJpyPrice;
 
-      expect(traderBalanceDifference).to.be.bignumber.equal(
-        convertFromBaseToken(unrealizedPl),
-      );
+    const basePrice = await oracle.getPrice.call(baseToken);
+    const quotePrice = await oracle.getPrice.call(quoteToken);
+    const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
+
+    const askPrice = expectedPrice.add(
+      fromEth(expectedPrice.mul(initialSpread)),
+    );
+    const bidPrice = expectedPrice.sub(
+      fromEth(expectedPrice.mul(initialSpread)),
+    );
+
+    const traderBalanceAfter = await protocols[0].balances(
+      liquidityPool.address,
+      alice,
+    );
+    const traderBalanceDifference = traderBalanceAfter.sub(traderBalanceBefore);
+
+    const leveragedDebits = fromEth(
+      leveragedHeldInQuote.mul(
+        !expectedLeverage.isNeg() ? initialAskPrice : initialBidPrice,
+      ),
+    );
+    const currentPrice = !expectedLeverage.isNeg() ? bidPrice : askPrice;
+    const openPrice = leveragedDebits.mul(bn(1e18)).div(leveragedHeldInQuote);
+    const usdPrice = await oracle.getPrice.call(usd.address);
+    const baseInUsdPrice = basePrice.mul(bn(1e18)).div(usdPrice);
+
+    // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
+    const expectedPl = fromEth(
+      currentPrice
+        .sub(openPrice)
+        .mul(leveragedHeldInQuote)
+        .mul(baseInUsdPrice)
+        .div(bn(1e18)),
+    );
+
+    expect(traderBalanceDifference).to.be.bignumber.equal(
+      convertFromBaseToken(expectedPl),
+    );
+
+    const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
+    const poolLiquidityDifference = poolLiquidityAfter.sub(poolLiquidityBefore);
+    const expectedPoolLiquidityDifference = expectedPl.mul(bn(-1));
+
+    expect(poolLiquidityDifference).to.be.bignumber.equal(
+      expectedPoolLiquidityDifference,
+    );
+
+    await expectEvent(receipt, 'PositionClosed', {
+      sender: expectedOwner,
+      liquidityPool: expectedPool,
+      baseToken,
+      quoteToken,
+      price: expectedLeverage.isNeg() ? askPrice : bidPrice,
     });
 
-    it('computes new balance correctly after a price drop', async () => {
-      await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+    await expectRevert(
+      getLastPositionByPool({
+        protocol: protocols[0],
+        pool: expectedPool,
+      }),
+      messages.noReason,
+    );
+    await expectRevert(
+      getLastPositionByPoolAndTrader({
+        protocol: protocols[0],
+        pool: expectedPool,
+        trader: expectedOwner,
+      }),
+      messages.noReason,
+    );
 
-      const unrealizedPl = await protocols[1].getUnrealizedPlOfTrader.call(
+    expect(position['0']).to.be.bignumber.equal(bn(0));
+  };
+
+  describe('when closing a position', () => {
+    let leverage: BN;
+    let depositInUsd: BN;
+    let leveragedHeldInEuro: BN;
+    let price: BN;
+    let initialAskPrice: BN;
+    let initialBidPrice: BN;
+    let positionId: BN;
+    let traderBalanceBefore: BN;
+    let poolLiquidityBefore: BN;
+    let receipt: Truffle.TransactionResponse;
+
+    beforeEach(async () => {
+      leverage = bn(20);
+      depositInUsd = dollar(80);
+      leveragedHeldInEuro = euro(100);
+      price = bn(0); // accept all
+
+      await protocols[0].deposit(liquidityPool.address, depositInUsd, {
+        from: alice,
+      });
+
+      traderBalanceBefore = await protocols[0].balances(
         liquidityPool.address,
         alice,
       );
-
-      await protocols[1].closePosition(
-        positionId,
-        price,
-        {
-          from: alice,
-        },
-      );
-
-      const traderBalanceAfter = await protocols[1].balances(
-        liquidityPool.address,
-        alice,
-      );
-      const traderBalanceDifference = traderBalanceAfter.sub(
-        traderBalanceBefore,
-      );
-
-      expect(traderBalanceDifference).to.be.bignumber.equal(
-        convertFromBaseToken(unrealizedPl),
-      );
+      poolLiquidityBefore = await liquidityPool.getLiquidity.call();
     });
 
-    it('computes new balance correctly after a price increase', async () => {
-      await oracle.feedPrice(eur, fromPercent(200), { from: owner });
+    describe('when USD is the base pair', () => {
+      beforeEach(async () => {
+        const basePrice = await oracle.getPrice.call(usd.address);
+        const quotePrice = await oracle.getPrice.call(eur);
+        const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
+        initialAskPrice = expectedPrice.add(
+          fromEth(expectedPrice.mul(initialSpread)),
+        );
+        initialBidPrice = expectedPrice.sub(
+          fromEth(expectedPrice.mul(initialSpread)),
+        );
 
-      const unrealizedPl = await protocols[1].getUnrealizedPlOfTrader.call(
-        liquidityPool.address,
-        alice,
-      );
-      await protocols[1].closePosition(
-        positionId,
-        price,
-        {
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('computes new balance correctly when immediately closing', async () => {
+        receipt = await protocols[0].closePosition(positionId, price, {
           from: alice,
-        },
-      );
+        });
 
-      const traderBalanceAfter = await protocols[1].balances(
-        liquidityPool.address,
-        alice,
-      );
-      const traderBalanceDifference = traderBalanceAfter.sub(
-        traderBalanceBefore,
-      );
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          receipt,
+        });
+      });
 
-      expect(traderBalanceDifference).to.be.bignumber.equal(
-        convertFromBaseToken(unrealizedPl),
-      );
-    }); */
+      it('computes new balance correctly after a price drop', async () => {
+        await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          receipt,
+        });
+      });
+
+      it('computes new balance correctly after a price increase', async () => {
+        await oracle.feedPrice(eur, fromPercent(200), { from: owner });
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          receipt,
+        });
+      });
+    });
+
+    describe('when the trading pair has no USD', () => {
+      beforeEach(async () => {
+        const basePrice = await oracle.getPrice.call(jpy);
+        const quotePrice = await oracle.getPrice.call(eur);
+        const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
+        initialAskPrice = expectedPrice.add(
+          fromEth(expectedPrice.mul(initialSpread)),
+        );
+        initialBidPrice = expectedPrice.sub(
+          fromEth(expectedPrice.mul(initialSpread)),
+        );
+
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          jpy,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('computes new balance correctly when immediately closing', async () => {
+        await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          baseToken: jpy,
+          quoteToken: eur,
+          receipt,
+        });
+      });
+
+      it('computes new balance correctly after a price drop', async () => {
+        await oracle.feedPrice(eur, fromPercent(100), { from: owner });
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          baseToken: jpy,
+          quoteToken: eur,
+          receipt,
+        });
+      });
+
+      it('computes new balance correctly after a price increase', async () => {
+        await oracle.feedPrice(eur, fromPercent(200), { from: owner });
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          baseToken: jpy,
+          quoteToken: eur,
+          receipt,
+        });
+      });
+    });
   });
 
   describe('when there are some positions in the pool', () => {
