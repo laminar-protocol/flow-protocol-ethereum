@@ -106,18 +106,19 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         allowedTokens[token] = false;
     }
 
-    function depositLiquidity(uint amount) external override {
-        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), amount);
-        moneyMarket.baseToken().approve(address(moneyMarket), amount);
-        moneyMarket.mint(amount);
+    function depositLiquidity(uint _baseTokenAmount) external override returns (uint256) {
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
+        moneyMarket.baseToken().approve(address(moneyMarket), _baseTokenAmount);
+
+        return moneyMarket.mint(_baseTokenAmount);
     }
 
-    function withdrawLiquidity(uint amount) external override onlyProtocol {
-        moneyMarket.redeemTo(msg.sender, amount);
+    function withdrawLiquidity(uint _iTokenAmount) external override onlyProtocol returns (uint256) {
+        return moneyMarket.redeemTo(msg.sender, _iTokenAmount);
     }
 
-    function withdrawLiquidityOwner(uint amount) external onlyOwner {
-        moneyMarket.redeemTo(msg.sender, amount);
+    function withdrawLiquidityOwner(uint _iTokenAmount) external onlyOwner returns (uint256) {
+        return moneyMarket.redeemTo(msg.sender, _iTokenAmount);
     }
 
     function addCollateral(FlowProtocol _protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {

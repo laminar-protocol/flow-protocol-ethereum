@@ -53,13 +53,20 @@ contract FlowMarginProtocol is FlowProtocolBase {
     event PositionOpened(
         address indexed sender,
         address indexed liquidityPool,
-        address baseToken,
-        address indexed quoteToken,
+        address indexed baseToken,
+        address quoteToken,
         int256 leverage,
         uint256 amount,
         uint256 price
     );
-    event PositionClosed(address indexed sender, uint256 positionId, uint256 price);
+    event PositionClosed(
+        address indexed sender,
+        address indexed liquidityPool,
+        address indexed baseToken,
+        address quoteToken,
+        uint256 positionId,
+        uint256 price
+    );
     event Deposited(address indexed sender, uint256 amount);
     event Withdrew(address indexed sender, uint256 amount);
     event TraderMarginCalled(address indexed liquidityPool, address indexed sender);
@@ -308,7 +315,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _positionId The id of the position to close.
      * @param _price The max/min price when closing the position..
      */
-    function closePosition(uint256 _positionId, uint256 _price) public nonReentrant poolIsVerified(positionsById[_positionId].pool) {
+    function closePosition(uint256 _positionId, uint256 _price) public nonReentrant {
         Position memory position = positionsById[_positionId];
         (int256 unrealizedPl, Percentage.Percent memory marketPrice) = _getUnrealizedPlAndMarketPriceOfPosition(position, _price);
         uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPosition(position);
@@ -317,9 +324,9 @@ contract FlowMarginProtocol is FlowProtocolBase {
         if (balanceDelta >= 0) {
             // trader has profit, max realizable is the pool's liquidity
             uint256 realized = Math.min(LiquidityPoolInterface(position.pool).getLiquidity(), uint256(balanceDelta));
-            LiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
-
             uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
+
+            LiquidityPoolInterface(position.pool).withdrawLiquidity(iTokenAmount);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(iTokenAmount));
         } else {
             // trader has loss, max realizable is the trader's equity
@@ -329,11 +336,10 @@ contract FlowMarginProtocol is FlowProtocolBase {
             uint256 realized = equityWithoutCurrentPosition <= 0
                 ? 0
                 : Math.min(uint256(equityWithoutCurrentPosition), balanceDeltaAbs);
-            uint256 toSendRealized = Math.min(FlowToken(position.pair.base).balanceOf(address(this)), realized); // TODO can this ever happen?
-            FlowToken(position.pair.base).approve(address(position.pool), toSendRealized);
-            LiquidityPoolInterface(position.pool).depositLiquidity(toSendRealized);
+            uint256 toSendRealized = Math.min(moneyMarket.baseToken().balanceOf(address(this)), realized); // TODO can this ever happen?
+            moneyMarket.baseToken().approve(address(position.pool), toSendRealized);
 
-            uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
+            uint256 iTokenAmount = LiquidityPoolInterface(position.pool).depositLiquidity(toSendRealized);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(int256(iTokenAmount));
         }
 
@@ -343,6 +349,9 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
         emit PositionClosed(
             msg.sender,
+            address(position.pool),
+            address(position.pair.base),
+            address(position.pair.quote),
             _positionId,
             marketPrice.value
         );
@@ -360,7 +369,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         traderIsMarginCalled[_pool][_trader] = true;
         IERC20(moneyMarket.baseToken()).safeTransfer(msg.sender, TRADER_MARGIN_CALL_FEE);
 
-        emit TraderMarginCalled(address(_pool), _trader);
+        // emit TraderMarginCalled(address(_pool), _trader);
     }
 
     /**
@@ -375,7 +384,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         traderIsMarginCalled[_pool][_trader] = false;
         IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), TRADER_MARGIN_CALL_FEE);
 
-        emit TraderBecameSafe(address(_pool), _trader);
+        // emit TraderBecameSafe(address(_pool), _trader);
     }
 
     /**
@@ -389,7 +398,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         poolIsMarginCalled[_pool] = true;
         IERC20(moneyMarket.baseToken()).safeTransfer(msg.sender, LIQUIDITY_POOL_MARGIN_CALL_FEE);
 
-        emit LiquidityPoolMarginCalled(address(_pool));
+        // emit LiquidityPoolMarginCalled(address(_pool));
     }
 
     /**
@@ -403,7 +412,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         poolIsMarginCalled[_pool] = false;
         IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), LIQUIDITY_POOL_MARGIN_CALL_FEE);
 
-        emit LiquidityPoolBecameSafe(address(_pool));
+        // emit LiquidityPoolBecameSafe(address(_pool));
     }
 
     /**

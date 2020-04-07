@@ -3,9 +3,9 @@ pragma solidity ^0.6.4;
 import "./MoneyMarketInterface.sol";
 
 interface LiquidityPoolInterface {
-    function depositLiquidity(uint256 _realized) external;
+    function depositLiquidity(uint256 _realized) external returns (uint256);
 
-    function withdrawLiquidity(uint256 _realized) external;
+    function withdrawLiquidity(uint256 _realized) external returns (uint256);
 
     function getLiquidity() external returns (uint256);
 
