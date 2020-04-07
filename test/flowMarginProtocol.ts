@@ -869,6 +869,58 @@ contract('FlowMarginProtocol', accounts => {
         });
       });
     });
+
+    describe('when passing a max price that is too high', () => {
+      beforeEach(async () => {
+        price = initialEurPrice;
+
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          0,
+          { from: alice },
+        );
+        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('reverts the transaction', async () => {
+        await expectRevert(
+          protocols[0].closePosition(positionId, price, {
+            from: alice,
+          }),
+          messages.marginBidPriceTooLow,
+        );
+      });
+    });
+
+    describe('when passing a min price that is too low', () => {
+      beforeEach(async () => {
+        price = initialEurPrice;
+
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage.mul(bn(-1)),
+          leveragedHeldInEuro,
+          0,
+          { from: alice },
+        );
+        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('reverts the transaction', async () => {
+        await expectRevert(
+          protocols[0].closePosition(positionId, price, {
+            from: alice,
+          }),
+          messages.marginAskPriceTooHigh,
+        );
+      });
+    });
   });
 
   describe('when there are some positions in the pool', () => {
