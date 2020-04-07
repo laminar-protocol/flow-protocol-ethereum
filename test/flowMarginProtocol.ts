@@ -334,9 +334,7 @@ contract('FlowMarginProtocol', accounts => {
       .mul(baseInUsdPrice)
       .div(bn(1e18));
 
-    const expectedMarginHeld = expectedLeveragedDebitsInUsd
-      .div(leverage)
-      .mul(leverage.isNeg() ? bn(1) : bn(-1));
+    const expectedMarginHeld = expectedLeveragedDebitsInUsd.div(leverage).abs();
 
     expect(positionId).to.be.bignumber.equal(id);
     expect(positionOwner).to.be.bignumber.equal(expectedOwner);
@@ -425,6 +423,38 @@ contract('FlowMarginProtocol', accounts => {
       beforeEach(() => {
         leverage = bn(1);
         leveragedHeldInEuro = euro(10);
+      });
+
+      it('opens new position correctly', async () => {
+        const receipt = await protocols[0].openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        const expectedTimeWhenOpened = await time.latest();
+        const positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+
+        await expectCorrectlyOpenedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          expectedSwapRate: initialSwapRate,
+          expectedTimeWhenOpened,
+          receipt,
+        });
+      });
+    });
+
+    describe('when the leverage is -50', () => {
+      beforeEach(() => {
+        leverage = bn(-50);
+        leveragedHeldInEuro = euro(1000);
       });
 
       it('opens new position correctly', async () => {
@@ -624,7 +654,8 @@ contract('FlowMarginProtocol', accounts => {
         .sub(openPrice)
         .mul(leveragedHeldInQuote)
         .mul(baseInUsdPrice)
-        .div(bn(1e18)),
+        .div(bn(1e18))
+        .mul(expectedLeverage.isNeg() ? bn(-1) : bn(1)),
     );
 
     expect(traderBalanceDifference).to.be.bignumber.equal(
@@ -693,20 +724,20 @@ contract('FlowMarginProtocol', accounts => {
         alice,
       );
       poolLiquidityBefore = await liquidityPool.getLiquidity.call();
+
+      const basePrice = await oracle.getPrice.call(usd.address);
+      const quotePrice = await oracle.getPrice.call(eur);
+      const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
+      initialAskPrice = expectedPrice.add(
+        fromEth(expectedPrice.mul(initialSpread)),
+      );
+      initialBidPrice = expectedPrice.sub(
+        fromEth(expectedPrice.mul(initialSpread)),
+      );
     });
 
     describe('when USD is the base pair', () => {
       beforeEach(async () => {
-        const basePrice = await oracle.getPrice.call(usd.address);
-        const quotePrice = await oracle.getPrice.call(eur);
-        const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-        initialAskPrice = expectedPrice.add(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
-        initialBidPrice = expectedPrice.sub(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
-
         await protocols[0].openPosition(
           liquidityPool.address,
           usd.address,
@@ -919,6 +950,80 @@ contract('FlowMarginProtocol', accounts => {
           }),
           messages.marginAskPriceTooHigh,
         );
+      });
+    });
+
+    describe('when the leverage is 1', () => {
+      beforeEach(async () => {
+        leverage = bn(1);
+        leveragedHeldInEuro = euro(10);
+
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          0,
+          { from: alice },
+        );
+        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('opens new position correctly', async () => {
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          receipt,
+        });
+      });
+    });
+
+    describe('when the leverage is -50', () => {
+      beforeEach(async () => {
+        leverage = bn(-50);
+        leveragedHeldInEuro = euro(1000);
+
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          0,
+          { from: alice },
+        );
+        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('opens new position correctly', async () => {
+        receipt = await protocols[0].closePosition(positionId, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          receipt,
+        });
       });
     });
   });
