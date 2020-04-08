@@ -145,18 +145,19 @@ contract FlowMarginProtocol is FlowProtocolBase {
     }
 
     // TODO add modifier, documentation and tests
-    function addTradingPair(address pair) external onlyOwner {
-        require(!tradingPairWhitelist[pair], "TP1");
-        tradingPairWhitelist[pair] = true;
+    function addTradingPair(address _pair) external onlyOwner {
+        require(!tradingPairWhitelist[_pair], "TP1");
+        tradingPairWhitelist[_pair] = true;
 
-        emit NewTradingPair(pair);
+        emit NewTradingPair(_pair);
     }
 
     /**
      * @dev Set new swap rate, only for the owner.
      * @param _newSwapRate The new swap rate.
      */
-    function setSwapRate(uint256 _newSwapRate) public onlyOwner {
+    function setCurrentSwapRate(uint256 _newSwapRate) public onlyOwner {
+        require(_newSwapRate > 0, "0");
         currentSwapRate = _newSwapRate;
     }
 
@@ -165,6 +166,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _newTraderRiskMarginCallThreshold The new trader risk threshold as percentage.
      */
     function setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold) public onlyOwner {
+        require(_newTraderRiskMarginCallThreshold > 0, "0");
         traderRiskMarginCallThreshold = Percentage.Percent(_newTraderRiskMarginCallThreshold);
     }
 
@@ -173,6 +175,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _newTraderRiskLiquidateThreshold The new trader risk threshold as percentage.
      */
     function setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold) public onlyOwner {
+        require(_newTraderRiskLiquidateThreshold > 0, "0");
         traderRiskLiquidateThreshold = Percentage.Percent(_newTraderRiskLiquidateThreshold);
     }
 
@@ -181,6 +184,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _newLiquidityPoolENPMarginThreshold The new trader risk threshold.
      */
     function setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold) public onlyOwner {
+        require(_newLiquidityPoolENPMarginThreshold > 0, "0");
         liquidityPoolENPMarginThreshold = _newLiquidityPoolENPMarginThreshold;
     }
 
@@ -189,6 +193,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _newLiquidityPoolELLMarginThreshold The new trader risk threshold.
      */
     function setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold) public onlyOwner {
+        require(_newLiquidityPoolELLMarginThreshold > 0, "0");
         liquidityPoolELLMarginThreshold = _newLiquidityPoolELLMarginThreshold;
     }
 
@@ -197,6 +202,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _newLiquidityPoolENPLiquidateThreshold The new trader risk threshold.
      */
     function setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold) public onlyOwner {
+        require(_newLiquidityPoolENPLiquidateThreshold > 0, "0");
         liquidityPoolENPLiquidateThreshold = _newLiquidityPoolENPLiquidateThreshold;
     }
 
@@ -205,6 +211,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _newLiquidityPoolELLLiquidateThreshold The new trader risk threshold.
      */
     function setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold) public onlyOwner {
+        require(_newLiquidityPoolELLLiquidateThreshold > 0, "0");
         liquidityPoolELLLiquidateThreshold = _newLiquidityPoolELLLiquidateThreshold;
     }
 
@@ -213,6 +220,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function registerPool(LiquidityPoolInterface _pool) public nonReentrant {
+        require(!poolHasPaidFees[_pool], "PR1");
+
         uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
         IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), feeSum);
 
@@ -225,6 +234,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      */
     function verifyPool(LiquidityPoolInterface _pool) public onlyOwner {
         require(poolHasPaidFees[_pool], "PF1");
+        require(!isVerifiedPool[_pool], "PF2");
         isVerifiedPool[_pool] = true;
     }
 
@@ -368,13 +378,13 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _trader The Trader.
      */
     function marginCallTrader(LiquidityPoolInterface _pool, address _trader) public nonReentrant poolIsVerified(_pool) {
-        require(!traderIsMarginCalled[_pool][_trader], "TM1");
+        /* require(!traderIsMarginCalled[_pool][_trader], "TM1");
         require(!_isTraderSafe(_pool, _trader), "TM2");
 
         traderIsMarginCalled[_pool][_trader] = true;
         IERC20(moneyMarket.baseToken()).safeTransfer(msg.sender, TRADER_MARGIN_CALL_FEE);
 
-        // emit TraderMarginCalled(address(_pool), _trader);
+        emit TraderMarginCalled(address(_pool), _trader); */
     }
 
     /**
@@ -383,13 +393,13 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _trader The Trader.
      */
     function makeTraderSafe(LiquidityPoolInterface _pool, address _trader) public nonReentrant poolIsVerified(_pool) {
-        require(traderIsMarginCalled[_pool][_trader], "TS1");
+        /* require(traderIsMarginCalled[_pool][_trader], "TS1");
         require(_isTraderSafe(_pool, _trader), "TS2");
 
         traderIsMarginCalled[_pool][_trader] = false;
         IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), TRADER_MARGIN_CALL_FEE);
 
-        // emit TraderBecameSafe(address(_pool), _trader);
+        emit TraderBecameSafe(address(_pool), _trader); */
     }
 
     /**
@@ -397,13 +407,13 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function marginCallLiquidityPool(LiquidityPoolInterface _pool) public nonReentrant poolIsVerified(_pool) {
-        require(!poolIsMarginCalled[_pool], "PM1");
+        /* require(!poolIsMarginCalled[_pool], "PM1");
         require(!_isPoolSafe(_pool), "PM2");
 
         poolIsMarginCalled[_pool] = true;
         IERC20(moneyMarket.baseToken()).safeTransfer(msg.sender, LIQUIDITY_POOL_MARGIN_CALL_FEE);
 
-        // emit LiquidityPoolMarginCalled(address(_pool));
+        emit LiquidityPoolMarginCalled(address(_pool)); */
     }
 
     /**
@@ -411,13 +421,13 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function makeLiquidityPoolSafe(LiquidityPoolInterface _pool) public nonReentrant poolIsVerified(_pool) {
-        require(poolIsMarginCalled[_pool], "PS1");
+        /* require(poolIsMarginCalled[_pool], "PS1");
         require(_isPoolSafe(_pool), "PS2");
 
         poolIsMarginCalled[_pool] = false;
         IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), LIQUIDITY_POOL_MARGIN_CALL_FEE);
 
-        // emit LiquidityPoolBecameSafe(address(_pool));
+        emit LiquidityPoolBecameSafe(address(_pool)); */
     }
 
     /**
@@ -426,7 +436,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _trader The trader address.
      */
     function liquidateTrader(LiquidityPoolInterface _pool, address _trader) public nonReentrant poolIsVerified(_pool) {
-        Percentage.SignedPercent memory marginLevel = _getMarginLevel(_pool, _trader);
+        /* Percentage.SignedPercent memory marginLevel = _getMarginLevel(_pool, _trader);
 
         require(marginLevel.value <= int256(traderRiskLiquidateThreshold.value), "TL1");
 
@@ -439,7 +449,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         traderIsMarginCalled[_pool][_trader] = false;
         traderHasPaidFees[_pool][msg.sender] = false;
 
-        IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, TRADER_LIQUIDATION_FEE);
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, TRADER_LIQUIDATION_FEE); */
 
         emit TraderLiquidated(_trader);
     }
@@ -451,7 +461,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     function liquidateLiquidityPool(LiquidityPoolInterface _pool) public nonReentrant poolIsVerified(_pool) {
         // close positions as much as possible, send fee back to caller
 
-        (Percentage.Percent memory enp, Percentage.Percent memory ell) = _getEnpAndEll(_pool);
+        /* (Percentage.Percent memory enp, Percentage.Percent memory ell) = _getEnpAndEll(_pool);
         require(enp.value <= liquidityPoolENPLiquidateThreshold || ell.value <= liquidityPoolELLLiquidateThreshold, "PL1");
 
         Position[] memory positions = positionsByPool[_pool];
@@ -462,7 +472,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
         poolIsMarginCalled[_pool] = false;
 
-        IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, LIQUIDITY_POOL_LIQUIDATION_FEE);
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(address(this), msg.sender, LIQUIDITY_POOL_LIQUIDATION_FEE); */
 
         emit LiquidityPoolLiquidated(address(_pool));
     }
