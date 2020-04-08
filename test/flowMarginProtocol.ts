@@ -157,7 +157,7 @@ contract('FlowMarginProtocol', accounts => {
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await liquidityPool.initialize(
+    await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocols[0].address, // need 3 pools or only use first one for withdraw tests
       initialSpread,
