@@ -267,6 +267,129 @@ contract('FlowMarginProtocol', accounts => {
     };
   };
 
+  describe('when handling funds', () => {
+    let depositInUsd: BN;
+    let depositInIUsd: BN;
+    let traderBalanceProtocolBefore: BN;
+    let traderBalanceUsdBefore: BN;
+    let moneyMarketBalanceBefore: BN;
+    let protocolBalanceBefore: BN;
+    let receipt: Truffle.TransactionResponse;
+
+    beforeEach(async () => {
+      depositInUsd = dollar(80);
+      depositInIUsd = convertFromBaseToken(depositInUsd);
+
+      traderBalanceProtocolBefore = await protocols[0].balances(
+        liquidityPool.address,
+        alice,
+      );
+      traderBalanceUsdBefore = await usd.balanceOf(alice);
+      moneyMarketBalanceBefore = await usd.balanceOf(moneyMarket.address);
+      protocolBalanceBefore = await iUsd.balanceOf(protocols[0].address);
+    });
+
+    describe('when depositing funds', () => {
+      beforeEach(async () => {
+        depositInUsd = dollar(80);
+
+        receipt = await protocols[0].deposit(
+          liquidityPool.address,
+          depositInUsd,
+          {
+            from: alice,
+          },
+        );
+      });
+
+      it('updates USD and iUSD balances correctly', async () => {
+        const traderBalanceProtocolAfter = await protocols[0].balances(
+          liquidityPool.address,
+          alice,
+        );
+        const traderBalanceUsdAfter = await usd.balanceOf(alice);
+        const moneyMarketBalanceAfter = await usd.balanceOf(
+          moneyMarket.address,
+        );
+        const protocolBalanceAfter = await iUsd.balanceOf(protocols[0].address);
+
+        expect(moneyMarketBalanceAfter).to.be.bignumber.equals(
+          moneyMarketBalanceBefore.add(depositInUsd),
+        );
+        expect(traderBalanceUsdAfter).to.be.bignumber.equals(
+          traderBalanceUsdBefore.sub(depositInUsd),
+        );
+        expect(traderBalanceProtocolAfter).to.be.bignumber.equals(
+          traderBalanceProtocolBefore.add(depositInIUsd),
+        );
+        expect(protocolBalanceAfter).to.be.bignumber.equals(
+          protocolBalanceBefore.add(depositInIUsd),
+        );
+      });
+
+      it('emits Deposited event', async () => {
+        await expectEvent(receipt, 'Deposited', {
+          sender: alice,
+          amount: depositInUsd,
+        });
+      });
+    });
+
+    describe('when withdrawing funds', () => {
+      let withdrawInUsd: BN;
+      let withdrawInIUsd: BN;
+
+      beforeEach(async () => {
+        depositInUsd = dollar(80);
+        withdrawInUsd = dollar(40);
+        withdrawInIUsd = convertFromBaseToken(withdrawInUsd);
+
+        await protocols[0].deposit(liquidityPool.address, depositInUsd, {
+          from: alice,
+        });
+        receipt = await protocols[0].withdraw(
+          liquidityPool.address,
+          withdrawInUsd,
+          {
+            from: alice,
+          },
+        );
+      });
+
+      it('updates USD and iUSD balances correctly', async () => {
+        const traderBalanceProtocolAfter = await protocols[0].balances(
+          liquidityPool.address,
+          alice,
+        );
+        const traderBalanceUsdAfter = await usd.balanceOf(alice);
+        const moneyMarketBalanceAfter = await usd.balanceOf(
+          moneyMarket.address,
+        );
+        const protocolBalanceAfter = await iUsd.balanceOf(protocols[0].address);
+
+        expect(moneyMarketBalanceAfter).to.be.bignumber.equals(
+          moneyMarketBalanceBefore.add(depositInUsd).sub(withdrawInUsd),
+        );
+        expect(traderBalanceUsdAfter).to.be.bignumber.equals(
+          traderBalanceUsdBefore.sub(depositInUsd).add(withdrawInUsd),
+        );
+        expect(traderBalanceProtocolAfter).to.be.bignumber.equals(
+          traderBalanceProtocolBefore.add(depositInIUsd).sub(withdrawInIUsd),
+        );
+        expect(protocolBalanceAfter).to.be.bignumber.equals(
+          protocolBalanceBefore.add(depositInIUsd).sub(withdrawInIUsd),
+        );
+      });
+
+      it('emits Withdrew event', async () => {
+        await expectEvent(receipt, 'Withdrew', {
+          sender: alice,
+          amount: withdrawInUsd,
+        });
+      });
+    });
+  });
+
   const expectCorrectlyOpenedPosition = async ({
     id,
     expectedOwner,

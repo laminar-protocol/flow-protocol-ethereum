@@ -262,7 +262,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(iTokenAmount));
 
-        emit Withdrew(msg.sender, iTokenAmount);
+        emit Withdrew(msg.sender, _baseTokenAmount);
     }
 
     /**
