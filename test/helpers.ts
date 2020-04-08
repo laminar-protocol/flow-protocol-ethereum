@@ -93,5 +93,4 @@ export const messages = {
   marginBidPriceTooLow: 'BP1',
   notEnoughFreeMarginOpenPosition: 'OP1',
   incorrectOwnerClosePosition: 'CP1',
-  noReason: 'Transaction reverted without a reason',
 };

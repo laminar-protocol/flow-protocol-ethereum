@@ -701,7 +701,6 @@ contract('FlowMarginProtocol', accounts => {
           protocol: protocols[0],
           pool: expectedPool,
         }),
-        messages.noReason,
       );
       await expectRevert(
         getLastPositionByPoolAndTrader({
@@ -709,7 +708,6 @@ contract('FlowMarginProtocol', accounts => {
           pool: expectedPool,
           trader: expectedOwner,
         }),
-        messages.noReason,
       );
     }
 

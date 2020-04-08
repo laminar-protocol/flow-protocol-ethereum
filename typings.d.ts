@@ -1,7 +1,7 @@
 declare module 'openzeppelin-test-helpers' {
   export const expectRevert: (
     promise: Promise<any>,
-    msg: string,
+    msg?: string,
   ) => Promise<any>;
   export const time: {
     increase: (n: number) => Promise<any>;
