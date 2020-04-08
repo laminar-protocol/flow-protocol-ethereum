@@ -41,7 +41,7 @@ start_ganache() {
   if [ "$SOLIDITY_COVERAGE" = true ]; then
     yarn ganache-cli-coverage --emitFreeLogs true --allowUnlimitedContractSize true --gasLimit 0x1fffffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
   else
-    yarn ganache-cli --gasLimit 0x1fffffffffffff --gasPrice 0x1 --port "$ganache_port" --accounts 70 > /dev/null &
+    yarn ganache-cli --gasLimit 0x1fffffffffffff --gasPrice 0x1 --port "$ganache_port" --accounts 70 --allowUnlimitedContractSize > /dev/null &
   fi
 
   ganache_pid=$!

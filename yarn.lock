@@ -163,10 +163,10 @@
     "@nodelib/fs.scandir" "2.1.3"
     fastq "^1.6.0"
 
-"@nomiclabs/buidler-truffle5@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-truffle5/-/buidler-truffle5-1.2.0.tgz#2a23171426a58d315be7c5166042f3f9998375b7"
-  integrity sha512-1/ZbSt2o+cafe+MUsThrJjUrWCbgiDj4G3Ds+1/PNeuHuB/hmTVNkz3BFT7kje+QYgfNr21tOlxPaBdoe91cZA==
+"@nomiclabs/buidler-truffle5@1.3.0-rc.0":
+  version "1.3.0-rc.0"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-truffle5/-/buidler-truffle5-1.3.0-rc.0.tgz#6bcb1528b3439ccee568613fadb743f74cd20b80"
+  integrity sha512-DFrlU/wAhJAH/M+E/CSln/POWwNgGRpkO8G9E1lznr1iPtaPCWXkT2GE0qgElv5XZ74ewNrY8UBUyuCxFrSIWQ==
   dependencies:
     "@nomiclabs/truffle-contract" "^4.1.2"
     "@types/chai" "^4.2.0"
@@ -174,17 +174,17 @@
     ethereumjs-util "^6.1.0"
     fs-extra "^7.0.1"
 
-"@nomiclabs/buidler-web3@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-web3/-/buidler-web3-1.2.0.tgz#ee2a1dc1c55bd960dbffb3cb198c68d0e5aff146"
-  integrity sha512-RS5OzaR2LYeb59lXFmIZrIewGEYGWfXCLq46uVkdotCx7uIEKgz1KgV0VhylfIGnUA1w1kklZhD2PcOeT9A7JA==
+"@nomiclabs/buidler-web3@1.3.0-rc.0":
+  version "1.3.0-rc.0"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler-web3/-/buidler-web3-1.3.0-rc.0.tgz#e3b722718756f1ae653b79343f39f122e87eee8a"
+  integrity sha512-hsA53zRpRtHraIn97+C/PpSXeRjxkZojhLuGFJNCHGsXIEb/qp88w7X0tSzh1coBR+UnCZWYevkS+0eggYSW1w==
   dependencies:
     "@types/bignumber.js" "^5.0.0"
 
-"@nomiclabs/buidler@^1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler/-/buidler-1.2.0.tgz#79a0a6f1c6ab4985ab5dca888fb9edf304279693"
-  integrity sha512-4jnJgvcG15tG5HHDuxR0l8eCqx0Fdt3KnYjamtp63Ht3vAoEoU2zNOFtDghElMkApZxvqzDzjfhOdPi70yCnKw==
+"@nomiclabs/buidler@1.3.0-rc.0":
+  version "1.3.0-rc.0"
+  resolved "https://registry.yarnpkg.com/@nomiclabs/buidler/-/buidler-1.3.0-rc.0.tgz#6ccf45abaeac7ce07cdfdac968ca101e81a60228"
+  integrity sha512-phYekhrvwIB12XuBrNgKqQDyDH/Fxw4GAz5pE6+d6JeY33Vq8rlAzXubHvsVqlCjXLAqucU9eNUO1aYoawDU/g==
   dependencies:
     "@nomiclabs/ethereumjs-vm" "^4.1.1"
     "@types/bn.js" "^4.11.5"
