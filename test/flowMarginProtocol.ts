@@ -51,6 +51,7 @@ contract('FlowMarginProtocol', accounts => {
   const bob = accounts[3];
   const eur = accounts[4];
   const jpy = accounts[5];
+  const newPool = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
   let protocol0: TestFlowMarginProtocol0Instance;
@@ -266,6 +267,242 @@ contract('FlowMarginProtocol', accounts => {
       ...positionByPoolAndTraderPart2,
     };
   };
+
+  describe('when setting new parameters', () => {
+    for (const setFunction of [
+      'setCurrentSwapRate',
+      'setTraderRiskMarginCallThreshold',
+      'setTraderRiskLiquidateThreshold',
+      'setLiquidityPoolENPMarginThreshold',
+      'setLiquidityPoolELLMarginThreshold',
+      'setLiquidityPoolENPLiquidateThreshold',
+      'setLiquidityPoolELLLiquidateThreshold',
+    ]) {
+      describe(`when using ${setFunction}`, () => {
+        let newParameter: BN;
+
+        beforeEach(() => {
+          newParameter = bn(123);
+        });
+
+        it('sets new parameter', async () => {
+          await (protocols[0] as any)[setFunction](newParameter);
+
+          const setParameter = setFunction
+            .slice(3)
+            .replace(/^\w/, c => c.toLowerCase());
+          const newStoredParameter = await (protocols[0] as any)[
+            setParameter
+          ]();
+
+          expect(newStoredParameter).to.be.bignumber.equals(newParameter);
+        });
+
+        it('allows only owner to set parameters', async () => {
+          await expectRevert(
+            (protocols[0] as any)[setFunction](newParameter, { from: alice }),
+            messages.onlyOwner,
+          );
+        });
+
+        it('does not allow zero values', async () => {
+          await expectRevert(
+            (protocols[0] as any)[setFunction](0),
+            messages.settingZeroValueNotAllowed,
+          );
+        });
+      });
+    }
+  });
+
+  describe('when managing pools', () => {
+    describe('when registering new pools', () => {
+      let poolOwnerBalanceBefore: BN;
+
+      beforeEach(async () => {
+        poolOwnerBalanceBefore = await usd.balanceOf(alice);
+        await protocols[0].registerPool(newPool, { from: alice });
+      });
+
+      it('sets pool as registered', async () => {
+        expect(await protocols[0].poolHasPaidFees(newPool)).to.be.true;
+      });
+
+      it('transfers the feeSum', async () => {
+        const LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocols[0].LIQUIDITY_POOL_MARGIN_CALL_FEE();
+        const LIQUIDITY_POOL_LIQUIDATION_FEE = await protocols[0].LIQUIDITY_POOL_LIQUIDATION_FEE();
+
+        const poolOwnerBalanceAfter = await usd.balanceOf(alice);
+        expect(poolOwnerBalanceAfter).to.be.bignumber.equals(
+          poolOwnerBalanceBefore
+            .sub(LIQUIDITY_POOL_MARGIN_CALL_FEE)
+            .sub(LIQUIDITY_POOL_LIQUIDATION_FEE),
+        );
+      });
+
+      it('allows only owner to verify pools', async () => {
+        await expectRevert(
+          protocols[0].registerPool(newPool, { from: alice }),
+          messages.poolAlreadyPaidFees,
+        );
+      });
+    });
+
+    describe('when verifying pools', () => {
+      it('sets pool as verified', async () => {
+        await protocols[0].registerPool(newPool, { from: alice });
+        await protocols[0].verifyPool(newPool);
+        expect(await protocols[0].isVerifiedPool(newPool)).to.be.true;
+      });
+
+      it('requires that pool has paid fees', async () => {
+        await expectRevert(
+          protocols[0].verifyPool(newPool),
+          messages.poolHasNotPaidFees,
+        );
+      });
+
+      it('allows only owner to verify pools', async () => {
+        await expectRevert(
+          protocols[0].verifyPool(newPool, { from: alice }),
+          messages.onlyOwner,
+        );
+      });
+
+      it('allows only owner to verify pools', async () => {
+        await protocols[0].registerPool(newPool, { from: alice });
+        await protocols[0].verifyPool(newPool);
+
+        await expectRevert(
+          protocols[0].verifyPool(newPool),
+          messages.poolAlreadyVerified,
+        );
+      });
+    });
+  });
+
+  describe('when handling funds', () => {
+    let depositInUsd: BN;
+    let depositInIUsd: BN;
+    let traderBalanceProtocolBefore: BN;
+    let traderBalanceUsdBefore: BN;
+    let moneyMarketBalanceBefore: BN;
+    let protocolBalanceBefore: BN;
+    let receipt: Truffle.TransactionResponse;
+
+    beforeEach(async () => {
+      depositInUsd = dollar(80);
+      depositInIUsd = convertFromBaseToken(depositInUsd);
+
+      traderBalanceProtocolBefore = await protocols[0].balances(
+        liquidityPool.address,
+        alice,
+      );
+      traderBalanceUsdBefore = await usd.balanceOf(alice);
+      moneyMarketBalanceBefore = await usd.balanceOf(moneyMarket.address);
+      protocolBalanceBefore = await iUsd.balanceOf(protocols[0].address);
+    });
+
+    describe('when depositing funds', () => {
+      beforeEach(async () => {
+        depositInUsd = dollar(80);
+
+        receipt = await protocols[0].deposit(
+          liquidityPool.address,
+          depositInUsd,
+          {
+            from: alice,
+          },
+        );
+      });
+
+      it('updates USD and iUSD balances correctly', async () => {
+        const traderBalanceProtocolAfter = await protocols[0].balances(
+          liquidityPool.address,
+          alice,
+        );
+        const traderBalanceUsdAfter = await usd.balanceOf(alice);
+        const moneyMarketBalanceAfter = await usd.balanceOf(
+          moneyMarket.address,
+        );
+        const protocolBalanceAfter = await iUsd.balanceOf(protocols[0].address);
+
+        expect(moneyMarketBalanceAfter).to.be.bignumber.equals(
+          moneyMarketBalanceBefore.add(depositInUsd),
+        );
+        expect(traderBalanceUsdAfter).to.be.bignumber.equals(
+          traderBalanceUsdBefore.sub(depositInUsd),
+        );
+        expect(traderBalanceProtocolAfter).to.be.bignumber.equals(
+          traderBalanceProtocolBefore.add(depositInIUsd),
+        );
+        expect(protocolBalanceAfter).to.be.bignumber.equals(
+          protocolBalanceBefore.add(depositInIUsd),
+        );
+      });
+
+      it('emits Deposited event', async () => {
+        await expectEvent(receipt, 'Deposited', {
+          sender: alice,
+          amount: depositInUsd,
+        });
+      });
+    });
+
+    describe('when withdrawing funds', () => {
+      let withdrawInUsd: BN;
+      let withdrawInIUsd: BN;
+
+      beforeEach(async () => {
+        depositInUsd = dollar(80);
+        withdrawInUsd = dollar(40);
+        withdrawInIUsd = convertFromBaseToken(withdrawInUsd);
+
+        await protocols[0].deposit(liquidityPool.address, depositInUsd, {
+          from: alice,
+        });
+        receipt = await protocols[0].withdraw(
+          liquidityPool.address,
+          withdrawInUsd,
+          {
+            from: alice,
+          },
+        );
+      });
+
+      it('updates USD and iUSD balances correctly', async () => {
+        const traderBalanceProtocolAfter = await protocols[0].balances(
+          liquidityPool.address,
+          alice,
+        );
+        const traderBalanceUsdAfter = await usd.balanceOf(alice);
+        const moneyMarketBalanceAfter = await usd.balanceOf(
+          moneyMarket.address,
+        );
+        const protocolBalanceAfter = await iUsd.balanceOf(protocols[0].address);
+
+        expect(moneyMarketBalanceAfter).to.be.bignumber.equals(
+          moneyMarketBalanceBefore.add(depositInUsd).sub(withdrawInUsd),
+        );
+        expect(traderBalanceUsdAfter).to.be.bignumber.equals(
+          traderBalanceUsdBefore.sub(depositInUsd).add(withdrawInUsd),
+        );
+        expect(traderBalanceProtocolAfter).to.be.bignumber.equals(
+          traderBalanceProtocolBefore.add(depositInIUsd).sub(withdrawInIUsd),
+        );
+        expect(protocolBalanceAfter).to.be.bignumber.equals(
+          protocolBalanceBefore.add(depositInIUsd).sub(withdrawInIUsd),
+        );
+      });
+
+      it('emits Withdrew event', async () => {
+        await expectEvent(receipt, 'Withdrew', {
+          sender: alice,
+          amount: withdrawInUsd,
+        });
+      });
+    });
+  });
 
   const expectCorrectlyOpenedPosition = async ({
     id,

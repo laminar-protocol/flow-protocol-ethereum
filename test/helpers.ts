@@ -93,4 +93,8 @@ export const messages = {
   marginBidPriceTooLow: 'BP1',
   notEnoughFreeMarginOpenPosition: 'OP1',
   incorrectOwnerClosePosition: 'CP1',
+  poolHasNotPaidFees: 'PF1',
+  poolAlreadyVerified: 'PF2',
+  poolAlreadyPaidFees: 'PR1',
+  settingZeroValueNotAllowed: '0',
 };
