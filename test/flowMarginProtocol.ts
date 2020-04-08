@@ -696,13 +696,13 @@ contract('FlowMarginProtocol', accounts => {
 
     if (!useMaxRealizable) {
       // two positions opened in max realizable test
-      await expectRevert(
+      await expectRevert.unspecified(
         getLastPositionByPool({
           protocol: protocols[0],
           pool: expectedPool,
         }),
       );
-      await expectRevert(
+      await expectRevert.unspecified(
         getLastPositionByPoolAndTrader({
           protocol: protocols[0],
           pool: expectedPool,

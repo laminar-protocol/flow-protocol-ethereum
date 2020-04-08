@@ -1,8 +1,10 @@
 declare module 'openzeppelin-test-helpers' {
-  export const expectRevert: (
-    promise: Promise<any>,
-    msg?: string,
-  ) => Promise<any>;
+  export interface ExpectRevert {
+    (promise: Promise<any>, msg: string): Promise<any>;
+    assertion: (promise: Promise<any>) => Promise<any>;
+    unspecified: (promise: Promise<any>) => Promise<any>;
+  }
+  export const expectRevert: ExpectRevert;
   export const time: {
     increase: (n: number) => Promise<any>;
     latest: () => Promise<any>;
