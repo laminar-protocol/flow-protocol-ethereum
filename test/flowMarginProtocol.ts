@@ -676,7 +676,9 @@ contract('FlowMarginProtocol', accounts => {
 
     const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
     const poolLiquidityDifference = poolLiquidityAfter.sub(poolLiquidityBefore);
-    const expectedPoolLiquidityDifference = expectedPl.mul(bn(-1));
+    const expectedPoolLiquidityDifference = convertFromBaseToken(
+      expectedPl.mul(bn(-1)),
+    );
 
     expect(poolLiquidityDifference).to.be.bignumber.equal(
       useMaxRealizable
