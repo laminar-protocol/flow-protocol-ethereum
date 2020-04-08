@@ -130,6 +130,6 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
     }
 
     function getLiquidity() external override returns (uint256) {
-        return moneyMarket.totalHoldings();
+        return moneyMarket.iToken().balanceOf(address(this));
     }
 }

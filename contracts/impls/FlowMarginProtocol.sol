@@ -244,6 +244,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      */
     function deposit(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
+        moneyMarket.baseToken().approve(address(moneyMarket), _baseTokenAmount);
         uint256 iTokenAmount = moneyMarket.mint(_baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].add(int256(iTokenAmount));
 
@@ -317,30 +318,34 @@ contract FlowMarginProtocol is FlowProtocolBase {
      */
     function closePosition(uint256 _positionId, uint256 _price) public nonReentrant {
         Position memory position = positionsById[_positionId];
+        require(msg.sender == position.owner, "CP1");
+
         (int256 unrealizedPl, Percentage.Percent memory marketPrice) = _getUnrealizedPlAndMarketPriceOfPosition(position, _price);
         uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPosition(position);
         int256 balanceDelta = unrealizedPl.sub(int256(accumulatedSwapRate));
 
         if (balanceDelta >= 0) {
             // trader has profit, max realizable is the pool's liquidity
-            uint256 realized = Math.min(LiquidityPoolInterface(position.pool).getLiquidity(), uint256(balanceDelta));
-            uint256 iTokenAmount = moneyMarket.convertAmountFromBase(realized);
+            uint256 poolLiquidityIToken = LiquidityPoolInterface(position.pool).getLiquidity();
+            uint256 realizedIToken = moneyMarket.convertAmountFromBase(uint256(balanceDelta));
+            uint256 realized = Math.min(poolLiquidityIToken, realizedIToken);
 
-            LiquidityPoolInterface(position.pool).withdrawLiquidity(iTokenAmount);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(iTokenAmount));
+            LiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
+            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(realized));
         } else {
-            // trader has loss, max realizable is the trader's equity
+            // trader has loss, max realizable is the trader's equity without the given position
             int256 equity = _getEquityOfTrader(position.pool, msg.sender);
             uint256 balanceDeltaAbs = uint256(-balanceDelta);
-            int256 equityWithoutCurrentPosition = equity.add(int256(balanceDeltaAbs));
-            uint256 realized = equityWithoutCurrentPosition <= 0
-                ? 0
-                : Math.min(uint256(equityWithoutCurrentPosition), balanceDeltaAbs);
-            uint256 toSendRealized = Math.min(moneyMarket.baseToken().balanceOf(address(this)), realized); // TODO can this ever happen?
-            moneyMarket.baseToken().approve(address(position.pool), toSendRealized);
+            int256 maxRealizable = equity.add(int256(balanceDeltaAbs));
 
-            uint256 iTokenAmount = LiquidityPoolInterface(position.pool).depositLiquidity(toSendRealized);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(int256(iTokenAmount));
+            // pool gets nothing if no realizable from traders
+            if (maxRealizable > 0) {
+                uint256 realized = Math.min(uint256(maxRealizable), balanceDeltaAbs);
+                moneyMarket.baseToken().approve(address(position.pool), realized);
+
+                uint256 iTokenAmount = LiquidityPoolInterface(position.pool).depositLiquidity(realized);
+                balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(int256(iTokenAmount));
+            }
         }
 
 		// remove position
