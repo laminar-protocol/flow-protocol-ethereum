@@ -20,7 +20,7 @@ contract TestFlowMarginProtocol0 is FlowMarginProtocol {
             position.leveragedDebits,
             position.leveragedDebitsInUsd,
             position.marginHeld,
-            position.swapRate,
+            position.swapRate.value,
             position.timeWhenOpened
         );
     }
@@ -92,7 +92,7 @@ contract TestFlowMarginProtocol0 is FlowMarginProtocol {
             _position.leveragedDebits,
             _position.leveragedDebitsInUsd,
             _position.marginHeld,
-            _position.swapRate,
+            _position.swapRate.value,
             _position.timeWhenOpened
         );
     }

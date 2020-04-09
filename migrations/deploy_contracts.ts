@@ -341,14 +341,16 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('1'),
     );
 
-    await marginProtocol.addTradingPair(l10USDEUR.address);
-    await marginProtocol.addTradingPair(s10USDEUR.address);
-    await marginProtocol.addTradingPair(l20USDJPY.address);
-    await marginProtocol.addTradingPair(s20USDJPY.address);
-    await marginProtocol.addTradingPair(l20USDXAU.address);
-    await marginProtocol.addTradingPair(s20USDXAU.address);
-    await marginProtocol.addTradingPair(l5USDAAPL.address);
-    await marginProtocol.addTradingPair(s5USDAAPL.address);
+    const usd = await moneyMarket.baseToken();
+
+    await marginProtocol.addTradingPair(fEUR.address, usd);
+    await marginProtocol.addTradingPair(usd, fEUR.address);
+    await marginProtocol.addTradingPair(fJPY.address, usd);
+    await marginProtocol.addTradingPair(usd, fJPY.address);
+    await marginProtocol.addTradingPair(fXAU.address, usd);
+    await marginProtocol.addTradingPair(usd, fXAU.address);
+    await marginProtocol.addTradingPair(fAAPL.address, usd);
+    await marginProtocol.addTradingPair(usd, fAAPL.address);
 
     // approve default account
 

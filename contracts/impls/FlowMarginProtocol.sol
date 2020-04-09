@@ -46,7 +46,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         int256 leveragedDebitsInUsd;
         uint256 marginHeld;
 
-        uint256 swapRate;
+        Percentage.Percent swapRate;
         uint256 timeWhenOpened;
     }
 
@@ -75,7 +75,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     event LiquidityPoolMarginCalled(address indexed liquidityPool);
     event LiquidityPoolBecameSafe(address indexed liquidityPool);
     event LiquidityPoolLiquidated(address indexed liquidityPool);
-    event NewTradingPair(address pair);
+    event NewTradingPair(address base, address quote);
 
     uint256 public nextPositionId;
 
@@ -93,9 +93,9 @@ contract FlowMarginProtocol is FlowProtocolBase {
     mapping (LiquidityPoolInterface => bool) public isVerifiedPool;
 
     // trading pairs
-    mapping(address => bool) public tradingPairWhitelist;
+    mapping(address => mapping (address => bool)) public tradingPairWhitelist;
 
-    uint256 public currentSwapRate;
+    Percentage.Percent public currentSwapRate;
     Percentage.Percent public traderRiskMarginCallThreshold;
     Percentage.Percent public traderRiskLiquidateThreshold;
     uint256 public liquidityPoolENPMarginThreshold;
@@ -115,12 +115,23 @@ contract FlowMarginProtocol is FlowProtocolBase {
         _;
     }
 
+    modifier tradingPairWhitelisted(FlowToken _base, FlowToken _quote) {
+        require(tradingPairWhitelist[address(_base)][address(_quote)], "TP1");
+
+        _;
+    }
+
     /**
      * @dev Initialize the FlowMarginProtocol.
      * @param _oracle The price oracle
      * @param _moneyMarket The money market.
-     * @param _initialSwapRate The initial swap rate.
-     * @param _initialTraderRiskMarginCallThreshold The initial trader risk threshold as percentage.
+     * @param _initialSwapRate The initial swap rate as percentage.
+     * @param _initialTraderRiskMarginCallThreshold The initial trader risk margin call threshold as percentage.
+     * @param _initialTraderRiskLiquidateThreshold The initial trader risk liquidate threshold as percentage.
+     * @param _initialLiquidityPoolENPMarginThreshold The initial pool ENP margin threshold.
+     * @param _initialLiquidityPoolELLMarginThreshold The initial pool ELL margin threshold.
+     * @param _initialLiquidityPoolENPLiquidateThreshold The initial pool ENP liquidate threshold.
+     * @param _initialLiquidityPoolELLLiquidateThreshold The initial pool ELL liquidate threshold.
      */
     function initialize(
         PriceOracleInterface _oracle,
@@ -135,7 +146,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     ) public initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
 
-        currentSwapRate = _initialSwapRate;
+        currentSwapRate = Percentage.Percent(_initialSwapRate);
         traderRiskMarginCallThreshold = Percentage.Percent(_initialTraderRiskMarginCallThreshold);
         traderRiskLiquidateThreshold = Percentage.Percent(_initialTraderRiskLiquidateThreshold);
         liquidityPoolENPMarginThreshold = _initialLiquidityPoolENPMarginThreshold;
@@ -144,21 +155,27 @@ contract FlowMarginProtocol is FlowProtocolBase {
         liquidityPoolELLLiquidateThreshold = _initialLiquidityPoolELLLiquidateThreshold;
     }
 
-    // TODO add modifier, documentation and tests
-    function addTradingPair(address _pair) external onlyOwner {
-        require(!tradingPairWhitelist[_pair], "TP1");
-        tradingPairWhitelist[_pair] = true;
+    /**
+     * @dev Add new trading pair, only for the owner.
+     * @param _base The base FlowToken.
+     * @param _quote The quote FlowToken.
+     */
+    function addTradingPair(FlowToken _base, FlowToken _quote) external onlyOwner {
+        require(address(_base) != address(0) && address(_quote) != address(0), "0");
+        require(address(_base) != address(_quote), "TP3");
+        require(!tradingPairWhitelist[address(_base)][address(_quote)], "TP2");
+        tradingPairWhitelist[address(_base)][address(_quote)] = true;
 
-        emit NewTradingPair(_pair);
+        emit NewTradingPair(address(_base), address(_quote));
     }
 
     /**
      * @dev Set new swap rate, only for the owner.
-     * @param _newSwapRate The new swap rate.
+     * @param _newSwapRate The new swap rate as percentage.
      */
     function setCurrentSwapRate(uint256 _newSwapRate) public onlyOwner {
         require(_newSwapRate > 0, "0");
-        currentSwapRate = _newSwapRate;
+        currentSwapRate = Percentage.Percent(_newSwapRate);
     }
 
     /**
@@ -220,6 +237,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function registerPool(LiquidityPoolInterface _pool) public nonReentrant {
+        require(address(_pool) != address(0), "0");
         require(!poolHasPaidFees[_pool], "PR1");
 
         uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
@@ -253,6 +271,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _baseTokenAmount The base token amount to deposit.
      */
     function deposit(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
+        require(_baseTokenAmount > 0, "0");
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         moneyMarket.baseToken().approve(address(moneyMarket), _baseTokenAmount);
         uint256 iTokenAmount = moneyMarket.mint(_baseTokenAmount);
@@ -268,6 +287,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      */
     function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) public nonReentrant poolIsVerified(_pool) {
         require(getFreeMargin(_pool, msg.sender) >= _baseTokenAmount, "W1");
+        require(_baseTokenAmount > 0, "0");
 
         uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(iTokenAmount));
@@ -291,7 +311,9 @@ contract FlowMarginProtocol is FlowProtocolBase {
         int256 _leverage,
         uint256 _leveragedHeld,
         uint256 _price
-    ) public nonReentrant poolIsVerified(_pool) {
+    ) public nonReentrant poolIsVerified(_pool) tradingPairWhitelisted(_base, _quote) {
+        require(_leverage != 0 && _leveragedHeld > 0, "0");
+
         if (!traderHasPaidFees[_pool][msg.sender]) {
             uint256 lockedFeesAmount = TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
             IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), lockedFeesAmount);
@@ -778,12 +800,14 @@ contract FlowMarginProtocol is FlowProtocolBase {
         }
     }
 
-    // TODO should be based on leveraged amount as well
     // accumulated interest rate = rate * days
     function _getAccumulatedSwapRateOfPosition(Position memory _position) internal view returns (uint256) {
         uint256 timeDeltaInSeconds = now.sub(_position.timeWhenOpened);
         uint256 daysSinceOpen = timeDeltaInSeconds.div(1 days);
-        uint256 accumulatedSwapRate = _position.swapRate.mul(daysSinceOpen);
+        uint256 leveragedDebitsAbs = _position.leveragedDebitsInUsd >= 0
+            ? uint256(_position.leveragedDebitsInUsd)
+            : uint256(-_position.leveragedDebitsInUsd);
+        uint256 accumulatedSwapRate = leveragedDebitsAbs.mul(daysSinceOpen).mulPercent(_position.swapRate);
 
         return accumulatedSwapRate;
     }

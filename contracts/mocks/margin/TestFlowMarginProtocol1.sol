@@ -13,7 +13,7 @@ contract TestFlowMarginProtocol1 is FlowMarginProtocol {
         uint256 maxPrice
     ) public returns(int256, uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
-        Position memory position = Position(0, msg.sender, _pool, pair, _leverage, _leveragedHeld, _leveragedDebits, 0, 0, 0, 0);
+        Position memory position = Position(0, msg.sender, _pool, pair, _leverage, _leveragedHeld, _leveragedDebits, 0, 0, Percentage.Percent(0), 0);
 
         (int256 unrealized, Percentage.Percent memory price) = _getUnrealizedPlAndMarketPriceOfPosition(position, maxPrice);
 
@@ -52,10 +52,24 @@ contract TestFlowMarginProtocol1 is FlowMarginProtocol {
         return _isTraderSafe(_pool, _trader);
     }
 
-    function getAccumulatedSwapRateOfPosition(uint256 _swapRate, uint256 _timeWhenOpened) public view returns (uint256) {
+    function getAccumulatedSwapRateOfPosition(
+        int256 _leveragedDebitsInUsd, uint256 _swapRate, uint256 _timeWhenOpened
+    ) public view returns (uint256) {
         TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
         LiquidityPoolInterface pool = LiquidityPoolInterface(address(0));
-        Position memory position = Position(0, msg.sender, pool, pair, 0, 0, 0, 0, 0, _swapRate, _timeWhenOpened);
+        Position memory position = Position(
+            0,
+            msg.sender,
+            pool,
+            pair,
+            0,
+            0,
+            0,
+            _leveragedDebitsInUsd,
+            0,
+            Percentage.Percent(_swapRate),
+            _timeWhenOpened
+        );
 
         return _getAccumulatedSwapRateOfPosition(position);
     }

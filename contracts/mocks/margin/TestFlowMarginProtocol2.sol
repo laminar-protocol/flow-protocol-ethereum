@@ -5,7 +5,7 @@ import "../../impls/FlowMarginProtocol.sol";
 contract TestFlowMarginProtocol is FlowMarginProtocol {
     function removePositionFromPoolList(LiquidityPoolInterface _pool, uint256 _positionId) public {
         TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
-        Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, 0, 0);
+        Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.Percent(0), 0);
 
         _removePositionFromLists(position);
     }
@@ -39,5 +39,9 @@ contract TestFlowMarginProtocol is FlowMarginProtocol {
 
     function getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
         return _getEquityOfTrader(_pool, _trader);
+    }
+
+    function getAccumulatedSwapRateOfPosition(uint256 _positionId) public view returns (uint256) {
+        return _getAccumulatedSwapRateOfPosition(positionsById[_positionId]);
     }
 }
