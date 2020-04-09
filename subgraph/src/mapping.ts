@@ -32,7 +32,6 @@ import {
   PriceEntity,
   EventEntity,
   FlowProtocolEntity,
-  TradingPairEntity,
   MarginPositionEntity,
 } from '../generated/schema';
 import * as deployment from '../generated/deployment';
@@ -181,21 +180,11 @@ export function handlePriceFeeded(event: PriceFeeded): void {
 }
 
 export function handleNewTradingPair(event: NewTradingPair): void {
-  let entity = new TradingPairEntity(event.params.pair.toHex());
-  let pair = MarginTradingPair.bind(event.params.pair);
-  entity.quoteToken = pair.quoteToken().toHex();
-  entity.leverage = pair.leverage().toI32();
-  entity.safeMarginPercent = pair
-    .safeMarginPercent()
-    .toBigDecimal()
-    .div(one);
-  entity.liquidationFee = pair
-    .liquidationFee()
-    .toBigDecimal()
-    .div(one);
-  entity.save();
+  let entityBase = new TokenEntity(event.params.base.toHex());
+  let entityQuote = new TokenEntity(event.params.quote.toHex());
 
-  MarginTradingPairTemplate.create(event.params.pair);
+  entityBase.save();
+  entityQuote.save();
 }
 
 export function handleOpenPosition(event: OpenPosition): void {
