@@ -14,7 +14,6 @@ import {
   TestFlowMarginProtocolInstance,
   LiquidityPoolInstance,
   TestTokenInstance,
-  MarginTradingPairInstance,
   MoneyMarketInstance,
   IERC20Instance,
 } from 'types/truffle-contracts';
@@ -42,7 +41,6 @@ const FlowMarginProtocolNewVersion = artifacts.require(
 );
 const LiquidityPool = artifacts.require('LiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
-const MarginTradingPair = artifacts.require('MarginTradingPair');
 
 contract('FlowMarginProtocol', accounts => {
   const owner = accounts[0];
@@ -65,7 +63,6 @@ contract('FlowMarginProtocol', accounts => {
   let liquidityPool: LiquidityPoolInstance;
   let usd: TestTokenInstance;
   let iUsd: IERC20Instance; // eslint-disable-line
-  let pair: MarginTradingPairInstance;
   let moneyMarket: MoneyMarketInstance;
 
   let initialSpread: BN;
@@ -787,6 +784,92 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
+    describe('when there are multiple pools', () => {
+      let liquidityPool2: LiquidityPoolInstance;
+
+      beforeEach(async () => {
+        liquidityPool2 = await LiquidityPool.new();
+        await (liquidityPool2 as any).initialize(
+          moneyMarket.address,
+          protocols[0].address,
+          initialSpread,
+        );
+        await liquidityPool2.approve(
+          protocols[0].address,
+          constants.MAX_UINT256,
+        );
+        await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
+        await liquidityPool2.enableToken(eur);
+        await liquidityPool2.enableToken(jpy);
+
+        const feeSum = (
+          await protocols[0].LIQUIDITY_POOL_LIQUIDATION_FEE()
+        ).add(await protocols[0].LIQUIDITY_POOL_MARGIN_CALL_FEE());
+        await usd.approve(protocols[0].address, feeSum, {
+          from: liquidityProvider,
+        });
+        await protocols[0].registerPool(liquidityPool2.address, {
+          from: liquidityProvider,
+        });
+        await protocols[0].verifyPool(liquidityPool2.address);
+
+        await protocols[0].deposit(liquidityPool2.address, depositInUsd, {
+          from: alice,
+        });
+      });
+
+      it('opens new position correctly in both pools', async () => {
+        const receipt1 = await protocols[0].openPosition(
+          liquidityPool.address,
+          jpy,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        const expectedTimeWhenOpened1 = await time.latest();
+        const positionId1 = (await protocols[0].nextPositionId()).sub(bn(1));
+        const receipt2 = await protocols[0].openPosition(
+          liquidityPool2.address,
+          jpy,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        const expectedTimeWhenOpened2 = await time.latest();
+        const positionId2 = (await protocols[0].nextPositionId()).sub(bn(1));
+
+        await expectCorrectlyOpenedPosition({
+          id: positionId1,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          expectedSwapRate: initialSwapRate,
+          expectedTimeWhenOpened: expectedTimeWhenOpened1,
+          receipt: receipt1,
+          baseToken: jpy,
+          quoteToken: eur,
+        });
+
+        await expectCorrectlyOpenedPosition({
+          id: positionId2,
+          expectedOwner: alice,
+          expectedPool: liquidityPool2.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          expectedSwapRate: initialSwapRate,
+          expectedTimeWhenOpened: expectedTimeWhenOpened2,
+          receipt: receipt2,
+          baseToken: jpy,
+          quoteToken: eur,
+        });
+      });
+    });
+
     describe('when there is not enough free margin left', () => {
       beforeEach(async () => {
         await protocols[0].withdraw(
@@ -904,10 +987,7 @@ contract('FlowMarginProtocol', accounts => {
       fromEth(expectedPrice.mul(initialSpread)),
     );
 
-    const traderBalanceAfter = await protocols[0].balances(
-      liquidityPool.address,
-      alice,
-    );
+    const traderBalanceAfter = await protocols[0].balances(expectedPool, alice);
     const traderBalanceDifference = traderBalanceAfter.sub(traderBalanceBefore);
 
     const leveragedDebits = fromEth(
@@ -944,7 +1024,8 @@ contract('FlowMarginProtocol', accounts => {
       useMaxRealizable ? maxRealizable : convertFromBaseToken(expectedPl),
     );
 
-    const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
+    const usedLiquidtyPool = await LiquidityPool.at(expectedPool);
+    const poolLiquidityAfter = await usedLiquidtyPool.getLiquidity.call();
     const poolLiquidityDifference = poolLiquidityAfter.sub(poolLiquidityBefore);
     const expectedPoolLiquidityDifference = convertFromBaseToken(
       expectedPl.mul(bn(-1)),
@@ -1121,7 +1202,7 @@ contract('FlowMarginProtocol', accounts => {
         positionId = (await protocols[0].nextPositionId()).sub(bn(1));
       });
 
-      it('computes new balance correctly when immediately closing', async () => {
+      it.only('computes new balance correctly when immediately closing', async () => {
         await oracle.feedPrice(eur, fromPercent(100), { from: owner });
         receipt = await protocols[0].closePosition(positionId, price, {
           from: alice,
@@ -1184,6 +1265,116 @@ contract('FlowMarginProtocol', accounts => {
           baseToken: jpy,
           quoteToken: eur,
           receipt,
+        });
+      });
+    });
+
+    describe('when there are multiple pools', () => {
+      let liquidityPool2: LiquidityPoolInstance;
+      let poolLiquidityBefore2: BN;
+      let positionId1: BN;
+      let positionId2: BN;
+
+      beforeEach(async () => {
+        liquidityPool2 = await LiquidityPool.new();
+        await (liquidityPool2 as any).initialize(
+          moneyMarket.address,
+          protocols[0].address,
+          initialSpread,
+        );
+        await liquidityPool2.approve(
+          protocols[0].address,
+          constants.MAX_UINT256,
+        );
+        await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
+        await liquidityPool2.enableToken(eur);
+        await liquidityPool2.enableToken(jpy);
+
+        const feeSum = (
+          await protocols[0].LIQUIDITY_POOL_LIQUIDATION_FEE()
+        ).add(await protocols[0].LIQUIDITY_POOL_MARGIN_CALL_FEE());
+        await usd.approve(protocols[0].address, feeSum, {
+          from: liquidityProvider,
+        });
+        await protocols[0].registerPool(liquidityPool2.address, {
+          from: liquidityProvider,
+        });
+        await protocols[0].verifyPool(liquidityPool2.address);
+
+        await protocols[0].deposit(liquidityPool2.address, depositInUsd, {
+          from: alice,
+        });
+
+        const basePrice = await oracle.getPrice.call(jpy);
+        const quotePrice = await oracle.getPrice.call(eur);
+        const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
+        initialAskPrice = expectedPrice.add(
+          fromEth(expectedPrice.mul(initialSpread)),
+        );
+        initialBidPrice = expectedPrice.sub(
+          fromEth(expectedPrice.mul(initialSpread)),
+        );
+
+        poolLiquidityBefore2 = await liquidityPool2.getLiquidity.call();
+
+        await protocols[0].openPosition(
+          liquidityPool.address,
+          jpy,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        positionId1 = (await protocols[0].nextPositionId()).sub(bn(1));
+        await protocols[0].openPosition(
+          liquidityPool2.address,
+          jpy,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        positionId2 = (await protocols[0].nextPositionId()).sub(bn(1));
+      });
+
+      it('closes position correctly in both pools', async () => {
+        const receipt1 = await protocols[0].closePosition(positionId1, price, {
+          from: alice,
+        });
+        await expectCorrectlyClosedPosition({
+          id: positionId1,
+          expectedOwner: alice,
+          expectedPool: liquidityPool.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore,
+          initialAskPrice,
+          initialBidPrice,
+          baseToken: jpy,
+          quoteToken: eur,
+          receipt: receipt1,
+        });
+
+        const receipt2 = await protocols[0].closePosition(positionId2, price, {
+          from: alice,
+        });
+
+        await expectCorrectlyClosedPosition({
+          id: positionId2,
+          expectedOwner: alice,
+          expectedPool: liquidityPool2.address,
+          expectedLeverage: leverage,
+          leveragedHeldInQuote: leveragedHeldInEuro,
+          traderBalanceBefore,
+          poolLiquidityBefore: poolLiquidityBefore2,
+          initialAskPrice,
+          initialBidPrice,
+          baseToken: jpy,
+          quoteToken: eur,
+          receipt: receipt2,
         });
       });
     });
