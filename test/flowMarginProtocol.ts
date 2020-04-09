@@ -2108,7 +2108,7 @@ contract('FlowMarginProtocol', accounts => {
     });
   });
 
-  describe('when computing unrealized profit loss along with market price', () => {
+  describe.only('when computing unrealized profit loss along with market price', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
       let bidPrice: BN;
@@ -2131,10 +2131,10 @@ contract('FlowMarginProtocol', accounts => {
           0,
         );
 
-        leveragedHeldInEuro = euro(100);
+        leveragedHeldInEuro = euro(100).mul(!leverage.isNeg() ? bn(1) : bn(-1));
         leveragedDebits = fromEth(
           leveragedHeldInEuro.mul(!leverage.isNeg() ? askPrice : bidPrice),
-        );
+        ).mul(bn(-1));
         maxPrice = bn(0);
       });
 
@@ -2151,7 +2151,8 @@ contract('FlowMarginProtocol', accounts => {
         const currentPrice = !leverage.isNeg() ? bidPrice : askPrice;
         const openPrice = leveragedDebits
           .mul(bn(1e18))
-          .div(leveragedHeldInEuro);
+          .div(leveragedHeldInEuro)
+          .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
         const expectedPl = fromEth(
           currentPrice.sub(openPrice).mul(leveragedHeldInEuro),
@@ -2179,7 +2180,8 @@ contract('FlowMarginProtocol', accounts => {
         );
         const openPrice = leveragedDebits
           .mul(bn(1e18))
-          .div(leveragedHeldInEuro);
+          .div(leveragedHeldInEuro)
+          .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
         const expectedPl = fromEth(
           newPrice.sub(openPrice).mul(leveragedHeldInEuro),
@@ -2207,7 +2209,8 @@ contract('FlowMarginProtocol', accounts => {
         );
         const openPrice = leveragedDebits
           .mul(bn(1e18))
-          .div(leveragedHeldInEuro);
+          .div(leveragedHeldInEuro)
+          .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
         const expectedPl = fromEth(
           newPrice.sub(openPrice).mul(leveragedHeldInEuro),
@@ -2217,21 +2220,6 @@ contract('FlowMarginProtocol', accounts => {
         expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
       });
     };
-
-    beforeEach(async () => {
-      const marginPairImpl = await MarginTradingPair.new();
-      const marginPairProxy = await Proxy.new();
-      await marginPairProxy.upgradeTo(marginPairImpl.address);
-      pair = await MarginTradingPair.at(marginPairProxy.address);
-      pair.initialize(
-        protocols[1].address,
-        moneyMarket.address,
-        eur,
-        10,
-        fromPercent(70),
-        dollar(5),
-      );
-    });
 
     describe('when given a long position', () => {
       itComputesPlWithLeverageCorrectly(bn(20));
@@ -2253,19 +2241,6 @@ contract('FlowMarginProtocol', accounts => {
     let leverage2: BN;
 
     beforeEach(async () => {
-      const marginPairImpl = await MarginTradingPair.new();
-      const marginPairProxy = await Proxy.new();
-      await marginPairProxy.upgradeTo(marginPairImpl.address);
-      pair = await MarginTradingPair.at(marginPairProxy.address);
-      pair.initialize(
-        protocols[1].address,
-        moneyMarket.address,
-        eur,
-        10,
-        fromPercent(70),
-        dollar(5),
-      );
-
       askPrice = await protocols[1].getAskPrice.call(
         liquidityPool.address,
         usd.address,
