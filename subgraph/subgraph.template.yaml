@@ -79,7 +79,7 @@ dataSources:
           file: ../build/contracts/MoneyMarket.json
       file: ./src/mapping.ts
       eventHandlers:
-        - event: NewTradingPair(address)
+        - event: NewTradingPair(address,address)
           handler: handleNewTradingPair
 templates:
   - name: MarginTradingPair

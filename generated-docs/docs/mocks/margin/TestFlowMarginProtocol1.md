@@ -16,7 +16,7 @@
 
 - [`getIsTraderSafe(contract LiquidityPoolInterface _pool, address _trader)`](#TestFlowMarginProtocol1-getIsTraderSafe-contract-LiquidityPoolInterface-address-)
 
-- [`getAccumulatedSwapRateOfPosition(uint256 _swapRate, uint256 _timeWhenOpened)`](#TestFlowMarginProtocol1-getAccumulatedSwapRateOfPosition-uint256-uint256-)
+- [`getAccumulatedSwapRateOfPosition(int256 _leveragedDebitsInUsd, uint256 _swapRate, uint256 _timeWhenOpened)`](#TestFlowMarginProtocol1-getAccumulatedSwapRateOfPosition-int256-uint256-uint256-)
 
 - [`getEquityOfTrader(contract LiquidityPoolInterface _pool, address _trader)`](#TestFlowMarginProtocol1-getEquityOfTrader-contract-LiquidityPoolInterface-address-)
 
@@ -52,7 +52,7 @@ No description
 
 No description
 
-### [Function `getAccumulatedSwapRateOfPosition(uint256 _swapRate, uint256 _timeWhenOpened) → uint256`](#TestFlowMarginProtocol1-getAccumulatedSwapRateOfPosition-uint256-uint256-)
+### [Function `getAccumulatedSwapRateOfPosition(int256 _leveragedDebitsInUsd, uint256 _swapRate, uint256 _timeWhenOpened) → uint256`](#TestFlowMarginProtocol1-getAccumulatedSwapRateOfPosition-int256-uint256-uint256-)
 
 No description
 

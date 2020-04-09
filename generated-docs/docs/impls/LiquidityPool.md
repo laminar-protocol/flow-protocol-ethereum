@@ -20,11 +20,11 @@
 
 - [`disableToken(address token)`](#LiquidityPool-disableToken-address-)
 
-- [`depositLiquidity(uint256 amount)`](#LiquidityPool-depositLiquidity-uint256-)
+- [`depositLiquidity(uint256 _baseTokenAmount)`](#LiquidityPool-depositLiquidity-uint256-)
 
-- [`withdrawLiquidity(uint256 amount)`](#LiquidityPool-withdrawLiquidity-uint256-)
+- [`withdrawLiquidity(uint256 _iTokenAmount)`](#LiquidityPool-withdrawLiquidity-uint256-)
 
-- [`withdrawLiquidityOwner(uint256 amount)`](#LiquidityPool-withdrawLiquidityOwner-uint256-)
+- [`withdrawLiquidityOwner(uint256 _iTokenAmount)`](#LiquidityPool-withdrawLiquidityOwner-uint256-)
 
 - [`addCollateral(contract FlowProtocol _protocol, contract FlowToken token, uint256 baseTokenAmount)`](#LiquidityPool-addCollateral-contract-FlowProtocol-contract-FlowToken-uint256-)
 
@@ -72,15 +72,15 @@ No description
 
 No description
 
-### [Function `depositLiquidity(uint256 amount)`](#LiquidityPool-depositLiquidity-uint256-)
+### [Function `depositLiquidity(uint256 _baseTokenAmount) → uint256`](#LiquidityPool-depositLiquidity-uint256-)
 
 No description
 
-### [Function `withdrawLiquidity(uint256 amount)`](#LiquidityPool-withdrawLiquidity-uint256-)
+### [Function `withdrawLiquidity(uint256 _iTokenAmount) → uint256`](#LiquidityPool-withdrawLiquidity-uint256-)
 
 No description
 
-### [Function `withdrawLiquidityOwner(uint256 amount)`](#LiquidityPool-withdrawLiquidityOwner-uint256-)
+### [Function `withdrawLiquidityOwner(uint256 _iTokenAmount) → uint256`](#LiquidityPool-withdrawLiquidityOwner-uint256-)
 
 No description
 

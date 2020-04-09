@@ -20,11 +20,11 @@
 
 - [`AdditionalCollateralRatioUpdated()`](#LiquidityPoolInterface-AdditionalCollateralRatioUpdated--)
 
-### [Function `depositLiquidity(uint256 _realized)`](#LiquidityPoolInterface-depositLiquidity-uint256-)
+### [Function `depositLiquidity(uint256 _realized) → uint256`](#LiquidityPoolInterface-depositLiquidity-uint256-)
 
 No description
 
-### [Function `withdrawLiquidity(uint256 _realized)`](#LiquidityPoolInterface-withdrawLiquidity-uint256-)
+### [Function `withdrawLiquidity(uint256 _realized) → uint256`](#LiquidityPoolInterface-withdrawLiquidity-uint256-)
 
 No description
 

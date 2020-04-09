@@ -97,4 +97,7 @@ export const messages = {
   poolAlreadyVerified: 'PF2',
   poolAlreadyPaidFees: 'PR1',
   settingZeroValueNotAllowed: '0',
+  tradingPairNotWhitelisted: 'TP1',
+  tradingPairAlreadyWhitelisted: 'TP2',
+  tradingPairTokensMustBeDifferent: 'TP3',
 };

@@ -2,9 +2,9 @@
 
 - [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
 
-- [`addTradingPair(address pair)`](#FlowMarginProtocol-addTradingPair-address-)
+- [`addTradingPair(contract FlowToken _base, contract FlowToken _quote)`](#FlowMarginProtocol-addTradingPair-contract-FlowToken-contract-FlowToken-)
 
-- [`setSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol-setSwapRate-uint256-)
+- [`setCurrentSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol-setCurrentSwapRate-uint256-)
 
 - [`setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold)`](#FlowMarginProtocol-setTraderRiskMarginCallThreshold-uint256-)
 
@@ -52,7 +52,7 @@
 
 - [`PositionOpened(address sender, address liquidityPool, address baseToken, address quoteToken, int256 leverage, uint256 amount, uint256 price)`](#FlowMarginProtocol-PositionOpened-address-address-address-address-int256-uint256-uint256-)
 
-- [`PositionClosed(address sender, uint256 positionId, uint256 price)`](#FlowMarginProtocol-PositionClosed-address-uint256-uint256-)
+- [`PositionClosed(address sender, address liquidityPool, address baseToken, address quoteToken, uint256 positionId, uint256 price)`](#FlowMarginProtocol-PositionClosed-address-address-address-address-uint256-uint256-)
 
 - [`Deposited(address sender, uint256 amount)`](#FlowMarginProtocol-Deposited-address-uint256-)
 
@@ -70,7 +70,7 @@
 
 - [`LiquidityPoolLiquidated(address liquidityPool)`](#FlowMarginProtocol-LiquidityPoolLiquidated-address-)
 
-- [`NewTradingPair(address pair)`](#FlowMarginProtocol-NewTradingPair-address-)
+- [`NewTradingPair(address base, address quote)`](#FlowMarginProtocol-NewTradingPair-address-address-)
 
 ### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
 
@@ -82,21 +82,37 @@ Initialize the FlowMarginProtocol.
 
 - `_moneyMarket`: The money market.
 
-- `_initialSwapRate`: The initial swap rate.
+- `_initialSwapRate`: The initial swap rate as percentage.
 
-- `_initialTraderRiskMarginCallThreshold`: The initial trader risk threshold as percentage.
+- `_initialTraderRiskMarginCallThreshold`: The initial trader risk margin call threshold as percentage.
 
-### [Function `addTradingPair(address pair)`](#FlowMarginProtocol-addTradingPair-address-)
+- `_initialTraderRiskLiquidateThreshold`: The initial trader risk liquidate threshold as percentage.
 
-No description
+- `_initialLiquidityPoolENPMarginThreshold`: The initial pool ENP margin threshold.
 
-### [Function `setSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol-setSwapRate-uint256-)
+- `_initialLiquidityPoolELLMarginThreshold`: The initial pool ELL margin threshold.
+
+- `_initialLiquidityPoolENPLiquidateThreshold`: The initial pool ENP liquidate threshold.
+
+- `_initialLiquidityPoolELLLiquidateThreshold`: The initial pool ELL liquidate threshold.
+
+### [Function `addTradingPair(contract FlowToken _base, contract FlowToken _quote)`](#FlowMarginProtocol-addTradingPair-contract-FlowToken-contract-FlowToken-)
+
+Add new trading pair, only for the owner.
+
+#### Parameters:
+
+- `_base`: The base FlowToken.
+
+- `_quote`: The quote FlowToken.
+
+### [Function `setCurrentSwapRate(uint256 _newSwapRate)`](#FlowMarginProtocol-setCurrentSwapRate-uint256-)
 
 Set new swap rate, only for the owner.
 
 #### Parameters:
 
-- `_newSwapRate`: The new swap rate.
+- `_newSwapRate`: The new swap rate as percentage.
 
 ### [Function `setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold)`](#FlowMarginProtocol-setTraderRiskMarginCallThreshold-uint256-)
 
@@ -304,7 +320,7 @@ Get the free margin: the free margin of the trader.
 
 No description
 
-### Event `PositionClosed(address sender, uint256 positionId, uint256 price)` {#FlowMarginProtocol-PositionClosed-address-uint256-uint256-}
+### Event `PositionClosed(address sender, address liquidityPool, address baseToken, address quoteToken, uint256 positionId, uint256 price)` {#FlowMarginProtocol-PositionClosed-address-address-address-address-uint256-uint256-}
 
 No description
 
@@ -340,6 +356,6 @@ No description
 
 No description
 
-### Event `NewTradingPair(address pair)` {#FlowMarginProtocol-NewTradingPair-address-}
+### Event `NewTradingPair(address base, address quote)` {#FlowMarginProtocol-NewTradingPair-address-address-}
 
 No description

@@ -105,7 +105,7 @@ contract('FlowMarginProtocol', accounts => {
     initialEurPrice = fromPercent(120);
     initialJpyPrice = fromPercent(200);
 
-    initialSwapRate = bn(2);
+    initialSwapRate = fromPercent(2);
     initialTraderRiskMarginCallThreshold = fromPercent(5);
     initialTraderRiskLiquidateThreshold = fromPercent(2);
     initialLiquidityPoolENPMarginThreshold = fromPercent(50);
@@ -192,6 +192,8 @@ contract('FlowMarginProtocol', accounts => {
         from: liquidityProvider,
       });
       await protocols[index].verifyPool(liquidityPool.address);
+      await protocols[index].addTradingPair(jpy, eur);
+      await protocols[index].addTradingPair(usd.address, eur);
     }
 
     await oracle.feedPrice(usd.address, initialUsdPrice, {
@@ -267,6 +269,37 @@ contract('FlowMarginProtocol', accounts => {
       ...positionByPoolAndTraderPart2,
     };
   };
+
+  describe('when adding a trading pair', () => {
+    it('sets new parameter', async () => {
+      await protocols[0].addTradingPair(eur, jpy);
+
+      expect(await protocols[0].tradingPairWhitelist(eur, jpy)).to.be.true;
+    });
+
+    it('reverts when trading pair already whitelisted', async () => {
+      await protocols[0].addTradingPair(eur, jpy);
+
+      await expectRevert(
+        protocols[0].addTradingPair(eur, jpy),
+        messages.tradingPairAlreadyWhitelisted,
+      );
+    });
+
+    it('reverts when trading pair tokens are identical', async () => {
+      await expectRevert(
+        protocols[0].addTradingPair(eur, eur),
+        messages.tradingPairTokensMustBeDifferent,
+      );
+    });
+
+    it('allows only owner to add a trading pair', async () => {
+      await expectRevert(
+        protocols[0].addTradingPair(eur, jpy, { from: alice }),
+        messages.onlyOwner,
+      );
+    });
+  });
 
   describe('when setting new parameters', () => {
     for (const setFunction of [
@@ -2075,7 +2108,7 @@ contract('FlowMarginProtocol', accounts => {
     });
   });
 
-  describe('when computing unrealized profit loss along with market price', () => {
+  describe.only('when computing unrealized profit loss along with market price', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
       let bidPrice: BN;
@@ -2098,10 +2131,10 @@ contract('FlowMarginProtocol', accounts => {
           0,
         );
 
-        leveragedHeldInEuro = euro(100);
+        leveragedHeldInEuro = euro(100).mul(!leverage.isNeg() ? bn(1) : bn(-1));
         leveragedDebits = fromEth(
           leveragedHeldInEuro.mul(!leverage.isNeg() ? askPrice : bidPrice),
-        );
+        ).mul(bn(-1));
         maxPrice = bn(0);
       });
 
@@ -2118,7 +2151,8 @@ contract('FlowMarginProtocol', accounts => {
         const currentPrice = !leverage.isNeg() ? bidPrice : askPrice;
         const openPrice = leveragedDebits
           .mul(bn(1e18))
-          .div(leveragedHeldInEuro);
+          .div(leveragedHeldInEuro)
+          .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
         const expectedPl = fromEth(
           currentPrice.sub(openPrice).mul(leveragedHeldInEuro),
@@ -2146,7 +2180,8 @@ contract('FlowMarginProtocol', accounts => {
         );
         const openPrice = leveragedDebits
           .mul(bn(1e18))
-          .div(leveragedHeldInEuro);
+          .div(leveragedHeldInEuro)
+          .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
         const expectedPl = fromEth(
           newPrice.sub(openPrice).mul(leveragedHeldInEuro),
@@ -2174,7 +2209,8 @@ contract('FlowMarginProtocol', accounts => {
         );
         const openPrice = leveragedDebits
           .mul(bn(1e18))
-          .div(leveragedHeldInEuro);
+          .div(leveragedHeldInEuro)
+          .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
         const expectedPl = fromEth(
           newPrice.sub(openPrice).mul(leveragedHeldInEuro),
@@ -2184,21 +2220,6 @@ contract('FlowMarginProtocol', accounts => {
         expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
       });
     };
-
-    beforeEach(async () => {
-      const marginPairImpl = await MarginTradingPair.new();
-      const marginPairProxy = await Proxy.new();
-      await marginPairProxy.upgradeTo(marginPairImpl.address);
-      pair = await MarginTradingPair.at(marginPairProxy.address);
-      pair.initialize(
-        protocols[1].address,
-        moneyMarket.address,
-        eur,
-        10,
-        fromPercent(70),
-        dollar(5),
-      );
-    });
 
     describe('when given a long position', () => {
       itComputesPlWithLeverageCorrectly(bn(20));
@@ -2220,19 +2241,6 @@ contract('FlowMarginProtocol', accounts => {
     let leverage2: BN;
 
     beforeEach(async () => {
-      const marginPairImpl = await MarginTradingPair.new();
-      const marginPairProxy = await Proxy.new();
-      await marginPairProxy.upgradeTo(marginPairImpl.address);
-      pair = await MarginTradingPair.at(marginPairProxy.address);
-      pair.initialize(
-        protocols[1].address,
-        moneyMarket.address,
-        eur,
-        10,
-        fromPercent(70),
-        dollar(5),
-      );
-
       askPrice = await protocols[1].getAskPrice.call(
         liquidityPool.address,
         usd.address,
@@ -2375,21 +2383,26 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('when computing the accumulated swap rate', () => {
     it('should return the correct accumulated swap rate', async () => {
+      const leveragedDebitsInUsd = dollar(5000);
       const daysOfPosition = 20;
       const ageOfPosition = time.duration.days(daysOfPosition);
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
       const accSwapRate = await protocols[1].getAccumulatedSwapRateOfPosition(
+        leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
       );
 
-      const expectedAccSwapRate = swapRate.mul(bn(daysOfPosition));
+      const expectedAccSwapRate = fromEth(
+        swapRate.mul(bn(daysOfPosition)).mul(leveragedDebitsInUsd),
+      );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
     });
 
     it('counts only full days', async () => {
+      const leveragedDebitsInUsd = dollar(5000);
       const daysOfPosition = 20;
       const ageOfPosition = time.duration
         .days(daysOfPosition)
@@ -2397,11 +2410,15 @@ contract('FlowMarginProtocol', accounts => {
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
       const accSwapRate = await protocols[1].getAccumulatedSwapRateOfPosition(
+        leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
       );
 
-      const expectedAccSwapRate = swapRate.mul(bn(daysOfPosition - 1));
+      const expectedAccSwapRate = swapRate
+        .mul(bn(daysOfPosition - 1))
+        .mul(leveragedDebitsInUsd)
+        .div(bn(1e18));
       expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
     });
   });
@@ -2638,7 +2655,6 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when getting accumulated swap rates of all positions from a trader', () => {
       it('should return the correct value', async () => {
-        const alicePositionCount = bn(2);
         const daysOfPosition = 5;
         await time.increase(time.duration.days(daysOfPosition));
 
@@ -2647,11 +2663,16 @@ contract('FlowMarginProtocol', accounts => {
           alice,
         );
 
-        const expectedAccSwapRate = initialSwapRate
-          .mul(bn(daysOfPosition))
-          .mul(alicePositionCount);
+        const position1SwapRate = await protocols[2].getAccumulatedSwapRateOfPosition(
+          0,
+        );
+        const position2SwapRate = await protocols[2].getAccumulatedSwapRateOfPosition(
+          1,
+        );
 
-        expect(accSwapRates).to.be.bignumber.equal(expectedAccSwapRate);
+        expect(accSwapRates).to.be.bignumber.equal(
+          position1SwapRate.add(position2SwapRate),
+        );
       });
     });
   });
