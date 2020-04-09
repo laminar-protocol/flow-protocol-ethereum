@@ -14,6 +14,8 @@
 
 - [`getEquityOfTrader(contract LiquidityPoolInterface _pool, address _trader)`](#TestFlowMarginProtocol-getEquityOfTrader-contract-LiquidityPoolInterface-address-)
 
+- [`getAccumulatedSwapRateOfPosition(uint256 _positionId)`](#TestFlowMarginProtocol-getAccumulatedSwapRateOfPosition-uint256-)
+
 ### [Function `removePositionFromPoolList(contract LiquidityPoolInterface _pool, uint256 _positionId)`](#TestFlowMarginProtocol-removePositionFromPoolList-contract-LiquidityPoolInterface-uint256-)
 
 No description
@@ -39,5 +41,9 @@ No description
 No description
 
 ### [Function `getEquityOfTrader(contract LiquidityPoolInterface _pool, address _trader) → int256`](#TestFlowMarginProtocol-getEquityOfTrader-contract-LiquidityPoolInterface-address-)
+
+No description
+
+### [Function `getAccumulatedSwapRateOfPosition(uint256 _positionId) → uint256`](#TestFlowMarginProtocol-getAccumulatedSwapRateOfPosition-uint256-)
 
 No description
