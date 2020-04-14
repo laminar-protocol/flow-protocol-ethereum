@@ -2725,7 +2725,9 @@ contract('FlowMarginProtocol', accounts => {
             await protocol.getUnrealizedPlOfPosition.call(positionId),
           );
           allAccumulatedSwapRate = allAccumulatedSwapRate.add(
-            await protocol.getAccumulatedSwapRateOfPosition(bn(positionId)),
+            await (protocol as any).getAccumulatedSwapRateOfPosition(
+              bn(positionId),
+            ),
           );
         }
 
@@ -2908,10 +2910,10 @@ contract('FlowMarginProtocol', accounts => {
           alice,
         );
 
-        const position1SwapRate = await protocol.getAccumulatedSwapRateOfPosition(
+        const position1SwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
           bn(0),
         );
-        const position2SwapRate = await protocol.getAccumulatedSwapRateOfPosition(
+        const position2SwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
           bn(1),
         );
 
