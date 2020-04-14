@@ -75,6 +75,8 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
   if [ "$CONTINUOUS_INTEGRATION" = true ]; then
     cat coverage/lcov.info | npx coveralls
   fi
+elif [ "$BUIDLER_DEBUG" = true ]; then
+  yarn buidler test "$@"
 else
   yarn truffle test "$@"
 fi
