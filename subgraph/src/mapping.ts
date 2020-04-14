@@ -26,7 +26,6 @@ import {
   OpenPosition,
   ClosePosition,
 } from '../generated/templates/MarginTradingPair/MarginTradingPair';
-import { MarginTradingPair as MarginTradingPairTemplate } from '../generated/templates';
 import {
   TokenEntity,
   PriceEntity,
