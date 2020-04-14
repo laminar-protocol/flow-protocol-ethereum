@@ -45,7 +45,7 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
         require(!poolHasPaidFees[_pool], "PR1");
 
         uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
-        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, address(this), feeSum);
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, protocol, feeSum);
 
         poolHasPaidFees[_pool] = true;
     }
