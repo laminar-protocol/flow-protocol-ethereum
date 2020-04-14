@@ -1298,7 +1298,7 @@ contract('FlowMarginProtocol', accounts => {
         const feeSum = (
           await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
         ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
-        await usd.approve(protocol.address, feeSum, {
+        await usd.approve(liquidityPoolRegistry.address, feeSum, {
           from: liquidityProvider,
         });
         await liquidityPoolRegistry.registerPool(liquidityPool2.address, {
