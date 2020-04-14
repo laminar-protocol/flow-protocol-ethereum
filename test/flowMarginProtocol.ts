@@ -11,6 +11,7 @@ import {
   SimplePriceOracleInstance,
   TestFlowMarginProtocolInstance,
   LiquidityPoolInstance,
+  LiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
   IERC20Instance,
@@ -36,6 +37,7 @@ const FlowMarginProtocolNewVersion = artifacts.require(
   'FlowMarginProtocolNewVersion',
 );
 const LiquidityPool = artifacts.require('LiquidityPool');
+const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
 contract('FlowMarginProtocol', accounts => {
@@ -49,6 +51,7 @@ contract('FlowMarginProtocol', accounts => {
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestFlowMarginProtocolInstance;
+  let liquidityPoolRegistry: LiquidityPoolRegistryInstance;
   let liquidityPool: LiquidityPoolInstance;
   let usd: TestTokenInstance;
   let iUsd: IERC20Instance; // eslint-disable-line
@@ -106,9 +109,20 @@ contract('FlowMarginProtocol', accounts => {
     const flowMarginProtocolProxy = await Proxy.new();
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
     protocol = await TestFlowMarginProtocol.at(flowMarginProtocolProxy.address);
-      await (protocol as any).initialize( // eslint-disable-line
+
+    const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.new();
+    const liquidityPoolRegistryProxy = await Proxy.new();
+    await liquidityPoolRegistryProxy.upgradeTo(
+      liquidityPoolRegistryImpl.address,
+    );
+    liquidityPoolRegistry = await LiquidityPoolRegistry.at(
+      liquidityPoolRegistryProxy.address,
+    );
+
+    await (protocol as any).initialize( // eslint-disable-line
       oracle.address,
       moneyMarket.address,
+      liquidityPoolRegistry.address,
       initialSwapRate,
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
@@ -116,6 +130,11 @@ contract('FlowMarginProtocol', accounts => {
       initialLiquidityPoolELLMarginThreshold,
       initialLiquidityPoolENPLiquidateThreshold,
       initialLiquidityPoolELLLiquidateThreshold,
+    );
+
+    await liquidityPoolRegistry.initialize(
+      moneyMarket.address,
+      protocol.address,
     );
 
     await usd.approve(protocol.address, constants.MAX_UINT256, {
@@ -150,16 +169,16 @@ contract('FlowMarginProtocol', accounts => {
       from: liquidityProvider,
     });
 
-    const feeSum = (await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
-      await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
-    );
-    await usd.approve(protocol.address, feeSum, {
+    const feeSum = (
+      await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
+    ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+    await usd.approve(liquidityPoolRegistry.address, feeSum, {
       from: liquidityProvider,
     });
-    await protocol.registerPool(liquidityPool.address, {
+    await liquidityPoolRegistry.registerPool(liquidityPool.address, {
       from: liquidityProvider,
     });
-    await protocol.verifyPool(liquidityPool.address);
+    await liquidityPoolRegistry.verifyPool(liquidityPool.address);
     await protocol.addTradingPair(jpy, eur);
     await protocol.addTradingPair(usd.address, eur);
 
@@ -311,16 +330,23 @@ contract('FlowMarginProtocol', accounts => {
 
       beforeEach(async () => {
         poolOwnerBalanceBefore = await usd.balanceOf(alice);
-        await protocol.registerPool(newPool, { from: alice });
+
+        const feeSum = (
+          await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE()
+        ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE());
+        await usd.approve(liquidityPoolRegistry.address, feeSum, {
+          from: alice,
+        });
+        await liquidityPoolRegistry.registerPool(newPool, { from: alice });
       });
 
       it('sets pool as registered', async () => {
-        expect(await protocol.poolHasPaidFees(newPool)).to.be.true;
+        expect(await liquidityPoolRegistry.poolHasPaidFees(newPool)).to.be.true;
       });
 
       it('transfers the feeSum', async () => {
-        const LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE();
-        const LIQUIDITY_POOL_LIQUIDATION_FEE = await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE();
+        const LIQUIDITY_POOL_MARGIN_CALL_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE();
+        const LIQUIDITY_POOL_LIQUIDATION_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE();
 
         const poolOwnerBalanceAfter = await usd.balanceOf(alice);
         expect(poolOwnerBalanceAfter).to.be.bignumber.equals(
@@ -332,39 +358,48 @@ contract('FlowMarginProtocol', accounts => {
 
       it('allows only owner to verify pools', async () => {
         await expectRevert(
-          protocol.registerPool(newPool, { from: alice }),
+          liquidityPoolRegistry.registerPool(newPool, { from: alice }),
           messages.poolAlreadyPaidFees,
         );
       });
     });
 
     describe('when verifying pools', () => {
+      beforeEach(async () => {
+        const feeSum = (
+          await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE()
+        ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE());
+        await usd.approve(liquidityPoolRegistry.address, feeSum, {
+          from: alice,
+        });
+      });
+
       it('sets pool as verified', async () => {
-        await protocol.registerPool(newPool, { from: alice });
-        await protocol.verifyPool(newPool);
-        expect(await protocol.isVerifiedPool(newPool)).to.be.true;
+        await liquidityPoolRegistry.registerPool(newPool, { from: alice });
+        await liquidityPoolRegistry.verifyPool(newPool);
+        expect(await liquidityPoolRegistry.isVerifiedPool(newPool)).to.be.true;
       });
 
       it('requires that pool has paid fees', async () => {
         await expectRevert(
-          protocol.verifyPool(newPool),
+          liquidityPoolRegistry.verifyPool(newPool),
           messages.poolHasNotPaidFees,
         );
       });
 
       it('allows only owner to verify pools', async () => {
         await expectRevert(
-          protocol.verifyPool(newPool, { from: alice }),
+          liquidityPoolRegistry.verifyPool(newPool, { from: alice }),
           messages.onlyOwner,
         );
       });
 
       it('allows only owner to verify pools', async () => {
-        await protocol.registerPool(newPool, { from: alice });
-        await protocol.verifyPool(newPool);
+        await liquidityPoolRegistry.registerPool(newPool, { from: alice });
+        await liquidityPoolRegistry.verifyPool(newPool);
 
         await expectRevert(
-          protocol.verifyPool(newPool),
+          liquidityPoolRegistry.verifyPool(newPool),
           messages.poolAlreadyVerified,
         );
       });
@@ -781,16 +816,16 @@ contract('FlowMarginProtocol', accounts => {
         await liquidityPool2.enableToken(eur);
         await liquidityPool2.enableToken(jpy);
 
-        const feeSum = (await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
-          await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
-        );
-        await usd.approve(protocol.address, feeSum, {
+        const feeSum = (
+          await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
+        ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+        await usd.approve(liquidityPoolRegistry.address, feeSum, {
           from: liquidityProvider,
         });
-        await protocol.registerPool(liquidityPool2.address, {
+        await liquidityPoolRegistry.registerPool(liquidityPool2.address, {
           from: liquidityProvider,
         });
-        await protocol.verifyPool(liquidityPool2.address);
+        await liquidityPoolRegistry.verifyPool(liquidityPool2.address);
 
         await protocol.deposit(liquidityPool2.address, depositInUsd, {
           from: alice,
@@ -1260,16 +1295,16 @@ contract('FlowMarginProtocol', accounts => {
         await liquidityPool2.enableToken(eur);
         await liquidityPool2.enableToken(jpy);
 
-        const feeSum = (await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
-          await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
-        );
+        const feeSum = (
+          await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
+        ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
         await usd.approve(protocol.address, feeSum, {
           from: liquidityProvider,
         });
-        await protocol.registerPool(liquidityPool2.address, {
+        await liquidityPoolRegistry.registerPool(liquidityPool2.address, {
           from: liquidityProvider,
         });
-        await protocol.verifyPool(liquidityPool2.address);
+        await liquidityPoolRegistry.verifyPool(liquidityPool2.address);
 
         await protocol.deposit(liquidityPool2.address, depositInUsd, {
           from: alice,
@@ -1991,7 +2026,7 @@ contract('FlowMarginProtocol', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE();
+      LIQUIDITY_POOL_MARGIN_CALL_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE();
 
       await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
@@ -2506,7 +2541,7 @@ contract('FlowMarginProtocol', accounts => {
       const ageOfPosition = time.duration.days(daysOfPosition);
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
-      const accSwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
+      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters(
         leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
@@ -2527,7 +2562,7 @@ contract('FlowMarginProtocol', accounts => {
         .sub(time.duration.seconds(5));
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
-      const accSwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
+      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters(
         leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
