@@ -19,7 +19,7 @@ import "../interfaces/LiquidityPoolInterface.sol";
 
 import "./FlowProtocolBase.sol";
 import "./FlowToken.sol";
-
+import "./LiquidityPoolRegistry.sol";
 
 contract FlowMarginProtocol is FlowProtocolBase {
     using Percentage for uint256;
@@ -79,6 +79,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     uint256 public nextPositionId;
 
+    LiquidityPoolRegistry public liquidityPoolRegistry;
+
     // positions
     mapping (uint256 => Position) internal positionsById;
     mapping (LiquidityPoolInterface => mapping (address => Position[])) internal positionsByPoolAndTrader;
@@ -88,9 +90,6 @@ contract FlowMarginProtocol is FlowProtocolBase {
     mapping (LiquidityPoolInterface => mapping(address => int256)) public balances;
     mapping (LiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
     mapping (LiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
-    mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
-    mapping (LiquidityPoolInterface => bool) public poolHasPaidFees;
-    mapping (LiquidityPoolInterface => bool) public isVerifiedPool;
 
     // trading pairs
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
@@ -104,13 +103,10 @@ contract FlowMarginProtocol is FlowProtocolBase {
     uint256 public liquidityPoolELLLiquidateThreshold;
 
     uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
-    uint256 constant public LIQUIDITY_POOL_MARGIN_CALL_FEE = 1000 ether; // TODO
-
     uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
-    uint256 constant public LIQUIDITY_POOL_LIQUIDATION_FEE = 3000 ether; // TODO
 
     modifier poolIsVerified(LiquidityPoolInterface _pool) {
-        require(isVerifiedPool[_pool], "LR1");
+        require(liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
 
         _;
     }
@@ -125,6 +121,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @dev Initialize the FlowMarginProtocol.
      * @param _oracle The price oracle
      * @param _moneyMarket The money market.
+     * @param _liquidityPoolRegistry The liquidity pool registry.
      * @param _initialSwapRate The initial swap rate as percentage.
      * @param _initialTraderRiskMarginCallThreshold The initial trader risk margin call threshold as percentage.
      * @param _initialTraderRiskLiquidateThreshold The initial trader risk liquidate threshold as percentage.
@@ -136,6 +133,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     function initialize(
         PriceOracleInterface _oracle,
         MoneyMarketInterface _moneyMarket,
+        LiquidityPoolRegistry _liquidityPoolRegistry,
         uint256 _initialSwapRate,
         uint256 _initialTraderRiskMarginCallThreshold,
         uint256 _initialTraderRiskLiquidateThreshold,
@@ -145,6 +143,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         uint256 _initialLiquidityPoolELLLiquidateThreshold
     ) public initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
+        liquidityPoolRegistry = _liquidityPoolRegistry;
 
         currentSwapRate = Percentage.Percent(_initialSwapRate);
         traderRiskMarginCallThreshold = Percentage.Percent(_initialTraderRiskMarginCallThreshold);
@@ -230,39 +229,6 @@ contract FlowMarginProtocol is FlowProtocolBase {
     function setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold) public onlyOwner {
         require(_newLiquidityPoolELLLiquidateThreshold > 0, "0");
         liquidityPoolELLLiquidateThreshold = _newLiquidityPoolELLLiquidateThreshold;
-    }
-
-    /**
-     * @dev Register a new pool by sending the combined margin and liquidation fees.
-     * @param _pool The MarginLiquidityPool.
-     */
-    function registerPool(LiquidityPoolInterface _pool) public nonReentrant {
-        require(address(_pool) != address(0), "0");
-        require(!poolHasPaidFees[_pool], "PR1");
-
-        uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
-        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), feeSum);
-
-        poolHasPaidFees[_pool] = true;
-    }
-
-    /**
-     * @dev Verify a new pool, only for the owner.
-     * @param _pool The MarginLiquidityPool.
-     */
-    function verifyPool(LiquidityPoolInterface _pool) public onlyOwner {
-        require(poolHasPaidFees[_pool], "PF1");
-        require(!isVerifiedPool[_pool], "PF2");
-        isVerifiedPool[_pool] = true;
-    }
-
-    /**
-     * @dev Unverify a pool, only for the owner.
-     * @param _pool The MarginLiquidityPool.
-     */
-    function unverifyPool(LiquidityPoolInterface _pool) public onlyOwner {
-        require(isVerifiedPool[_pool], "PV1");
-        isVerifiedPool[_pool] = false;
     }
 
     /**
@@ -430,11 +396,10 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function marginCallLiquidityPool(LiquidityPoolInterface _pool) public nonReentrant poolIsVerified(_pool) {
-        require(!poolIsMarginCalled[_pool], "PM1");
         require(!_isPoolSafe(_pool), "PM2");
 
-        poolIsMarginCalled[_pool] = true;
-        moneyMarket.baseToken().safeTransfer(msg.sender, LIQUIDITY_POOL_MARGIN_CALL_FEE);
+        liquidityPoolRegistry.marginCallPool(_pool);
+        moneyMarket.baseToken().safeTransfer(msg.sender, liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
 
         emit LiquidityPoolMarginCalled(address(_pool));
     }
@@ -444,11 +409,10 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      */
     function makeLiquidityPoolSafe(LiquidityPoolInterface _pool) public nonReentrant poolIsVerified(_pool) {
-        require(poolIsMarginCalled[_pool], "PS1");
         require(_isPoolSafe(_pool), "PS2");
 
-        poolIsMarginCalled[_pool] = false;
-        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), LIQUIDITY_POOL_MARGIN_CALL_FEE);
+        liquidityPoolRegistry.makePoolSafe(_pool);
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
 
         emit LiquidityPoolBecameSafe(address(_pool));
     }
@@ -493,9 +457,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
             _liquidityPoolClosePosition(_pool, positions[i]);
         }
 
-        poolIsMarginCalled[_pool] = false;
-
-        moneyMarket.baseToken().safeTransferFrom(address(this), msg.sender, LIQUIDITY_POOL_LIQUIDATION_FEE);
+        // liquidityPoolRegistry.makePoolSafe(_pool); TODO ?
+        moneyMarket.baseToken().safeTransferFrom(address(this), msg.sender, liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE());
 
         emit LiquidityPoolLiquidated(address(_pool));
     }
@@ -643,7 +606,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     // askPrice = price * (1 + ask_spread)
     function _getAskPrice(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = _getPrice(_pair.base, _pair.quote);
-        uint256 spread = _pool.getAskSpread(address(_pair.quote));
+        uint256 spread = getAskSpread(_pool, address(_pair.quote));
         Percentage.Percent memory askPrice = Percentage.Percent(price.value.add(price.value.mul(spread).div(1e18)));
 
         if (_max > 0) {
@@ -656,7 +619,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
 	// bidPrice = price * (1 - bid_spread)
     function _getBidPrice(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = _getPrice(_pair.base, _pair.quote);
-        uint256 spread = _pool.getBidSpread(address(_pair.quote));
+        uint256 spread = getBidSpread(_pool, address(_pair.quote));
         Percentage.Percent memory bidPrice = Percentage.Percent(price.value.sub(price.value.mul(spread).div(1e18)));
 
         if (_min > 0) {
@@ -739,8 +702,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     // The price from oracle.
     function _getPrice(IERC20 _baseCurrencyId, IERC20 _quoteCurrencyId) internal returns (Percentage.Percent memory) {
-        uint256 basePrice = oracle.getPrice(address(_baseCurrencyId));
-        uint256 quotePrice = oracle.getPrice(address(_quoteCurrencyId));
+        uint256 basePrice = getPrice(address(_baseCurrencyId));
+        uint256 quotePrice = getPrice(address(_quoteCurrencyId));
 
         return Percentage.fromFraction(quotePrice, basePrice);
     }
@@ -814,8 +777,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
     function _liquidityPoolClosePosition(LiquidityPoolInterface _pool, Position memory _position) internal returns (uint256) {
         Percentage.Percent memory price = _getPrice(_position.pair.base, _position.pair.quote);
         uint256 spread = _position.leverage > 0
-            ? _pool.getBidSpread(address(_position.pair.base))
-            : _pool.getAskSpread(address(_position.pair.quote));
+            ? getBidSpread(_pool, address(_position.pair.base))
+            : getAskSpread(_pool, address(_position.pair.quote));
 
         uint256 leveragedHeldAbs = _position.leveragedHeld >= 0 ? uint256(_position.leveragedHeld) : uint256(-_position.leveragedHeld);
         uint256 spreadProfit = leveragedHeldAbs.mul(spread.mulPercent(price));

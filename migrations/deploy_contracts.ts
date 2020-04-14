@@ -71,6 +71,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const FlowProtocol = artifacts.require('FlowProtocol');
   const FlowToken = artifacts.require('FlowToken');
   const LiquidityPool = artifacts.require('LiquidityPool');
+  const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const IERC20 = artifacts.require('IERC20');
   const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
@@ -203,6 +204,20 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       from: priceFeeder,
     });
 
+    // --- pool registry
+
+    await deployer.deploy(LiquidityPoolRegistry);
+    const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.deployed();
+    await deployer.deploy(Proxy);
+    const liquidityPoolRegistryProxy = await Proxy.deployed();
+
+    await liquidityPoolRegistryProxy.upgradeTo(
+      liquidityPoolRegistryImpl.address,
+    );
+    const liquidityPoolRegistry = await LiquidityPoolRegistry.at(
+      liquidityPoolRegistryProxy.address,
+    );
+
     // --- margin protocol
 
     await deployer.deploy(FlowMarginProtocol);
@@ -225,6 +240,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await (marginProtocol as any).initialize(
       oracle.address,
       moneyMarket.address,
+      liquidityPoolRegistry.address,
       initialSwapRate,
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
@@ -232,6 +248,15 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       initialLiquidityPoolELLMarginThreshold,
       initialLiquidityPoolENPLiquidateThreshold,
       initialLiquidityPoolELLLiquidateThreshold,
+    );
+
+    await liquidityPoolRegistry.initialize(
+      moneyMarket.address,
+      marginProtocol.address,
+    );
+    await baseToken.approve(
+      liquidityPoolRegistry.address,
+      web3.utils.toWei('8000', 'ether'),
     );
 
     await deployer.deploy(MarginTradingPair);
@@ -390,6 +415,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await pool.enableToken(fXAU.address);
     await pool.enableToken(fAAPL.address);
 
+    await liquidityPoolRegistry.registerPool(pool.address);
+    await liquidityPoolRegistry.verifyPool(pool.address);
+
     await deployer.deploy(Proxy);
     const liquidityPoolProxy2 = await Proxy.deployed();
 
@@ -411,6 +439,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await pool2.enableToken(fJPY.address);
     await pool2.enableToken(fXAU.address);
     await pool2.enableToken(fAAPL.address);
+
+    await liquidityPoolRegistry.registerPool(pool2.address);
+    await liquidityPoolRegistry.verifyPool(pool2.address);
 
     // topup liquidity pool
 
@@ -435,6 +466,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       s20USDXAU: [s20USDXAU, MarginTradingPair],
       l5USDAAPL: [l5USDAAPL, MarginTradingPair],
       s5USDAAPL: [s5USDAAPL, MarginTradingPair],
+      poolRegistry: [liquidityPoolRegistry, LiquidityPoolRegistry],
       pool: [pool, LiquidityPoolInterface],
       pool2: [pool2, LiquidityPoolInterface],
     };
@@ -456,10 +488,12 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       `${(SimplePriceOracle as any).contractName}.json`,
     ]);
     for (const [key, [value, contract]] of Object.entries(deployment)) {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       save((contract as any).abi, [
         'artifacts',
         network,
         'abi',
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
         `${(contract as any).contractName}.json`,
       ]);
       addresses[key] = value.address;

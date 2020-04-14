@@ -142,7 +142,7 @@ contract TestFlowMarginProtocol is FlowMarginProtocol {
         return _isTraderSafe(_pool, _trader);
     }
 
-    function getAccumulatedSwapRateOfPosition(
+    function getAccumulatedSwapRateFromParameters(
         int256 _leveragedDebitsInUsd, uint256 _swapRate, uint256 _timeWhenOpened
     ) public view returns (uint256) {
         TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
