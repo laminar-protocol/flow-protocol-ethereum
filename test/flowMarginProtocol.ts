@@ -9,8 +9,6 @@ import BN from 'bn.js';
 
 import {
   SimplePriceOracleInstance,
-  TestFlowMarginProtocol0Instance,
-  TestFlowMarginProtocol1Instance,
   TestFlowMarginProtocolInstance,
   LiquidityPoolInstance,
   TestTokenInstance,
@@ -33,8 +31,6 @@ import {
 } from './helpers';
 
 const Proxy = artifacts.require('Proxy');
-const TestFlowMarginProtocol0 = artifacts.require('TestFlowMarginProtocol0');
-const TestFlowMarginProtocol1 = artifacts.require('TestFlowMarginProtocol1');
 const TestFlowMarginProtocol = artifacts.require('TestFlowMarginProtocol');
 const FlowMarginProtocolNewVersion = artifacts.require(
   'FlowMarginProtocolNewVersion',
@@ -52,14 +48,7 @@ contract('FlowMarginProtocol', accounts => {
   const newPool = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
-  let protocol0: TestFlowMarginProtocol0Instance;
-  let protocol1: TestFlowMarginProtocol1Instance;
-  let protocol2: TestFlowMarginProtocolInstance;
-  let protocols: [
-    TestFlowMarginProtocol0Instance,
-    TestFlowMarginProtocol1Instance,
-    TestFlowMarginProtocolInstance,
-  ];
+  let protocol: TestFlowMarginProtocolInstance;
   let liquidityPool: LiquidityPoolInstance;
   let usd: TestTokenInstance;
   let iUsd: IERC20Instance; // eslint-disable-line
@@ -79,13 +68,6 @@ contract('FlowMarginProtocol', accounts => {
   let initialLiquidityPoolELLLiquidateThreshold: BN;
 
   beforeEach(async () => {
-    protocols = [protocol0, protocol1, protocol2];
-    const contracts = [
-      TestFlowMarginProtocol0,
-      TestFlowMarginProtocol1,
-      TestFlowMarginProtocol,
-    ];
-
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
     oracleProxy.upgradeTo(oracleImpl.address);
@@ -120,33 +102,28 @@ contract('FlowMarginProtocol', accounts => {
       fromPercent(100),
     ));
 
-    for (let index = 0; index < protocols.length; index += 1) {
-      const flowMarginProtocolImpl = await contracts[index].new();
-      const flowMarginProtocolProxy = await Proxy.new();
-      await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
-      protocols[index] = await contracts[index].at(
-        flowMarginProtocolProxy.address,
-      );
-      await (protocols[index] as any).initialize( // eslint-disable-line
-        oracle.address,
-        moneyMarket.address,
-        initialSwapRate,
-        initialTraderRiskMarginCallThreshold,
-        initialTraderRiskLiquidateThreshold,
-        initialLiquidityPoolENPMarginThreshold,
-        initialLiquidityPoolELLMarginThreshold,
-        initialLiquidityPoolENPLiquidateThreshold,
-        initialLiquidityPoolELLLiquidateThreshold,
-      );
+    const flowMarginProtocolImpl = await TestFlowMarginProtocol.new();
+    const flowMarginProtocolProxy = await Proxy.new();
+    await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
+    protocol = await TestFlowMarginProtocol.at(flowMarginProtocolProxy.address);
+      await (protocol as any).initialize( // eslint-disable-line
+      oracle.address,
+      moneyMarket.address,
+      initialSwapRate,
+      initialTraderRiskMarginCallThreshold,
+      initialTraderRiskLiquidateThreshold,
+      initialLiquidityPoolENPMarginThreshold,
+      initialLiquidityPoolELLMarginThreshold,
+      initialLiquidityPoolENPLiquidateThreshold,
+      initialLiquidityPoolELLLiquidateThreshold,
+    );
 
-      await usd.approve(protocols[index].address, constants.MAX_UINT256, {
-        from: alice,
-      });
-      await usd.approve(protocols[index].address, constants.MAX_UINT256, {
-        from: bob,
-      });
-    }
-
+    await usd.approve(protocol.address, constants.MAX_UINT256, {
+      from: alice,
+    });
+    await usd.approve(protocol.address, constants.MAX_UINT256, {
+      from: bob,
+    });
     await usd.approve(moneyMarket.address, constants.MAX_UINT256, {
       from: liquidityProvider,
     });
@@ -157,16 +134,11 @@ contract('FlowMarginProtocol', accounts => {
     liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
     await (liquidityPool as any).initialize(
       moneyMarket.address,
-      protocols[0].address, // need 3 pools or only use first one for withdraw tests
+      protocol.address, // need 3 pools or only use first one for withdraw tests
       initialSpread,
     );
 
-    for (let index = 0; index < protocols.length; index += 1) {
-      await liquidityPool.approve(
-        protocols[index].address,
-        constants.MAX_UINT256,
-      );
-    }
+    await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
     await liquidityPool.enableToken(eur);
     await liquidityPool.enableToken(jpy);
@@ -178,20 +150,18 @@ contract('FlowMarginProtocol', accounts => {
       from: liquidityProvider,
     });
 
-    const feeSum = (await protocols[1].LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
-      await protocols[1].LIQUIDITY_POOL_MARGIN_CALL_FEE(),
+    const feeSum = (await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
+      await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
     );
-    for (let index = 0; index < protocols.length; index += 1) {
-      await usd.approve(protocols[index].address, feeSum, {
-        from: liquidityProvider,
-      });
-      await protocols[index].registerPool(liquidityPool.address, {
-        from: liquidityProvider,
-      });
-      await protocols[index].verifyPool(liquidityPool.address);
-      await protocols[index].addTradingPair(jpy, eur);
-      await protocols[index].addTradingPair(usd.address, eur);
-    }
+    await usd.approve(protocol.address, feeSum, {
+      from: liquidityProvider,
+    });
+    await protocol.registerPool(liquidityPool.address, {
+      from: liquidityProvider,
+    });
+    await protocol.verifyPool(liquidityPool.address);
+    await protocol.addTradingPair(jpy, eur);
+    await protocol.addTradingPair(usd.address, eur);
 
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,
@@ -212,13 +182,7 @@ contract('FlowMarginProtocol', accounts => {
     bidPrice: BN;
   }) => fromEth(leveragedHeld.mul(leverage.isNeg() ? bidPrice : askPrice));
 
-  const getLastPositionByPool = async ({
-    protocol,
-    pool,
-  }: {
-    protocol: TestFlowMarginProtocol0Instance;
-    pool: string;
-  }) => {
+  const getLastPositionByPool = async (pool: string) => {
     const positionByPoolPart1 = await protocol.getLastPositionByPoolPart1(pool);
     const positionByPoolPart2 = await protocol.getLastPositionByPoolPart2(pool);
 
@@ -236,11 +200,9 @@ contract('FlowMarginProtocol', accounts => {
   };
 
   const getLastPositionByPoolAndTrader = async ({
-    protocol,
     pool,
     trader,
   }: {
-    protocol: TestFlowMarginProtocol0Instance;
     pool: string;
     trader: string;
   }) => {
@@ -269,30 +231,30 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('when adding a trading pair', () => {
     it('sets new parameter', async () => {
-      await protocols[0].addTradingPair(eur, jpy);
+      await protocol.addTradingPair(eur, jpy);
 
-      expect(await protocols[0].tradingPairWhitelist(eur, jpy)).to.be.true;
+      expect(await protocol.tradingPairWhitelist(eur, jpy)).to.be.true;
     });
 
     it('reverts when trading pair already whitelisted', async () => {
-      await protocols[0].addTradingPair(eur, jpy);
+      await protocol.addTradingPair(eur, jpy);
 
       await expectRevert(
-        protocols[0].addTradingPair(eur, jpy),
+        protocol.addTradingPair(eur, jpy),
         messages.tradingPairAlreadyWhitelisted,
       );
     });
 
     it('reverts when trading pair tokens are identical', async () => {
       await expectRevert(
-        protocols[0].addTradingPair(eur, eur),
+        protocol.addTradingPair(eur, eur),
         messages.tradingPairTokensMustBeDifferent,
       );
     });
 
     it('allows only owner to add a trading pair', async () => {
       await expectRevert(
-        protocols[0].addTradingPair(eur, jpy, { from: alice }),
+        protocol.addTradingPair(eur, jpy, { from: alice }),
         messages.onlyOwner,
       );
     });
@@ -316,28 +278,26 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('sets new parameter', async () => {
-          await (protocols[0] as any)[setFunction](newParameter);
+          await (protocol as any)[setFunction](newParameter);
 
           const setParameter = setFunction
             .slice(3)
             .replace(/^\w/, c => c.toLowerCase());
-          const newStoredParameter = await (protocols[0] as any)[
-            setParameter
-          ]();
+          const newStoredParameter = await (protocol as any)[setParameter]();
 
           expect(newStoredParameter).to.be.bignumber.equals(newParameter);
         });
 
         it('allows only owner to set parameters', async () => {
           await expectRevert(
-            (protocols[0] as any)[setFunction](newParameter, { from: alice }),
+            (protocol as any)[setFunction](newParameter, { from: alice }),
             messages.onlyOwner,
           );
         });
 
         it('does not allow zero values', async () => {
           await expectRevert(
-            (protocols[0] as any)[setFunction](0),
+            (protocol as any)[setFunction](0),
             messages.settingZeroValueNotAllowed,
           );
         });
@@ -351,16 +311,16 @@ contract('FlowMarginProtocol', accounts => {
 
       beforeEach(async () => {
         poolOwnerBalanceBefore = await usd.balanceOf(alice);
-        await protocols[0].registerPool(newPool, { from: alice });
+        await protocol.registerPool(newPool, { from: alice });
       });
 
       it('sets pool as registered', async () => {
-        expect(await protocols[0].poolHasPaidFees(newPool)).to.be.true;
+        expect(await protocol.poolHasPaidFees(newPool)).to.be.true;
       });
 
       it('transfers the feeSum', async () => {
-        const LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocols[0].LIQUIDITY_POOL_MARGIN_CALL_FEE();
-        const LIQUIDITY_POOL_LIQUIDATION_FEE = await protocols[0].LIQUIDITY_POOL_LIQUIDATION_FEE();
+        const LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE();
+        const LIQUIDITY_POOL_LIQUIDATION_FEE = await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE();
 
         const poolOwnerBalanceAfter = await usd.balanceOf(alice);
         expect(poolOwnerBalanceAfter).to.be.bignumber.equals(
@@ -372,7 +332,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('allows only owner to verify pools', async () => {
         await expectRevert(
-          protocols[0].registerPool(newPool, { from: alice }),
+          protocol.registerPool(newPool, { from: alice }),
           messages.poolAlreadyPaidFees,
         );
       });
@@ -380,31 +340,31 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when verifying pools', () => {
       it('sets pool as verified', async () => {
-        await protocols[0].registerPool(newPool, { from: alice });
-        await protocols[0].verifyPool(newPool);
-        expect(await protocols[0].isVerifiedPool(newPool)).to.be.true;
+        await protocol.registerPool(newPool, { from: alice });
+        await protocol.verifyPool(newPool);
+        expect(await protocol.isVerifiedPool(newPool)).to.be.true;
       });
 
       it('requires that pool has paid fees', async () => {
         await expectRevert(
-          protocols[0].verifyPool(newPool),
+          protocol.verifyPool(newPool),
           messages.poolHasNotPaidFees,
         );
       });
 
       it('allows only owner to verify pools', async () => {
         await expectRevert(
-          protocols[0].verifyPool(newPool, { from: alice }),
+          protocol.verifyPool(newPool, { from: alice }),
           messages.onlyOwner,
         );
       });
 
       it('allows only owner to verify pools', async () => {
-        await protocols[0].registerPool(newPool, { from: alice });
-        await protocols[0].verifyPool(newPool);
+        await protocol.registerPool(newPool, { from: alice });
+        await protocol.verifyPool(newPool);
 
         await expectRevert(
-          protocols[0].verifyPool(newPool),
+          protocol.verifyPool(newPool),
           messages.poolAlreadyVerified,
         );
       });
@@ -424,30 +384,26 @@ contract('FlowMarginProtocol', accounts => {
       depositInUsd = dollar(80);
       depositInIUsd = convertFromBaseToken(depositInUsd);
 
-      traderBalanceProtocolBefore = await protocols[0].balances(
+      traderBalanceProtocolBefore = await protocol.balances(
         liquidityPool.address,
         alice,
       );
       traderBalanceUsdBefore = await usd.balanceOf(alice);
       moneyMarketBalanceBefore = await usd.balanceOf(moneyMarket.address);
-      protocolBalanceBefore = await iUsd.balanceOf(protocols[0].address);
+      protocolBalanceBefore = await iUsd.balanceOf(protocol.address);
     });
 
     describe('when depositing funds', () => {
       beforeEach(async () => {
         depositInUsd = dollar(80);
 
-        receipt = await protocols[0].deposit(
-          liquidityPool.address,
-          depositInUsd,
-          {
-            from: alice,
-          },
-        );
+        receipt = await protocol.deposit(liquidityPool.address, depositInUsd, {
+          from: alice,
+        });
       });
 
       it('updates USD and iUSD balances correctly', async () => {
-        const traderBalanceProtocolAfter = await protocols[0].balances(
+        const traderBalanceProtocolAfter = await protocol.balances(
           liquidityPool.address,
           alice,
         );
@@ -455,7 +411,7 @@ contract('FlowMarginProtocol', accounts => {
         const moneyMarketBalanceAfter = await usd.balanceOf(
           moneyMarket.address,
         );
-        const protocolBalanceAfter = await iUsd.balanceOf(protocols[0].address);
+        const protocolBalanceAfter = await iUsd.balanceOf(protocol.address);
 
         expect(moneyMarketBalanceAfter).to.be.bignumber.equals(
           moneyMarketBalanceBefore.add(depositInUsd),
@@ -488,10 +444,10 @@ contract('FlowMarginProtocol', accounts => {
         withdrawInUsd = dollar(40);
         withdrawInIUsd = convertFromBaseToken(withdrawInUsd);
 
-        await protocols[0].deposit(liquidityPool.address, depositInUsd, {
+        await protocol.deposit(liquidityPool.address, depositInUsd, {
           from: alice,
         });
-        receipt = await protocols[0].withdraw(
+        receipt = await protocol.withdraw(
           liquidityPool.address,
           withdrawInUsd,
           {
@@ -501,7 +457,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('updates USD and iUSD balances correctly', async () => {
-        const traderBalanceProtocolAfter = await protocols[0].balances(
+        const traderBalanceProtocolAfter = await protocol.balances(
           liquidityPool.address,
           alice,
         );
@@ -509,7 +465,7 @@ contract('FlowMarginProtocol', accounts => {
         const moneyMarketBalanceAfter = await usd.balanceOf(
           moneyMarket.address,
         );
-        const protocolBalanceAfter = await iUsd.balanceOf(protocols[0].address);
+        const protocolBalanceAfter = await iUsd.balanceOf(protocol.address);
 
         expect(moneyMarketBalanceAfter).to.be.bignumber.equals(
           moneyMarketBalanceBefore.add(depositInUsd).sub(withdrawInUsd),
@@ -557,7 +513,7 @@ contract('FlowMarginProtocol', accounts => {
     quoteToken?: string;
     receipt: Truffle.TransactionResponse;
   }) => {
-    const position = await protocols[0].getPositionById(id);
+    const position = await protocol.getPositionById(id);
     const positionId = position['0'];
     const positionOwner = position['1'];
     const pool = position['2'];
@@ -630,12 +586,11 @@ contract('FlowMarginProtocol', accounts => {
       price: leverage.isNeg() ? bidPrice : askPrice,
     });
 
-    const positionByPool = await getLastPositionByPool({
-      protocol: protocols[0],
-      pool: expectedPool,
-    });
+    expect(await protocol.traderHasPaidFees(expectedPool, expectedOwner)).to.be
+      .true;
+
+    const positionByPool = await getLastPositionByPool(expectedPool);
     const positionByPoolAndTrader = await getLastPositionByPoolAndTrader({
-      protocol: protocols[0],
       pool: expectedPool,
       trader: expectedOwner,
     });
@@ -656,13 +611,13 @@ contract('FlowMarginProtocol', accounts => {
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
 
-      await protocols[0].deposit(liquidityPool.address, depositInUsd, {
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
       });
     });
 
     it('opens new position correctly', async () => {
-      const receipt = await protocols[0].openPosition(
+      const receipt = await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -672,7 +627,7 @@ contract('FlowMarginProtocol', accounts => {
         { from: alice },
       );
       const expectedTimeWhenOpened = await time.latest();
-      const positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+      const positionId = (await protocol.nextPositionId()).sub(bn(1));
 
       await expectCorrectlyOpenedPosition({
         id: positionId,
@@ -686,6 +641,33 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
+    describe('when it is the first position for the trader', () => {
+      it('transfers fees to the protocol', async () => {
+        const marginCallFee = await protocol.TRADER_MARGIN_CALL_FEE();
+        const liquidationFee = await protocol.TRADER_LIQUIDATION_FEE();
+
+        const traderBalanceBefore = await usd.balanceOf(alice);
+
+        await protocol.openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+
+        const traderBalanceAfter = await usd.balanceOf(alice);
+
+        expect(await protocol.traderHasPaidFees(liquidityPool.address, alice))
+          .to.be.true;
+        expect(traderBalanceAfter).to.be.bignumber.equal(
+          traderBalanceBefore.sub(marginCallFee).sub(liquidationFee),
+        );
+      });
+    });
+
     describe('when the leverage is 1', () => {
       beforeEach(() => {
         leverage = bn(1);
@@ -693,7 +675,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('opens new position correctly', async () => {
-        const receipt = await protocols[0].openPosition(
+        const receipt = await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -703,7 +685,7 @@ contract('FlowMarginProtocol', accounts => {
           { from: alice },
         );
         const expectedTimeWhenOpened = await time.latest();
-        const positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        const positionId = (await protocol.nextPositionId()).sub(bn(1));
 
         await expectCorrectlyOpenedPosition({
           id: positionId,
@@ -725,7 +707,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('opens new position correctly', async () => {
-        const receipt = await protocols[0].openPosition(
+        const receipt = await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -735,7 +717,7 @@ contract('FlowMarginProtocol', accounts => {
           { from: alice },
         );
         const expectedTimeWhenOpened = await time.latest();
-        const positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        const positionId = (await protocol.nextPositionId()).sub(bn(1));
 
         await expectCorrectlyOpenedPosition({
           id: positionId,
@@ -757,7 +739,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('opens new position correctly', async () => {
-        const receipt = await protocols[0].openPosition(
+        const receipt = await protocol.openPosition(
           liquidityPool.address,
           jpy,
           eur,
@@ -767,7 +749,7 @@ contract('FlowMarginProtocol', accounts => {
           { from: alice },
         );
         const expectedTimeWhenOpened = await time.latest();
-        const positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        const positionId = (await protocol.nextPositionId()).sub(bn(1));
 
         await expectCorrectlyOpenedPosition({
           id: positionId,
@@ -791,35 +773,32 @@ contract('FlowMarginProtocol', accounts => {
         liquidityPool2 = await LiquidityPool.new();
         await (liquidityPool2 as any).initialize(
           moneyMarket.address,
-          protocols[0].address,
+          protocol.address,
           initialSpread,
         );
-        await liquidityPool2.approve(
-          protocols[0].address,
-          constants.MAX_UINT256,
-        );
+        await liquidityPool2.approve(protocol.address, constants.MAX_UINT256);
         await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
         await liquidityPool2.enableToken(eur);
         await liquidityPool2.enableToken(jpy);
 
-        const feeSum = (
-          await protocols[0].LIQUIDITY_POOL_LIQUIDATION_FEE()
-        ).add(await protocols[0].LIQUIDITY_POOL_MARGIN_CALL_FEE());
-        await usd.approve(protocols[0].address, feeSum, {
+        const feeSum = (await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
+          await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
+        );
+        await usd.approve(protocol.address, feeSum, {
           from: liquidityProvider,
         });
-        await protocols[0].registerPool(liquidityPool2.address, {
+        await protocol.registerPool(liquidityPool2.address, {
           from: liquidityProvider,
         });
-        await protocols[0].verifyPool(liquidityPool2.address);
+        await protocol.verifyPool(liquidityPool2.address);
 
-        await protocols[0].deposit(liquidityPool2.address, depositInUsd, {
+        await protocol.deposit(liquidityPool2.address, depositInUsd, {
           from: alice,
         });
       });
 
       it('opens new position correctly in both pools', async () => {
-        const receipt1 = await protocols[0].openPosition(
+        const receipt1 = await protocol.openPosition(
           liquidityPool.address,
           jpy,
           eur,
@@ -829,8 +808,8 @@ contract('FlowMarginProtocol', accounts => {
           { from: alice },
         );
         const expectedTimeWhenOpened1 = await time.latest();
-        const positionId1 = (await protocols[0].nextPositionId()).sub(bn(1));
-        const receipt2 = await protocols[0].openPosition(
+        const positionId1 = (await protocol.nextPositionId()).sub(bn(1));
+        const receipt2 = await protocol.openPosition(
           liquidityPool2.address,
           jpy,
           eur,
@@ -840,7 +819,7 @@ contract('FlowMarginProtocol', accounts => {
           { from: alice },
         );
         const expectedTimeWhenOpened2 = await time.latest();
-        const positionId2 = (await protocols[0].nextPositionId()).sub(bn(1));
+        const positionId2 = (await protocol.nextPositionId()).sub(bn(1));
 
         await expectCorrectlyOpenedPosition({
           id: positionId1,
@@ -872,7 +851,7 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when there is not enough free margin left', () => {
       beforeEach(async () => {
-        await protocols[0].withdraw(
+        await protocol.withdraw(
           liquidityPool.address,
           depositInUsd.sub(dollar(1)),
           {
@@ -883,7 +862,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocols[0].openPosition(
+          protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -904,7 +883,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocols[0].openPosition(
+          protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -925,7 +904,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocols[0].openPosition(
+          protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -969,7 +948,7 @@ contract('FlowMarginProtocol', accounts => {
     quoteToken?: string;
     useMaxRealizable?: boolean;
   }) => {
-    const position = await protocols[0].getPositionById(id);
+    const position = await protocol.getPositionById(id);
 
     const tokenToInitialPrice: { [key: string]: BN } = {};
     tokenToInitialPrice[usd.address] = initialUsdPrice;
@@ -987,7 +966,7 @@ contract('FlowMarginProtocol', accounts => {
       fromEth(expectedPrice.mul(initialSpread)),
     );
 
-    const traderBalanceAfter = await protocols[0].balances(expectedPool, alice);
+    const traderBalanceAfter = await protocol.balances(expectedPool, alice);
     const traderBalanceDifference = traderBalanceAfter.sub(traderBalanceBefore);
 
     const leveragedDebits = fromEth(
@@ -1047,15 +1026,9 @@ contract('FlowMarginProtocol', accounts => {
 
     if (!useMaxRealizable) {
       // two positions opened in max realizable test
-      await expectRevert.unspecified(
-        getLastPositionByPool({
-          protocol: protocols[0],
-          pool: expectedPool,
-        }),
-      );
+      await expectRevert.unspecified(getLastPositionByPool(expectedPool));
       await expectRevert.unspecified(
         getLastPositionByPoolAndTrader({
-          protocol: protocols[0],
           pool: expectedPool,
           trader: expectedOwner,
         }),
@@ -1083,11 +1056,11 @@ contract('FlowMarginProtocol', accounts => {
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
 
-      await protocols[0].deposit(liquidityPool.address, depositInUsd, {
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
       });
 
-      traderBalanceBefore = await protocols[0].balances(
+      traderBalanceBefore = await protocol.balances(
         liquidityPool.address,
         alice,
       );
@@ -1106,7 +1079,7 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when USD is the base pair', () => {
       beforeEach(async () => {
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1115,11 +1088,11 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('computes new balance correctly when immediately closing', async () => {
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1139,7 +1112,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('computes new balance correctly after a price drop', async () => {
         await oracle.feedPrice(eur, fromPercent(100), { from: owner });
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1159,7 +1132,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('computes new balance correctly after a price increase', async () => {
         await oracle.feedPrice(eur, fromPercent(200), { from: owner });
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1190,7 +1163,7 @@ contract('FlowMarginProtocol', accounts => {
           fromEth(expectedPrice.mul(initialSpread)),
         );
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           jpy,
           eur,
@@ -1199,12 +1172,12 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
-      it.only('computes new balance correctly when immediately closing', async () => {
+      it('computes new balance correctly when immediately closing', async () => {
         await oracle.feedPrice(eur, fromPercent(100), { from: owner });
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1226,7 +1199,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('computes new balance correctly after a price drop', async () => {
         await oracle.feedPrice(eur, fromPercent(100), { from: owner });
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1248,7 +1221,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('computes new balance correctly after a price increase', async () => {
         await oracle.feedPrice(eur, fromPercent(200), { from: owner });
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1279,29 +1252,26 @@ contract('FlowMarginProtocol', accounts => {
         liquidityPool2 = await LiquidityPool.new();
         await (liquidityPool2 as any).initialize(
           moneyMarket.address,
-          protocols[0].address,
+          protocol.address,
           initialSpread,
         );
-        await liquidityPool2.approve(
-          protocols[0].address,
-          constants.MAX_UINT256,
-        );
+        await liquidityPool2.approve(protocol.address, constants.MAX_UINT256);
         await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
         await liquidityPool2.enableToken(eur);
         await liquidityPool2.enableToken(jpy);
 
-        const feeSum = (
-          await protocols[0].LIQUIDITY_POOL_LIQUIDATION_FEE()
-        ).add(await protocols[0].LIQUIDITY_POOL_MARGIN_CALL_FEE());
-        await usd.approve(protocols[0].address, feeSum, {
+        const feeSum = (await protocol.LIQUIDITY_POOL_LIQUIDATION_FEE()).add(
+          await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE(),
+        );
+        await usd.approve(protocol.address, feeSum, {
           from: liquidityProvider,
         });
-        await protocols[0].registerPool(liquidityPool2.address, {
+        await protocol.registerPool(liquidityPool2.address, {
           from: liquidityProvider,
         });
-        await protocols[0].verifyPool(liquidityPool2.address);
+        await protocol.verifyPool(liquidityPool2.address);
 
-        await protocols[0].deposit(liquidityPool2.address, depositInUsd, {
+        await protocol.deposit(liquidityPool2.address, depositInUsd, {
           from: alice,
         });
 
@@ -1317,7 +1287,7 @@ contract('FlowMarginProtocol', accounts => {
 
         poolLiquidityBefore2 = await liquidityPool2.getLiquidity.call();
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           jpy,
           eur,
@@ -1326,8 +1296,8 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        positionId1 = (await protocols[0].nextPositionId()).sub(bn(1));
-        await protocols[0].openPosition(
+        positionId1 = (await protocol.nextPositionId()).sub(bn(1));
+        await protocol.openPosition(
           liquidityPool2.address,
           jpy,
           eur,
@@ -1336,11 +1306,11 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        positionId2 = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId2 = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('closes position correctly in both pools', async () => {
-        const receipt1 = await protocols[0].closePosition(positionId1, price, {
+        const receipt1 = await protocol.closePosition(positionId1, price, {
           from: alice,
         });
         await expectCorrectlyClosedPosition({
@@ -1358,7 +1328,7 @@ contract('FlowMarginProtocol', accounts => {
           receipt: receipt1,
         });
 
-        const receipt2 = await protocols[0].closePosition(positionId2, price, {
+        const receipt2 = await protocol.closePosition(positionId2, price, {
           from: alice,
         });
 
@@ -1381,7 +1351,7 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when the trader has a loss', () => {
       beforeEach(async () => {
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1390,7 +1360,7 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1399,7 +1369,7 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       describe("when the loss is greater that trader's whole equity", () => {
@@ -1408,12 +1378,12 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('does not send money to the pool', async () => {
-          await protocols[0].closePosition(positionId, price, {
+          await protocol.closePosition(positionId, price, {
             from: alice,
           });
 
           const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
-          const traderBalanceAfter = await protocols[0].balances(
+          const traderBalanceAfter = await protocol.balances(
             liquidityPool.address,
             alice,
           );
@@ -1429,7 +1399,7 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('does not send money to the pool', async () => {
-          receipt = await protocols[0].closePosition(positionId, price, {
+          receipt = await protocol.closePosition(positionId, price, {
             from: alice,
           });
 
@@ -1451,7 +1421,7 @@ contract('FlowMarginProtocol', accounts => {
 
       describe('when the loss covered by another position', () => {
         beforeEach(async () => {
-          await protocols[0].openPosition(
+          await protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -1465,14 +1435,14 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('results in a negative trader balance', async () => {
-          await protocols[0].closePosition(positionId, price, {
+          await protocol.closePosition(positionId, price, {
             from: alice,
           });
-          await protocols[0].closePosition(positionId.sub(bn(1)), price, {
+          await protocol.closePosition(positionId.sub(bn(1)), price, {
             from: alice,
           });
 
-          const traderBalanceAfter = await protocols[0].balances(
+          const traderBalanceAfter = await protocol.balances(
             liquidityPool.address,
             alice,
           );
@@ -1486,7 +1456,7 @@ contract('FlowMarginProtocol', accounts => {
         leverage = bn(20);
         leveragedHeldInEuro = euro(1000);
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1495,7 +1465,7 @@ contract('FlowMarginProtocol', accounts => {
           price,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
 
         await liquidityPool.withdrawLiquidityOwner(
           convertFromBaseToken(dollar(19000)),
@@ -1505,7 +1475,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it("only increases trader's balance by the pool's available liquidity", async () => {
         await oracle.feedPrice(eur, fromPercent(300), { from: owner });
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1527,7 +1497,7 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when the sender is not the owner of the position', () => {
       beforeEach(async () => {
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1536,12 +1506,12 @@ contract('FlowMarginProtocol', accounts => {
           0,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocols[0].closePosition(positionId, price, {
+          protocol.closePosition(positionId, price, {
             from: bob,
           }),
           messages.incorrectOwnerClosePosition,
@@ -1553,7 +1523,7 @@ contract('FlowMarginProtocol', accounts => {
       beforeEach(async () => {
         price = initialEurPrice;
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1562,12 +1532,12 @@ contract('FlowMarginProtocol', accounts => {
           0,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocols[0].closePosition(positionId, price, {
+          protocol.closePosition(positionId, price, {
             from: alice,
           }),
           messages.marginBidPriceTooLow,
@@ -1579,7 +1549,7 @@ contract('FlowMarginProtocol', accounts => {
       beforeEach(async () => {
         price = initialEurPrice;
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1588,12 +1558,12 @@ contract('FlowMarginProtocol', accounts => {
           0,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocols[0].closePosition(positionId, price, {
+          protocol.closePosition(positionId, price, {
             from: alice,
           }),
           messages.marginAskPriceTooHigh,
@@ -1606,7 +1576,7 @@ contract('FlowMarginProtocol', accounts => {
         leverage = bn(1);
         leveragedHeldInEuro = euro(10);
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1615,11 +1585,11 @@ contract('FlowMarginProtocol', accounts => {
           0,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('opens new position correctly', async () => {
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1643,7 +1613,7 @@ contract('FlowMarginProtocol', accounts => {
         leverage = bn(-50);
         leveragedHeldInEuro = euro(1000);
 
-        await protocols[0].openPosition(
+        await protocol.openPosition(
           liquidityPool.address,
           usd.address,
           eur,
@@ -1652,11 +1622,11 @@ contract('FlowMarginProtocol', accounts => {
           0,
           { from: alice },
         );
-        positionId = (await protocols[0].nextPositionId()).sub(bn(1));
+        positionId = (await protocol.nextPositionId()).sub(bn(1));
       });
 
       it('opens new position correctly', async () => {
-        receipt = await protocols[0].closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, {
           from: alice,
         });
 
@@ -1689,21 +1659,21 @@ contract('FlowMarginProtocol', accounts => {
     let initialBidPrice: BN;
 
     beforeEach(async () => {
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: alice,
       });
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: bob,
       });
 
-      initialAskPrice = await protocols[1].getAskPrice.call(
+      initialAskPrice = await protocol.getAskPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
         0,
       );
 
-      initialBidPrice = await protocols[1].getBidPrice.call(
+      initialBidPrice = await protocol.getBidPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
@@ -1719,7 +1689,7 @@ contract('FlowMarginProtocol', accounts => {
       leverage3 = bn(-5);
       leverage4 = bn(20);
 
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -1728,7 +1698,7 @@ contract('FlowMarginProtocol', accounts => {
         0,
         { from: alice },
       );
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -1737,7 +1707,7 @@ contract('FlowMarginProtocol', accounts => {
         0,
         { from: alice },
       );
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -1746,7 +1716,7 @@ contract('FlowMarginProtocol', accounts => {
         0,
         { from: alice },
       );
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -1759,11 +1729,11 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when getting accumulated margin held of a trader', () => {
       it('should return the correct value', async () => {
-        const marginHeldAlice = await protocols[1].getMarginHeld(
+        const marginHeldAlice = await protocol.getMarginHeld(
           liquidityPool.address,
           alice,
         );
-        const marginHeldBob = await protocols[1].getMarginHeld(
+        const marginHeldBob = await protocol.getMarginHeld(
           liquidityPool.address,
           bob,
         );
@@ -1806,28 +1776,28 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when getting the free margin of a trader', () => {
       it('should return the correct value', async () => {
-        const freeMarginAlice = await protocols[1].getFreeMargin.call(
+        const freeMarginAlice = await protocol.getFreeMargin.call(
           liquidityPool.address,
           alice,
         );
-        const freeMarginBob = await protocols[1].getFreeMargin.call(
+        const freeMarginBob = await protocol.getFreeMargin.call(
           liquidityPool.address,
           bob,
         );
 
-        const marginHeldAlice = await protocols[1].getMarginHeld(
+        const marginHeldAlice = await protocol.getMarginHeld(
           liquidityPool.address,
           alice,
         );
-        const marginHeldBob = await protocols[1].getMarginHeld(
+        const marginHeldBob = await protocol.getMarginHeld(
           liquidityPool.address,
           bob,
         );
-        const equityAlice = await protocols[1].getEquityOfTrader.call(
+        const equityAlice = await protocol.getEquityOfTrader.call(
           liquidityPool.address,
           alice,
         );
-        const equityBob = await protocols[1].getEquityOfTrader.call(
+        const equityBob = await protocol.getEquityOfTrader.call(
           liquidityPool.address,
           bob,
         );
@@ -1841,7 +1811,7 @@ contract('FlowMarginProtocol', accounts => {
 
       describe('when the equity is less that the margin held', () => {
         beforeEach(async () => {
-          await protocols[1].openPosition(
+          await protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -1855,7 +1825,7 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('should return 0', async () => {
-          const freeMarginAlice = await protocols[1].getFreeMargin.call(
+          const freeMarginAlice = await protocol.getFreeMargin.call(
             liquidityPool.address,
             alice,
           );
@@ -1866,7 +1836,7 @@ contract('FlowMarginProtocol', accounts => {
     });
   });
 
-  describe.skip('when margin calling a trader', () => {
+  describe('when margin calling a trader', () => {
     let leverage: BN;
     let depositInUsd: BN;
     let leveragedHeldInEuro: BN;
@@ -1878,13 +1848,13 @@ contract('FlowMarginProtocol', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      TRADER_MARGIN_CALL_FEE = await protocols[1].TRADER_MARGIN_CALL_FEE();
+      TRADER_MARGIN_CALL_FEE = await protocol.TRADER_MARGIN_CALL_FEE();
 
-      await protocols[1].deposit(liquidityPool.address, depositInUsd, {
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
       });
 
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -1902,7 +1872,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('allows margin calling of trader', async () => {
         try {
-          await protocols[1].marginCallTrader(liquidityPool.address, alice, {
+          await protocol.marginCallTrader(liquidityPool.address, alice, {
             from: bob,
           });
         } catch (error) {
@@ -1914,7 +1884,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('sends fee back to caller', async () => {
         const balanceBefore = await usd.balanceOf(bob);
-        await protocols[1].marginCallTrader(liquidityPool.address, alice, {
+        await protocol.marginCallTrader(liquidityPool.address, alice, {
           from: bob,
         });
         const balanceAfter = await usd.balanceOf(bob);
@@ -1925,12 +1895,12 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('does not allow margin calling twice', async () => {
-        await protocols[1].marginCallTrader(liquidityPool.address, alice, {
+        await protocol.marginCallTrader(liquidityPool.address, alice, {
           from: bob,
         });
 
         await expectRevert(
-          protocols[1].marginCallTrader(liquidityPool.address, alice, {
+          protocol.marginCallTrader(liquidityPool.address, alice, {
             from: bob,
           }),
           messages.traderAlreadyMarginCalled,
@@ -1938,12 +1908,12 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('does not allow making safe calls', async () => {
-        await protocols[1].marginCallTrader(liquidityPool.address, alice, {
+        await protocol.marginCallTrader(liquidityPool.address, alice, {
           from: bob,
         });
 
         await expectRevert(
-          protocols[1].makeTraderSafe(liquidityPool.address, alice, {
+          protocol.makeTraderSafe(liquidityPool.address, alice, {
             from: alice,
           }),
           messages.traderCannotBeMadeSafe,
@@ -1952,7 +1922,7 @@ contract('FlowMarginProtocol', accounts => {
 
       describe('when margin called trader becomes safe again', () => {
         beforeEach(async () => {
-          await protocols[1].marginCallTrader(liquidityPool.address, alice, {
+          await protocol.marginCallTrader(liquidityPool.address, alice, {
             from: bob,
           });
           await oracle.feedPrice(eur, fromPercent(120), { from: owner });
@@ -1960,7 +1930,7 @@ contract('FlowMarginProtocol', accounts => {
 
         it('allows making trader safe again', async () => {
           try {
-            await protocols[1].makeTraderSafe(liquidityPool.address, alice, {
+            await protocol.makeTraderSafe(liquidityPool.address, alice, {
               from: bob,
             });
           } catch (error) {
@@ -1972,7 +1942,7 @@ contract('FlowMarginProtocol', accounts => {
 
         it('requires to send back the TRADER_MARGIN_CALL_FEE', async () => {
           const balanceBefore = await usd.balanceOf(alice);
-          await protocols[1].makeTraderSafe(liquidityPool.address, alice, {
+          await protocol.makeTraderSafe(liquidityPool.address, alice, {
             from: alice,
           });
           const balanceAfter = await usd.balanceOf(alice);
@@ -1983,12 +1953,12 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('does not allow making safe calls twice', async () => {
-          await protocols[1].makeTraderSafe(liquidityPool.address, alice, {
+          await protocol.makeTraderSafe(liquidityPool.address, alice, {
             from: alice,
           });
 
           await expectRevert(
-            protocols[1].makeTraderSafe(liquidityPool.address, alice, {
+            protocol.makeTraderSafe(liquidityPool.address, alice, {
               from: alice,
             }),
             messages.traderNotMarginCalled,
@@ -2000,7 +1970,7 @@ contract('FlowMarginProtocol', accounts => {
     describe('when trader is above margin call threshold', () => {
       it('does not allow margin calling of trader', async () => {
         await expectRevert(
-          protocols[1].marginCallTrader(liquidityPool.address, alice, {
+          protocol.marginCallTrader(liquidityPool.address, alice, {
             from: bob,
           }),
           messages.traderCannotBeMarginCalled,
@@ -2009,7 +1979,7 @@ contract('FlowMarginProtocol', accounts => {
     });
   });
 
-  describe.skip('when margin calling a pool', () => {
+  describe('when margin calling a pool', () => {
     let leverage: BN;
     let depositInUsd: BN;
     let leveragedHeldInEuro: BN;
@@ -2021,13 +1991,13 @@ contract('FlowMarginProtocol', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocols[1].LIQUIDITY_POOL_MARGIN_CALL_FEE();
+      LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocol.LIQUIDITY_POOL_MARGIN_CALL_FEE();
 
-      await protocols[1].deposit(liquidityPool.address, depositInUsd, {
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
       });
 
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2040,12 +2010,12 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when pool is below margin call threshold', () => {
       beforeEach(async () => {
-        await liquidityPool.withdrawLiquidityOwner(dollar(99500));
+        await liquidityPool.withdrawLiquidityOwner(dollar(199500));
       });
 
       it('allows margin calling of pool', async () => {
         try {
-          await protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+          await protocol.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           });
         } catch (error) {
@@ -2058,7 +2028,7 @@ contract('FlowMarginProtocol', accounts => {
 
       it('sends fee back to caller', async () => {
         const balanceBefore = await usd.balanceOf(bob);
-        await protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+        await protocol.marginCallLiquidityPool(liquidityPool.address, {
           from: bob,
         });
         const balanceAfter = await usd.balanceOf(bob);
@@ -2069,12 +2039,12 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('does not allow margin calling twice', async () => {
-        await protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+        await protocol.marginCallLiquidityPool(liquidityPool.address, {
           from: bob,
         });
 
         await expectRevert(
-          protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+          protocol.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           }),
           messages.poolAlreadyMarginCalled,
@@ -2082,12 +2052,12 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('does not allow making safe calls', async () => {
-        await protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+        await protocol.marginCallLiquidityPool(liquidityPool.address, {
           from: bob,
         });
 
         await expectRevert(
-          protocols[1].makeLiquidityPoolSafe(liquidityPool.address, {
+          protocol.makeLiquidityPoolSafe(liquidityPool.address, {
             from: alice,
           }),
           messages.poolCannotBeMadeSafe,
@@ -2096,7 +2066,7 @@ contract('FlowMarginProtocol', accounts => {
 
       describe('when margin called pool becomes safe again', () => {
         beforeEach(async () => {
-          await protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+          await protocol.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           });
 
@@ -2110,7 +2080,7 @@ contract('FlowMarginProtocol', accounts => {
 
         it('allows making pool safe again', async () => {
           try {
-            await protocols[1].makeLiquidityPoolSafe(liquidityPool.address, {
+            await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
               from: bob,
             });
           } catch (error) {
@@ -2122,7 +2092,7 @@ contract('FlowMarginProtocol', accounts => {
 
         it('requires to send back the LIQUIDITY_POOL_MARGIN_CALL_FEE', async () => {
           const balanceBefore = await usd.balanceOf(alice);
-          await protocols[1].makeLiquidityPoolSafe(liquidityPool.address, {
+          await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
             from: alice,
           });
           const balanceAfter = await usd.balanceOf(alice);
@@ -2133,12 +2103,12 @@ contract('FlowMarginProtocol', accounts => {
         });
 
         it('does not allow making safe calls twice', async () => {
-          await protocols[1].makeLiquidityPoolSafe(liquidityPool.address, {
+          await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
             from: alice,
           });
 
           await expectRevert(
-            protocols[1].makeLiquidityPoolSafe(liquidityPool.address, {
+            protocol.makeLiquidityPoolSafe(liquidityPool.address, {
               from: alice,
             }),
             messages.poolNotMarginCalled,
@@ -2150,7 +2120,7 @@ contract('FlowMarginProtocol', accounts => {
     describe('when pool is above margin call threshold', () => {
       it('does not allow margin calling of pool', async () => {
         await expectRevert(
-          protocols[1].marginCallLiquidityPool(liquidityPool.address, {
+          protocol.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           }),
           messages.poolCannotBeMarginCalled,
@@ -2164,7 +2134,7 @@ contract('FlowMarginProtocol', accounts => {
       // console.log(`Open Position ${i}`);
       const leverage = bn(20).mul(i % 2 === 0 ? bn(1) : bn(-1));
       const leveragedHeldInEuro = euro(2);
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2176,12 +2146,12 @@ contract('FlowMarginProtocol', accounts => {
     }
   };
 
-  describe.skip('when checking the trader safety', () => {
+  describe('when checking the trader safety', () => {
     beforeEach(async () => {
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: alice,
       });
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: bob,
       });
     });
@@ -2192,56 +2162,35 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('returns if trader is safe', async () => {
-        const isSafe = await protocols[1].getIsPoolSafe.call(
-          liquidityPool.address,
-        );
-        await protocols[1].getIsTraderSafe(liquidityPool.address, alice);
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsTraderSafe(liquidityPool.address, alice);
 
         expect(isSafe).to.be.true;
       });
     });
 
-    describe('when the trader has 25 positions', () => {
-      beforeEach(async function testSetup() {
-        this.timeout(0);
-
-        await insertPositions(25, alice);
-      });
-
-      it.skip('returns if trader is safe', async () => {
-        const isSafe = await protocols[1].getIsPoolSafe.call(
-          liquidityPool.address,
-        );
-        await protocols[1].getIsTraderSafe(liquidityPool.address, alice);
-
-        expect(isSafe).to.be.true;
-      }).timeout(0);
-    });
-
-    describe('when the trader has 50 positions', () => {
+    describe.skip('when the trader has 50 positions', () => {
       beforeEach(async function testSetup() {
         this.timeout(0);
 
         await insertPositions(50, alice);
       });
 
-      it.skip('returns if pool is safe', async () => {
-        const isSafe = await protocols[1].getIsPoolSafe.call(
-          liquidityPool.address,
-        );
-        await protocols[1].getIsTraderSafe(liquidityPool.address, alice);
+      it('returns if pool is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsTraderSafe(liquidityPool.address, alice);
 
         expect(isSafe).to.be.true;
       }).timeout(0);
     });
   });
 
-  describe.skip('when checking the pool safety', () => {
+  describe('when checking the pool safety', () => {
     beforeEach(async () => {
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: alice,
       });
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: bob,
       });
     });
@@ -2253,34 +2202,14 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('returns if pool is safe', async () => {
-        const isSafe = await protocols[1].getIsPoolSafe.call(
-          liquidityPool.address,
-        );
-        await protocols[1].getIsPoolSafe(liquidityPool.address);
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsPoolSafe(liquidityPool.address);
 
         expect(isSafe).to.be.true;
       });
     });
 
-    describe('when the pool has 50 positions', () => {
-      beforeEach(async function testSetup() {
-        this.timeout(0);
-
-        await insertPositions(25, alice);
-        await insertPositions(25, bob);
-      });
-
-      it.skip('returns if pool is safe', async () => {
-        const isSafe = await protocols[1].getIsPoolSafe.call(
-          liquidityPool.address,
-        );
-        await protocols[1].getIsPoolSafe(liquidityPool.address);
-
-        expect(isSafe).to.be.true;
-      }).timeout(0);
-    });
-
-    describe('when the pool has 100 positions', () => {
+    describe.skip('when the pool has 100 positions', () => {
       beforeEach(async function testSetup() {
         this.timeout(0);
 
@@ -2288,18 +2217,16 @@ contract('FlowMarginProtocol', accounts => {
         await insertPositions(50, bob);
       });
 
-      it.skip('returns if pool is safe', async () => {
-        const isSafe = await protocols[1].getIsPoolSafe.call(
-          liquidityPool.address,
-        );
-        await protocols[1].getIsPoolSafe(liquidityPool.address);
+      it('returns if pool is safe', async () => {
+        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        await protocol.getIsPoolSafe(liquidityPool.address);
 
         expect(isSafe).to.be.true;
       }).timeout(0);
     });
   });
 
-  describe.only('when computing unrealized profit loss along with market price', () => {
+  describe('when computing unrealized profit loss along with market price', () => {
     const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
       let askPrice: BN;
       let bidPrice: BN;
@@ -2308,14 +2235,14 @@ contract('FlowMarginProtocol', accounts => {
       let maxPrice: BN;
 
       beforeEach(async () => {
-        askPrice = await protocols[1].getAskPrice.call(
+        askPrice = await protocol.getAskPrice.call(
           liquidityPool.address,
           usd.address,
           eur,
           0,
         );
 
-        bidPrice = await protocols[1].getBidPrice.call(
+        bidPrice = await protocol.getBidPrice.call(
           liquidityPool.address,
           usd.address,
           eur,
@@ -2330,7 +2257,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('should return correct unrealized PL at the beginning of a new position', async () => {
-        const unrealizedPl = await protocols[1].getUnrealizedPlAndMarketPriceOfPosition.call(
+        const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
           liquidityPool.address,
           usd.address,
           eur,
@@ -2356,11 +2283,11 @@ contract('FlowMarginProtocol', accounts => {
       it('should return correct unrealized PL after a profit', async () => {
         await oracle.feedPrice(eur, fromPercent(240), { from: owner });
 
-        const newPrice: BN = await protocols[1][
+        const newPrice: BN = await protocol[
           !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0);
 
-        const unrealizedPl = await protocols[1].getUnrealizedPlAndMarketPriceOfPosition.call(
+        const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
           liquidityPool.address,
           usd.address,
           eur,
@@ -2385,11 +2312,11 @@ contract('FlowMarginProtocol', accounts => {
       it('should return correct unrealized PL after a loss', async () => {
         await oracle.feedPrice(eur, fromPercent(60), { from: owner });
 
-        const newPrice: BN = await protocols[1][
+        const newPrice: BN = await protocol[
           !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
         ].call(liquidityPool.address, usd.address, eur, 0);
 
-        const unrealizedPl = await protocols[1].getUnrealizedPlAndMarketPriceOfPosition.call(
+        const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
           liquidityPool.address,
           usd.address,
           eur,
@@ -2432,14 +2359,14 @@ contract('FlowMarginProtocol', accounts => {
     let leverage2: BN;
 
     beforeEach(async () => {
-      askPrice = await protocols[1].getAskPrice.call(
+      askPrice = await protocol.getAskPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
         0,
       );
 
-      bidPrice = await protocols[1].getBidPrice.call(
+      bidPrice = await protocol.getBidPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2457,11 +2384,11 @@ contract('FlowMarginProtocol', accounts => {
         leveragedHeldInEuro2.mul(!leverage2.isNeg() ? askPrice : bidPrice),
       );
 
-      await protocols[1].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: alice,
       });
 
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2470,7 +2397,7 @@ contract('FlowMarginProtocol', accounts => {
         0,
         { from: alice },
       );
-      await protocols[1].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2482,7 +2409,7 @@ contract('FlowMarginProtocol', accounts => {
     });
 
     it('should return correct unrealized PL at the beginning of a new position', async () => {
-      const unrealizedPl = await protocols[1].getUnrealizedPlOfTrader.call(
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
         liquidityPool.address,
         alice,
       );
@@ -2510,14 +2437,14 @@ contract('FlowMarginProtocol', accounts => {
     it('should return correct unrealized PL after a profit', async () => {
       await oracle.feedPrice(eur, fromPercent(240), { from: owner });
 
-      const unrealizedPl = await protocols[1].getUnrealizedPlOfTrader.call(
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
         liquidityPool.address,
         alice,
       );
-      const newPrice1: BN = await protocols[1][
+      const newPrice1: BN = await protocol[
         !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0);
-      const newPrice2: BN = await protocols[1][
+      const newPrice2: BN = await protocol[
         !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0);
       const openPrice1 = leveragedDebits1
@@ -2542,14 +2469,14 @@ contract('FlowMarginProtocol', accounts => {
     it('should return correct unrealized PL after a loss', async () => {
       await oracle.feedPrice(eur, fromPercent(60), { from: owner });
 
-      const unrealizedPl = await protocols[1].getUnrealizedPlOfTrader.call(
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
         liquidityPool.address,
         alice,
       );
-      const newPrice1: BN = await protocols[1][
+      const newPrice1: BN = await protocol[
         !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0);
-      const newPrice2: BN = await protocols[1][
+      const newPrice2: BN = await protocol[
         !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
       ].call(liquidityPool.address, usd.address, eur, 0);
       const openPrice1 = leveragedDebits1
@@ -2579,7 +2506,7 @@ contract('FlowMarginProtocol', accounts => {
       const ageOfPosition = time.duration.days(daysOfPosition);
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
-      const accSwapRate = await protocols[1].getAccumulatedSwapRateOfPosition(
+      const accSwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
         leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
@@ -2600,7 +2527,7 @@ contract('FlowMarginProtocol', accounts => {
         .sub(time.duration.seconds(5));
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
-      const accSwapRate = await protocols[1].getAccumulatedSwapRateOfPosition(
+      const accSwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
         leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
@@ -2617,27 +2544,29 @@ contract('FlowMarginProtocol', accounts => {
   describe('when using internal helper functions', () => {
     let leveragedHeld1: BN;
     let leveragedHeld2: BN;
+    let leveragedHeld3: BN;
     let leverage1: BN;
     let leverage2: BN;
+    let leverage3: BN;
     let initialAskPrice: BN;
     let initialBidPrice: BN;
 
     beforeEach(async () => {
-      await protocols[2].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: alice,
       });
-      await protocols[2].deposit(liquidityPool.address, dollar(1000), {
+      await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: bob,
       });
 
-      initialAskPrice = await protocols[1].getAskPrice.call(
+      initialAskPrice = await protocol.getAskPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
         0,
       );
 
-      initialBidPrice = await protocols[1].getBidPrice.call(
+      initialBidPrice = await protocol.getBidPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2646,10 +2575,12 @@ contract('FlowMarginProtocol', accounts => {
 
       leveragedHeld1 = euro(10);
       leveragedHeld2 = euro(5);
+      leveragedHeld3 = euro(2);
       leverage1 = bn(20);
       leverage2 = bn(-20);
+      leverage3 = bn(20);
 
-      await protocols[2].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2658,7 +2589,7 @@ contract('FlowMarginProtocol', accounts => {
         0,
         { from: alice },
       );
-      await protocols[2].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2667,12 +2598,12 @@ contract('FlowMarginProtocol', accounts => {
         0,
         { from: alice },
       );
-      await protocols[2].openPosition(
+      await protocol.openPosition(
         liquidityPool.address,
         usd.address,
         eur,
-        20,
-        euro(2),
+        leverage3,
+        leveragedHeld3,
         0,
         { from: bob },
       );
@@ -2680,25 +2611,24 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when computing equity of trader', () => {
       it('should return the correct equity', async () => {
-        const aliceEquity = await protocols[2].getEquityOfTrader.call(
+        const aliceEquity = await protocol.getEquityOfTrader.call(
           liquidityPool.address,
           alice,
         );
-        const bobEquity = await protocols[2].getEquityOfTrader.call(
+        const bobEquity = await protocol.getEquityOfTrader.call(
           liquidityPool.address,
           bob,
         );
 
         // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-
         const aliceBalance = convertToBaseToken(
-          await protocols[2].balances(liquidityPool.address, alice),
+          await protocol.balances(liquidityPool.address, alice),
         );
-        const aliceUnrealized = await protocols[2].getUnrealizedPlOfTrader.call(
+        const aliceUnrealized = await protocol.getUnrealizedPlOfTrader.call(
           liquidityPool.address,
           alice,
         );
-        const aliceSwapRates = await protocols[2].getSwapRatesOfTrader(
+        const aliceSwapRates = await protocol.getSwapRatesOfTrader(
           liquidityPool.address,
           alice,
         );
@@ -2707,13 +2637,13 @@ contract('FlowMarginProtocol', accounts => {
           .sub(aliceSwapRates);
 
         const bobBalance = convertToBaseToken(
-          await protocols[2].balances(liquidityPool.address, bob),
+          await protocol.balances(liquidityPool.address, bob),
         );
-        const bobUnrealized = await protocols[2].getUnrealizedPlOfTrader.call(
+        const bobUnrealized = await protocol.getUnrealizedPlOfTrader.call(
           liquidityPool.address,
           bob,
         );
-        const bobSwapRates = await protocols[2].getSwapRatesOfTrader(
+        const bobSwapRates = await protocol.getSwapRatesOfTrader(
           liquidityPool.address,
           bob,
         );
@@ -2727,7 +2657,7 @@ contract('FlowMarginProtocol', accounts => {
 
       describe('when trader has negative balance', () => {
         beforeEach(async () => {
-          await protocols[2].openPosition(
+          await protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -2736,7 +2666,7 @@ contract('FlowMarginProtocol', accounts => {
             0,
             { from: bob },
           );
-          await protocols[2].openPosition(
+          await protocol.openPosition(
             liquidityPool.address,
             usd.address,
             eur,
@@ -2747,23 +2677,23 @@ contract('FlowMarginProtocol', accounts => {
           );
 
           await oracle.feedPrice(eur, fromPercent(100), { from: owner });
-          await protocols[2].closePosition(3, 0, { from: bob }); // close bob' loss position
+          await protocol.closePosition(3, 0, { from: bob }); // close bob' loss position
         });
 
         it('should return the correct equity', async () => {
-          const bobEquity = await protocols[2].getEquityOfTrader.call(
+          const bobEquity = await protocol.getEquityOfTrader.call(
             liquidityPool.address,
             bob,
           );
 
           const bobBalance = convertToBaseToken(
-            await protocols[2].balances(liquidityPool.address, bob),
+            await protocol.balances(liquidityPool.address, bob),
           );
-          const bobUnrealized = await protocols[2].getUnrealizedPlOfTrader.call(
+          const bobUnrealized = await protocol.getUnrealizedPlOfTrader.call(
             liquidityPool.address,
             bob,
           );
-          const bobSwapRates = await protocols[2].getSwapRatesOfTrader(
+          const bobSwapRates = await protocol.getSwapRatesOfTrader(
             liquidityPool.address,
             bob,
           );
@@ -2776,38 +2706,162 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
+    describe('when computing equity of pool', () => {
+      it('should return the correct equity', async () => {
+        const poolEquity = await protocol.getEquityOfPool.call(
+          liquidityPool.address,
+        );
+
+        const liquidity = convertToBaseToken(
+          await liquidityPool.getLiquidity.call(),
+        );
+        let allUnrealizedPl = bn(0);
+        let allAccumulatedSwapRate = bn(0);
+
+        const positionCount = 3;
+
+        for (let positionId = 0; positionId < positionCount; positionId += 1) {
+          allUnrealizedPl = allUnrealizedPl.add(
+            await protocol.getUnrealizedPlOfPosition.call(positionId),
+          );
+          allAccumulatedSwapRate = allAccumulatedSwapRate.add(
+            await protocol.getAccumulatedSwapRateOfPosition(bn(positionId)),
+          );
+        }
+
+        // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate);
+        const expectedPoolEquity = liquidity.sub(
+          allUnrealizedPl.add(allAccumulatedSwapRate),
+        );
+
+        expect(poolEquity).to.be.bignumber.equal(expectedPoolEquity);
+      });
+    });
+
+    describe('when computing ENP of pool', () => {
+      it('should return the correct ENP', async () => {
+        // ENP - Equity to Net Position ratio of a liquidity pool.
+        const enp = (await protocol.getEnpAndEll.call(liquidityPool.address))[
+          '0'
+        ];
+
+        let net = bn(0);
+        let positive = bn(0);
+        let negative = bn(0);
+
+        const positionCount = 3;
+
+        for (let positionId = 0; positionId < positionCount; positionId += 1) {
+          const leveragedDebits = (await protocol.getPositionById(positionId))[
+            '8'
+          ];
+          net = net.add(leveragedDebits);
+
+          if (leveragedDebits.isNeg()) {
+            negative = negative.add(leveragedDebits);
+          } else {
+            positive = positive.add(leveragedDebits);
+          }
+        }
+
+        const equity = await protocol.getEquityOfPool.call(
+          liquidityPool.address,
+        );
+
+        const netAbs = net.abs(); // TODO test netAbs = 0
+        const expectedPoolENP = equity.mul(bn(1e18)).div(netAbs);
+
+        expect(enp).to.be.bignumber.equal(expectedPoolENP);
+      });
+
+      // very difficult and unlikely to get exactly net of 0
+      // code is straight forward just in case, test not really required
+      /* describe('when net positions equals 0', () => {
+        it('should return the correct ENP', async () => {
+          const enp = (await protocol.getEnpAndEll.call(liquidityPool.address))[
+            '0'
+          ];
+          expect(enp).to.be.bignumber.equal(constants.MAX_UINT256);
+        });
+      }); */
+    });
+
+    describe('when computing ELL of pool', () => {
+      it('should return the correct ENP', async () => {
+        // ELL - Equity to Longest Leg ratio of a liquidity pool.
+        const ell = (await protocol.getEnpAndEll.call(liquidityPool.address))[
+          '1'
+        ];
+
+        let net = bn(0);
+        let positive = bn(0);
+        let negative = bn(0);
+
+        const positionCount = 3;
+
+        for (let positionId = 0; positionId < positionCount; positionId += 1) {
+          const leveragedDebits = (await protocol.getPositionById(positionId))[
+            '8'
+          ];
+          net = net.add(leveragedDebits);
+
+          if (leveragedDebits.isNeg()) {
+            negative = negative.add(leveragedDebits);
+          } else {
+            positive = positive.add(leveragedDebits);
+          }
+        }
+
+        const equity = await protocol.getEquityOfPool.call(
+          liquidityPool.address,
+        );
+
+        const longestLeg = BN.max(positive, negative.abs()); // TODO longestLeg = 0
+        const expectedPoolELL = equity.mul(bn(1e18)).div(longestLeg);
+
+        expect(ell).to.be.bignumber.equal(expectedPoolELL);
+      });
+
+      // very difficult and unlikely to get exactly longest leg of 0
+      // code is straight forward just in case, test not really required
+      /* describe('when longest leg equals 0', () => {
+        it('should return the correct ELL', async () => {
+          const ell = (await protocol.getEnpAndEll.call(liquidityPool.address))[
+            '0'
+          ];
+          expect(ell).to.be.bignumber.equal(constants.MAX_UINT256);
+        });
+      }); */
+    });
+
     describe('when removing a position from the lists', () => {
       it('should remove the correct position from all lists', async () => {
-        const positionsByPoolBefore = await protocols[2].getPositionsByPool(
+        const positionsByPoolBefore = await protocol.getPositionsByPool(
           liquidityPool.address,
           constants.ZERO_ADDRESS,
         );
-        const positionsByAliceBefore = await protocols[2].getPositionsByPool(
+        const positionsByAliceBefore = await protocol.getPositionsByPool(
           liquidityPool.address,
           alice,
         );
-        const positionsByBobBefore = await protocols[2].getPositionsByPool(
+        const positionsByBobBefore = await protocol.getPositionsByPool(
           liquidityPool.address,
           bob,
         );
 
-        await protocols[2].removePositionFromPoolList(
-          liquidityPool.address,
-          1,
-          {
-            from: alice,
-          },
-        );
+        await protocol.removePositionFromPoolList(liquidityPool.address, 1, {
+          from: alice,
+        });
 
-        const positionsByPoolAfter = await protocols[2].getPositionsByPool(
+        const positionsByPoolAfter = await protocol.getPositionsByPool(
           liquidityPool.address,
           constants.ZERO_ADDRESS,
         );
-        const positionsByAliceAfter = await protocols[2].getPositionsByPool(
+        const positionsByAliceAfter = await protocol.getPositionsByPool(
           liquidityPool.address,
           alice,
         );
-        const positionsByBobAfter = await protocols[2].getPositionsByPool(
+        const positionsByBobAfter = await protocol.getPositionsByPool(
           liquidityPool.address,
           bob,
         );
@@ -2823,7 +2877,7 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when getting accumulated leveraged debits of a trader', () => {
       it('should return the correct value', async () => {
-        const leveragedDebits = await protocols[2].getLeveragedDebitsOfTrader(
+        const leveragedDebits = await protocol.getLeveragedDebitsOfTrader(
           liquidityPool.address,
           alice,
         );
@@ -2849,16 +2903,16 @@ contract('FlowMarginProtocol', accounts => {
         const daysOfPosition = 5;
         await time.increase(time.duration.days(daysOfPosition));
 
-        const accSwapRates = await protocols[2].getSwapRatesOfTrader(
+        const accSwapRates = await protocol.getSwapRatesOfTrader(
           liquidityPool.address,
           alice,
         );
 
-        const position1SwapRate = await protocols[2].getAccumulatedSwapRateOfPosition(
-          0,
+        const position1SwapRate = await protocol.getAccumulatedSwapRateOfPosition(
+          bn(0),
         );
-        const position2SwapRate = await protocols[2].getAccumulatedSwapRateOfPosition(
-          1,
+        const position2SwapRate = await protocol.getAccumulatedSwapRateOfPosition(
+          bn(1),
         );
 
         expect(accSwapRates).to.be.bignumber.equal(
@@ -2870,8 +2924,8 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('when getting the latest price', () => {
     it('should return the correct latest price', async () => {
-      const price1 = await protocols[2].getPrice.call(usd.address, eur);
-      const price2 = await protocols[2].getPrice.call(eur, usd.address);
+      const price1 = await protocol.getPrice.call(usd.address, eur);
+      const price2 = await protocol.getPrice.call(eur, usd.address);
 
       expect(price1).to.be.bignumber.equal(fromPercent(120));
       expect(price2).to.be.bignumber.equal(bn('833333333333333333'));
@@ -2881,14 +2935,14 @@ contract('FlowMarginProtocol', accounts => {
   describe('when getting the value in USD', () => {
     it('should return the correct USD value', async () => {
       const value = bn(120);
-      const usdValue = await protocols[1].getUsdValue.call(eur, value);
+      const usdValue = await protocol.getUsdValue.call(eur, value);
 
       expect(usdValue).to.be.bignumber.equal(bn(120 * 1.2));
     });
 
     it('should be identical when passing USD', async () => {
       const value = bn(120);
-      const usdValue = await protocols[1].getUsdValue.call(usd.address, value);
+      const usdValue = await protocol.getUsdValue.call(usd.address, value);
 
       expect(usdValue).to.be.bignumber.equal(value);
     });
@@ -2896,7 +2950,7 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('when getting the ask price', () => {
     it('should return the correct ask price', async () => {
-      const askPrice = await protocols[1].getAskPrice.call(
+      const askPrice = await protocol.getAskPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2919,7 +2973,7 @@ contract('FlowMarginProtocol', accounts => {
       const maxPrice = expectedAskPrice.sub(bn(1));
 
       await expectRevert(
-        protocols[1].getAskPrice.call(
+        protocol.getAskPrice.call(
           liquidityPool.address,
           usd.address,
           eur,
@@ -2932,7 +2986,7 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('when getting the bid price', () => {
     it('should return the correct ask price', async () => {
-      const bidPrice = await protocols[1].getBidPrice.call(
+      const bidPrice = await protocol.getBidPrice.call(
         liquidityPool.address,
         usd.address,
         eur,
@@ -2955,7 +3009,7 @@ contract('FlowMarginProtocol', accounts => {
       const minPrice = expectedBidPrice.add(bn(1));
 
       await expectRevert(
-        protocols[1].getBidPrice.call(
+        protocol.getBidPrice.call(
           liquidityPool.address,
           usd.address,
           eur,
@@ -2968,13 +3022,13 @@ contract('FlowMarginProtocol', accounts => {
 
   describe('when upgrading the contract', () => {
     it('upgrades the contract', async () => {
-      const flowMarginProtocolProxy = await Proxy.at(protocols[0].address);
+      const flowMarginProtocolProxy = await Proxy.at(protocol.address);
       const newFlowMarginProtocolImpl = await FlowMarginProtocolNewVersion.new();
       await flowMarginProtocolProxy.upgradeTo(
         newFlowMarginProtocolImpl.address,
       );
       const newFlowMarginProtocol = await FlowMarginProtocolNewVersion.at(
-        protocols[0].address,
+        protocol.address,
       );
       const value = bn(345);
       const firstBytes32 =
@@ -2997,15 +3051,15 @@ contract('FlowMarginProtocol', accounts => {
     });
 
     it('works with old and new data', async () => {
-      const maxSpread = await protocols[0].maxSpread();
+      const maxSpread = await protocol.maxSpread();
 
-      const flowMarginProtocolProxy = await Proxy.at(protocols[0].address);
+      const flowMarginProtocolProxy = await Proxy.at(protocol.address);
       const newFlowMarginProtocolImpl = await FlowMarginProtocolNewVersion.new();
       await flowMarginProtocolProxy.upgradeTo(
         newFlowMarginProtocolImpl.address,
       );
       const newFlowMarginProtocol = await FlowMarginProtocolNewVersion.at(
-        protocols[0].address,
+        protocol.address,
       );
       const value = bn(345);
       await newFlowMarginProtocol.setNewStorageUint(value);
