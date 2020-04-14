@@ -1,6 +1,6 @@
 ## Functions:
 
-- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
+- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract LiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-LiquidityPoolRegistry-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
 
 - [`addTradingPair(contract FlowToken _base, contract FlowToken _quote)`](#FlowMarginProtocol-addTradingPair-contract-FlowToken-contract-FlowToken-)
 
@@ -17,12 +17,6 @@
 - [`setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold)`](#FlowMarginProtocol-setLiquidityPoolENPLiquidateThreshold-uint256-)
 
 - [`setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-setLiquidityPoolELLLiquidateThreshold-uint256-)
-
-- [`registerPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol-registerPool-contract-LiquidityPoolInterface-)
-
-- [`verifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol-verifyPool-contract-LiquidityPoolInterface-)
-
-- [`unverifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol-unverifyPool-contract-LiquidityPoolInterface-)
 
 - [`deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol-deposit-contract-LiquidityPoolInterface-uint256-)
 
@@ -72,7 +66,7 @@
 
 - [`NewTradingPair(address base, address quote)`](#FlowMarginProtocol-NewTradingPair-address-address-)
 
-### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
+### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract LiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#FlowMarginProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-LiquidityPoolRegistry-uint256-uint256-uint256-uint256-uint256-uint256-uint256-)
 
 Initialize the FlowMarginProtocol.
 
@@ -81,6 +75,8 @@ Initialize the FlowMarginProtocol.
 - `_oracle`: The price oracle
 
 - `_moneyMarket`: The money market.
+
+- `_liquidityPoolRegistry`: The liquidity pool registry.
 
 - `_initialSwapRate`: The initial swap rate as percentage.
 
@@ -162,30 +158,6 @@ Set new trader risk threshold, only for the owner.
 
 - `_newLiquidityPoolELLLiquidateThreshold`: The new trader risk threshold.
 
-### [Function `registerPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol-registerPool-contract-LiquidityPoolInterface-)
-
-Register a new pool by sending the combined margin and liquidation fees.
-
-#### Parameters:
-
-- `_pool`: The MarginLiquidityPool.
-
-### [Function `verifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol-verifyPool-contract-LiquidityPoolInterface-)
-
-Verify a new pool, only for the owner.
-
-#### Parameters:
-
-- `_pool`: The MarginLiquidityPool.
-
-### [Function `unverifyPool(contract LiquidityPoolInterface _pool)`](#FlowMarginProtocol-unverifyPool-contract-LiquidityPoolInterface-)
-
-Unverify a pool, only for the owner.
-
-#### Parameters:
-
-- `_pool`: The MarginLiquidityPool.
-
 ### [Function `deposit(contract LiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#FlowMarginProtocol-deposit-contract-LiquidityPoolInterface-uint256-)
 
 Deposit amount to pool balance.
@@ -208,7 +180,9 @@ Withdraw amount from pool balance.
 
 ### [Function `openPosition(contract LiquidityPoolInterface _pool, contract FlowToken _base, contract FlowToken _quote, int256 _leverage, uint256 _leveragedHeld, uint256 _price)`](#FlowMarginProtocol-openPosition-contract-LiquidityPoolInterface-contract-FlowToken-contract-FlowToken-int256-uint256-uint256-)
 
-Open a new position with a min/max price. Set price to 0 if you want to use the current market price.
+Open a new position with a min/max price. Trader must pay fees for first position.
+
+Set price to 0 if you want to use the current market price.
 
 #### Parameters:
 

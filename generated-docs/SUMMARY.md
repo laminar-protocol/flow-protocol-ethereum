@@ -32,9 +32,7 @@
     * [ArraysImpl](docs/mocks/ArraysImpl.md)
     * [FaucetInterface](docs/mocks/FaucetInterface.md)
     * margin
-      * [TestFlowMarginProtocol0](docs/mocks/margin/TestFlowMarginProtocol0.md)
-      * [TestFlowMarginProtocol1](docs/mocks/margin/TestFlowMarginProtocol1.md)
-      * [TestFlowMarginProtocol2](docs/mocks/margin/TestFlowMarginProtocol2.md)
+      * [TestFlowMarginProtocol](docs/mocks/margin/TestFlowMarginProtocol.md)
     * [TestCToken](docs/mocks/TestCToken.md)
     * [TestToken](docs/mocks/TestToken.md)
     * upgrades
