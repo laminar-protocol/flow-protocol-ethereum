@@ -498,10 +498,12 @@ contract FlowMarginProtocol is FlowProtocolBase {
         return uint256(equity).sub(marginHeld);
     }
 
-    // Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
-	//
-	// Return true if ensured safe or false if not.
-    function _isPoolSafe(LiquidityPoolInterface _pool) internal returns (bool) {
+    /**
+    * @dev Ensure a pool is safe, based on equity delta, opened positions or plus a new one to open.
+    * @param _pool The MarginLiquidityPool.
+    * @return Boolean: true if ensured safe or false if not.
+    */
+    function isPoolSafe(LiquidityPoolInterface _pool) public virtual returns (bool) {
         (Percentage.Percent memory enp, Percentage.Percent memory ell) = _getEnpAndEll(_pool);
         bool isSafe = enp.value > liquidityPoolENPMarginThreshold && ell.value > liquidityPoolELLMarginThreshold;
 
