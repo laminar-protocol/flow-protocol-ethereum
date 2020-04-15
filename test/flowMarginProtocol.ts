@@ -47,7 +47,6 @@ contract('FlowMarginProtocol', accounts => {
   const bob = accounts[3];
   const eur = accounts[4];
   const jpy = accounts[5];
-  const newPool = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestFlowMarginProtocolInstance;
@@ -1873,6 +1872,29 @@ contract('FlowMarginProtocol', accounts => {
         );
       });
 
+      describe('when margin called trader wants to open new position', () => {
+        beforeEach(async () => {
+          await protocol.marginCallTrader(liquidityPool.address, alice, {
+            from: bob,
+          });
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              20,
+              euro(5),
+              0,
+              { from: alice },
+            ),
+            messages.traderIsMarginCalled,
+          );
+        });
+      });
+
       describe('when margin called trader becomes safe again', () => {
         beforeEach(async () => {
           await protocol.marginCallTrader(liquidityPool.address, alice, {
@@ -1963,10 +1985,14 @@ contract('FlowMarginProtocol', accounts => {
 
     describe('when pool is below margin call threshold', () => {
       beforeEach(async () => {
-        await liquidityPool.withdrawLiquidityOwner(dollar(199500));
+        await liquidityPool.withdrawLiquidityOwner(dollar(199400));
+        await oracle.feedPrice(eur, fromPercent(130), { from: owner });
       });
 
       it('allows margin calling of pool', async () => {
+        expect(
+          await liquidityPoolRegistry.isMarginCalled(liquidityPool.address),
+        ).to.be.false;
         try {
           await protocol.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
@@ -1977,6 +2003,9 @@ contract('FlowMarginProtocol', accounts => {
             `Margin call transaction should not have been reverted: ${error}`,
           );
         }
+        expect(
+          await liquidityPoolRegistry.isMarginCalled(liquidityPool.address),
+        ).to.be.true;
       });
 
       it('sends fee back to caller', async () => {
@@ -2015,6 +2044,29 @@ contract('FlowMarginProtocol', accounts => {
           }),
           messages.poolCannotBeMadeSafe,
         );
+      });
+
+      describe('when margin called pool has new new position opened', () => {
+        beforeEach(async () => {
+          await protocol.marginCallLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              20,
+              euro(5),
+              0,
+              { from: alice },
+            ),
+            messages.poolIsMarginCalled,
+          );
+        });
       });
 
       describe('when margin called pool becomes safe again', () => {
@@ -2115,7 +2167,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('returns if trader is safe', async () => {
-        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
         await protocol.getIsTraderSafe(liquidityPool.address, alice);
 
         expect(isSafe).to.be.true;
@@ -2130,7 +2182,7 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('returns if pool is safe', async () => {
-        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
+        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
         await protocol.getIsTraderSafe(liquidityPool.address, alice);
 
         expect(isSafe).to.be.true;
@@ -2155,8 +2207,8 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('returns if pool is safe', async () => {
-        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
-        await protocol.getIsPoolSafe(liquidityPool.address);
+        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
+        await protocol.isPoolSafe(liquidityPool.address);
 
         expect(isSafe).to.be.true;
       });
@@ -2171,8 +2223,8 @@ contract('FlowMarginProtocol', accounts => {
       });
 
       it('returns if pool is safe', async () => {
-        const isSafe = await protocol.getIsPoolSafe.call(liquidityPool.address);
-        await protocol.getIsPoolSafe(liquidityPool.address);
+        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
+        await protocol.isPoolSafe(liquidityPool.address);
 
         expect(isSafe).to.be.true;
       }).timeout(0);
