@@ -95,7 +95,10 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
     }
 
     function withdrawLiquidityOwner(uint _iTokenAmount) external onlyOwner returns (uint256) {
-        return moneyMarket.redeemTo(msg.sender, _iTokenAmount);
+        uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
+        require(FlowMarginProtocol(protocol).isPoolSafe(LiquidityPoolInterface(this)), "Pool not safe after withdrawal");
+
+        return baseTokenAmount;
     }
 
     function addCollateral(FlowProtocol _protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {
