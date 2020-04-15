@@ -59,29 +59,6 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         return 0;
     }
 
-    function openPosition(
-        address /* tradingPair */, uint /* positionId */, address quoteToken, int leverage, uint /* baseTokenAmount */
-    ) external override returns (bool) {
-        // This is a view function so no need to have permission control
-        // Otherwise needs to require msg.sender is approved FlowMarginProtocol
-        return _openPosition(quoteToken, leverage);
-    }
-
-    function _openPosition(
-        address quoteToken, int leverage
-    ) private view returns (bool) {
-        if (!allowedTokens[quoteToken]) {
-            return false;
-        }
-        if (leverage > 100 || leverage < -100) {
-            return false;
-        }
-        if (leverage < 2 && leverage > -2) {
-            return false;
-        }
-        return true;
-    }
-
     function approve(address _protocol, uint amount) external onlyOwner {
         moneyMarket.iToken().safeApprove(_protocol, amount);
     }
