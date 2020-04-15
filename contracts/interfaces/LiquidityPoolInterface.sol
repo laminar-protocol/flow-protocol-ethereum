@@ -19,15 +19,6 @@ interface LiquidityPoolInterface {
         view
         returns (uint256);
 
-    // positive leverage means long, negative means short
-    function openPosition(
-        address tradingPair,
-        uint256 positionId,
-        address quoteToken,
-        int256 leverage,
-        uint256 baseTokenAmount
-    ) external returns (bool);
-
     event SpreadUpdated();
     event AdditionalCollateralRatioUpdated();
 }

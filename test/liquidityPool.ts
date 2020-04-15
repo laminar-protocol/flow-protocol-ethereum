@@ -10,6 +10,12 @@ import * as helper from './helpers';
 
 const LiquidityPool = artifacts.require('LiquidityPool');
 const LiquidityPoolNewVersion = artifacts.require('LiquidityPoolNewVersion');
+const MockPoolIsSafeMarginProtocol = artifacts.require(
+  'MockPoolIsSafeMarginProtocol',
+);
+const MockPoolIsNotSafeMarginProtocol = artifacts.require(
+  'MockPoolIsNotSafeMarginProtocol',
+);
 const Proxy = artifacts.require('Proxy');
 
 contract('LiquidityPool', accounts => {
@@ -24,7 +30,10 @@ contract('LiquidityPool', accounts => {
   let moneyMarket: MoneyMarketInstance;
 
   beforeEach(async () => {
-    usd = await helper.createTestToken([liquidityProvider, 10000]);
+    usd = await helper.createTestToken(
+      [liquidityProvider, 10000],
+      [protocol, 10000],
+    );
     ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
 
     const liquidityPoolImpl = await LiquidityPool.new();
@@ -158,6 +167,24 @@ contract('LiquidityPool', accounts => {
     });
   });
 
+  describe('deposit', () => {
+    beforeEach(async () => {
+      await usd.approve(liquidityPool.address, 500, {
+        from: protocol,
+      });
+    });
+
+    it('should be able to withdraw by protocol', async () => {
+      await liquidityPool.depositLiquidity(500, {
+        from: protocol,
+      });
+      expect(await usd.balanceOf(protocol)).bignumber.equal(helper.bn(9500));
+      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
+        helper.bn(5000),
+      );
+    });
+  });
+
   describe('withdraw', () => {
     beforeEach(async () => {
       await moneyMarket.mintTo(liquidityPool.address, 1000, {
@@ -165,16 +192,65 @@ contract('LiquidityPool', accounts => {
       });
     });
 
-    it('should be able to withdraw by owner', async () => {
-      await liquidityPool.withdrawLiquidityOwner(5000, {
-        from: liquidityProvider,
+    it('should be able to withdraw by protocol', async () => {
+      await liquidityPool.withdrawLiquidity(5000, {
+        from: protocol,
       });
-      expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(
-        helper.bn(9500),
-      );
+      expect(await usd.balanceOf(protocol)).bignumber.equal(helper.bn(10500));
       expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
         helper.bn(5000),
       );
+    });
+
+    describe('when pool is safe', () => {
+      beforeEach(async () => {
+        const mockedProtocol = await MockPoolIsSafeMarginProtocol.new();
+        liquidityPool = await LiquidityPool.new();
+        await (liquidityPool as any).methods[
+          'initialize(address,address,uint256)'
+        ](moneyMarket.address, mockedProtocol.address, helper.fromPip(10), {
+          from: liquidityProvider,
+        });
+        await moneyMarket.mintTo(liquidityPool.address, 1000, {
+          from: liquidityProvider,
+        });
+      });
+
+      it('should be able to withdraw by owner', async () => {
+        await liquidityPool.withdrawLiquidityOwner(5000, {
+          from: liquidityProvider,
+        });
+        expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(
+          helper.bn(8500),
+        );
+        expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
+          helper.bn(5000),
+        );
+      });
+    });
+
+    describe('when pool is not safe', () => {
+      beforeEach(async () => {
+        const mockedProtocol = await MockPoolIsNotSafeMarginProtocol.new();
+        liquidityPool = await LiquidityPool.new();
+        await (liquidityPool as any).methods[
+          'initialize(address,address,uint256)'
+        ](moneyMarket.address, mockedProtocol.address, helper.fromPip(10), {
+          from: liquidityProvider,
+        });
+        await moneyMarket.mintTo(liquidityPool.address, 1000, {
+          from: liquidityProvider,
+        });
+      });
+
+      it('should not be able to withdraw by others', async () => {
+        await expectRevert(
+          liquidityPool.withdrawLiquidityOwner(1, {
+            from: liquidityProvider,
+          }),
+          helper.messages.poolNotSafeAfterWithdrawal,
+        );
+      });
     });
 
     it('should not be able to withdraw by others', async () => {

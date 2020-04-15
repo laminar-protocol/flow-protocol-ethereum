@@ -23,7 +23,7 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
 
     mapping (LiquidityPoolInterface => bool) public isVerifiedPool;
     mapping (LiquidityPoolInterface => bool) public poolHasPaidFees;
-    mapping (LiquidityPoolInterface => bool) public poolIsMarginCalled;
+    mapping (LiquidityPoolInterface => bool) public isMarginCalled;
 
     uint256 constant public LIQUIDITY_POOL_MARGIN_CALL_FEE = 1000 ether; // TODO
     uint256 constant public LIQUIDITY_POOL_LIQUIDATION_FEE = 3000 ether; // TODO
@@ -69,17 +69,25 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
         isVerifiedPool[_pool] = false;
     }
 
+    /**
+     * @dev Margin call a pool, only used by the protocol.
+     * @param _pool The MarginLiquidityPool.
+     */
     function marginCallPool(LiquidityPoolInterface _pool) public {
         require(msg.sender == protocol, "Only protocol can call this function");
-        require(!poolIsMarginCalled[_pool], "PM1");
+        require(!isMarginCalled[_pool], "PM1");
 
-        poolIsMarginCalled[_pool] = true;
+        isMarginCalled[_pool] = true;
     }
 
+    /**
+     * @dev Make pool safe, only used by protocol.
+     * @param _pool The MarginLiquidityPool.
+     */
     function makePoolSafe(LiquidityPoolInterface _pool) public {
         require(msg.sender == protocol, "Only protocol can call this function");
-        require(poolIsMarginCalled[_pool], "PS1");
+        require(isMarginCalled[_pool], "PS1");
 
-        poolIsMarginCalled[_pool] = false;
+        isMarginCalled[_pool] = false;
     }
 }

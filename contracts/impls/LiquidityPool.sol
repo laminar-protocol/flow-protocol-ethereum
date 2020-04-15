@@ -59,29 +59,6 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         return 0;
     }
 
-    function openPosition(
-        address /* tradingPair */, uint /* positionId */, address quoteToken, int leverage, uint /* baseTokenAmount */
-    ) external override returns (bool) {
-        // This is a view function so no need to have permission control
-        // Otherwise needs to require msg.sender is approved FlowMarginProtocol
-        return _openPosition(quoteToken, leverage);
-    }
-
-    function _openPosition(
-        address quoteToken, int leverage
-    ) private view returns (bool) {
-        if (!allowedTokens[quoteToken]) {
-            return false;
-        }
-        if (leverage > 100 || leverage < -100) {
-            return false;
-        }
-        if (leverage < 2 && leverage > -2) {
-            return false;
-        }
-        return true;
-    }
-
     function approve(address _protocol, uint amount) external onlyOwner {
         moneyMarket.iToken().safeApprove(_protocol, amount);
     }
@@ -118,7 +95,10 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
     }
 
     function withdrawLiquidityOwner(uint _iTokenAmount) external onlyOwner returns (uint256) {
-        return moneyMarket.redeemTo(msg.sender, _iTokenAmount);
+        uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
+        require(FlowMarginProtocol(protocol).isPoolSafe(LiquidityPoolInterface(this)), "Pool not safe after withdrawal");
+
+        return baseTokenAmount;
     }
 
     function addCollateral(FlowProtocol _protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {
