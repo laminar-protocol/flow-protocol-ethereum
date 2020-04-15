@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 
 # Exit script as soon as a command fails.
@@ -13,11 +14,7 @@ cleanup() {
   fi
 }
 
-if [ "$SOLIDITY_COVERAGE" = true ]; then
-  ganache_port=8555
-else
-  ganache_port=8545
-fi
+ganache_port=8545
 
 ganache_running() {
   nc -z localhost "$ganache_port"
@@ -26,7 +23,7 @@ ganache_running() {
 start_ganache() {
   # We define 10 accounts with balance 1M ether, needed for high-value tests.
   local accounts=(
-    --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501200,1000000000000000000000000"
+    --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501200,100000000000000000000000000000"
     --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501201,1000000000000000000000000"
     --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501202,1000000000000000000000000"
     --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501203,1000000000000000000000000"
@@ -38,11 +35,7 @@ start_ganache() {
     --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501209,1000000000000000000000000"
   )
 
-  if [ "$SOLIDITY_COVERAGE" = true ]; then
-    yarn ganache-cli-coverage --emitFreeLogs true --allowUnlimitedContractSize true --gasLimit 0x1fffffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
-  else
-    yarn ganache-cli --gasLimit 0x1fffffffffffff --gasPrice 0x1 --port "$ganache_port" --accounts 70 --allowUnlimitedContractSize > /dev/null &
-  fi
+  yarn ganache-cli --gasLimit 0x1fffffffffffff --gasPrice 0x1 --port "$ganache_port" --accounts 70 --allowUnlimitedContractSize > /dev/null &
 
   ganache_pid=$!
 
@@ -69,12 +62,6 @@ fi
 
 truffle version
 
-if [ "$SOLIDITY_COVERAGE" = true ]; then
-  yarn solidity-coverage
+yarn truffle migrate
 
-  if [ "$CONTINUOUS_INTEGRATION" = true ]; then
-    cat coverage/lcov.info | npx coveralls
-  fi
-else
-  yarn truffle test "$@"
-fi
+yarn cucumber-js -p default
