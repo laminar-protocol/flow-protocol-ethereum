@@ -1,14 +1,14 @@
 Feature: Margin Protocol
 
-  Scenario: Margin liquidity pool
+  Scenario: Sample...
     Given accounts
       | Name  | Amount  |
-      | Bob  | $10 000 |
-      | Alice | $10 000 |
-    And margin create liquidity pool
-    And margin deposit liquidity
-      | Name  | Amount  | Result        |
-      | Bob  | $10 000 | Ok             |
-      | Alice | $5 000  | Ok            |
-    Then margin liquidity is $15000
+      | Alice | $10     |
+      | Bob   | $10     |
+    And transfer to
+      | Name      | Amount  |
+      | Alice     | $10     |
+      | Bob       | $10     |
+    Then Alice balance is $20
+    And Bob balance is $20
 
