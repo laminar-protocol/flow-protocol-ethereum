@@ -1762,7 +1762,7 @@ contract('FlowMarginProtocol', accounts => {
     }
   });
 
-  describe.only('when computing unrealized profit loss of trader', () => {
+  describe('when computing unrealized profit loss of trader', () => {
     let askPrice: BN;
     let bidPrice: BN;
     let leveragedHeldInEuro1: BN;
