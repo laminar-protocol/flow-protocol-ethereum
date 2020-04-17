@@ -2,6 +2,7 @@
 * contracts
   * impls
     * [FlowMarginProtocol](docs/impls/FlowMarginProtocol.md)
+    * [FlowMarginProtocolSafety](docs/impls/FlowMarginProtocolSafety.md)
     * [FlowProtocol](docs/impls/FlowProtocol.md)
     * [FlowProtocolBase](docs/impls/FlowProtocolBase.md)
     * [FlowToken](docs/impls/FlowToken.md)
@@ -32,14 +33,18 @@
     * [ArraysImpl](docs/mocks/ArraysImpl.md)
     * [FaucetInterface](docs/mocks/FaucetInterface.md)
     * margin
+      * [MockIsPoolSafeMarginProtocol](docs/mocks/margin/MockIsPoolSafeMarginProtocol.md)
       * [TestFlowMarginProtocol](docs/mocks/margin/TestFlowMarginProtocol.md)
+      * [TestFlowMarginProtocolSafety](docs/mocks/margin/TestFlowMarginProtocolSafety.md)
     * [TestCToken](docs/mocks/TestCToken.md)
     * [TestToken](docs/mocks/TestToken.md)
     * upgrades
       * [FlowMarginProtocolNewVersion](docs/mocks/upgrades/FlowMarginProtocolNewVersion.md)
+      * [FlowMarginProtocolSafetyNewVersion](docs/mocks/upgrades/FlowMarginProtocolSafetyNewVersion.md)
       * [FlowProtocolNewVersion](docs/mocks/upgrades/FlowProtocolNewVersion.md)
       * [FlowTokenNewVersion](docs/mocks/upgrades/FlowTokenNewVersion.md)
       * [LiquidityPoolNewVersion](docs/mocks/upgrades/LiquidityPoolNewVersion.md)
+      * [LiquidityPoolRegistryNewVersion](docs/mocks/upgrades/LiquidityPoolRegistryNewVersion.md)
       * [MarginTradingPairNewVersion](docs/mocks/upgrades/MarginTradingPairNewVersion.md)
       * [MoneyMarketNewVersion copy](docs/mocks/upgrades/MoneyMarketNewVersion copy.md)
       * [SimplePriceOracleNewVersion](docs/mocks/upgrades/SimplePriceOracleNewVersion.md)

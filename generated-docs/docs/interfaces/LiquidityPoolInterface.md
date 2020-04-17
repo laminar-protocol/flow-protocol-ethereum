@@ -12,8 +12,6 @@
 
 - [`getAdditionalCollateralRatio(address fToken)`](#LiquidityPoolInterface-getAdditionalCollateralRatio-address-)
 
-- [`openPosition(address tradingPair, uint256 positionId, address quoteToken, int256 leverage, uint256 baseTokenAmount)`](#LiquidityPoolInterface-openPosition-address-uint256-address-int256-uint256-)
-
 ## Events:
 
 - [`SpreadUpdated()`](#LiquidityPoolInterface-SpreadUpdated--)
@@ -41,10 +39,6 @@ No description
 No description
 
 ### [Function `getAdditionalCollateralRatio(address fToken) → uint256`](#LiquidityPoolInterface-getAdditionalCollateralRatio-address-)
-
-No description
-
-### [Function `openPosition(address tradingPair, uint256 positionId, address quoteToken, int256 leverage, uint256 baseTokenAmount) → bool`](#LiquidityPoolInterface-openPosition-address-uint256-address-int256-uint256-)
 
 No description
 

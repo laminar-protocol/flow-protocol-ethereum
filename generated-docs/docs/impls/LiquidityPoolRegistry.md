@@ -1,6 +1,6 @@
 ## Functions:
 
-- [`initialize(contract MoneyMarketInterface _moneyMarket, address _protocol)`](#LiquidityPoolRegistry-initialize-contract-MoneyMarketInterface-address-)
+- [`initialize(contract MoneyMarketInterface _moneyMarket, address _protocolSafety)`](#LiquidityPoolRegistry-initialize-contract-MoneyMarketInterface-address-)
 
 - [`registerPool(contract LiquidityPoolInterface _pool)`](#LiquidityPoolRegistry-registerPool-contract-LiquidityPoolInterface-)
 
@@ -12,7 +12,7 @@
 
 - [`makePoolSafe(contract LiquidityPoolInterface _pool)`](#LiquidityPoolRegistry-makePoolSafe-contract-LiquidityPoolInterface-)
 
-### [Function `initialize(contract MoneyMarketInterface _moneyMarket, address _protocol)`](#LiquidityPoolRegistry-initialize-contract-MoneyMarketInterface-address-)
+### [Function `initialize(contract MoneyMarketInterface _moneyMarket, address _protocolSafety)`](#LiquidityPoolRegistry-initialize-contract-MoneyMarketInterface-address-)
 
 No description
 
@@ -42,8 +42,16 @@ Unverify a pool, only for the owner.
 
 ### [Function `marginCallPool(contract LiquidityPoolInterface _pool)`](#LiquidityPoolRegistry-marginCallPool-contract-LiquidityPoolInterface-)
 
-No description
+Margin call a pool, only used by the protocolSafety.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
 
 ### [Function `makePoolSafe(contract LiquidityPoolInterface _pool)`](#LiquidityPoolRegistry-makePoolSafe-contract-LiquidityPoolInterface-)
 
-No description
+Make pool safe, only used by protocolSafety.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
