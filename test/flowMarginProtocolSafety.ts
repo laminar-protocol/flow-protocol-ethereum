@@ -816,7 +816,7 @@ contract('FlowMarginProtocol', accounts => {
         const positionCount = 3;
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = (await protocol.getPositionById(positionId))[
+          const leveragedDebits = (await protocol.positionsById(positionId))[
             '8'
           ];
           net = net.add(leveragedDebits);
@@ -864,7 +864,7 @@ contract('FlowMarginProtocol', accounts => {
         const positionCount = 3;
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = (await protocol.getPositionById(positionId))[
+          const leveragedDebits = (await protocol.positionsById(positionId))[
             '8'
           ];
           net = net.add(leveragedDebits);
