@@ -1,9 +1,9 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../../impls/FlowMarginProtocol.sol";
+import "../../impls/FlowMarginProtocolSafety.sol";
 
-contract FlowMarginProtocolNewVersion is FlowMarginProtocol {
+contract FlowMarginProtocolSafetyNewVersion is FlowMarginProtocolSafety {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 
@@ -13,9 +13,5 @@ contract FlowMarginProtocolNewVersion is FlowMarginProtocol {
 
     function setNewStorageUint(uint256 _newStorageUint) public {
         newStorageUint = _newStorageUint;
-    }
-
-    function getNewValuePlusMaxSpread() public view returns (uint256) {
-        return maxSpread.add(newStorageUint);
     }
 }
