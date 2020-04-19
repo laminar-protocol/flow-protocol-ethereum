@@ -817,7 +817,7 @@ contract('FlowMarginProtocol', accounts => {
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
           const leveragedDebits = (await protocol.positionsById(positionId))[
-            '8'
+            '7'
           ];
           net = net.add(leveragedDebits);
 
@@ -851,7 +851,7 @@ contract('FlowMarginProtocol', accounts => {
     });
 
     describe('when computing ELL of pool', () => {
-      it('should return the correct ENP', async () => {
+      it('should return the correct ELL', async () => {
         // ELL - Equity to Longest Leg ratio of a liquidity pool.
         const ell = (
           await protocolSafety.getEnpAndEll.call(liquidityPool.address)
@@ -865,7 +865,7 @@ contract('FlowMarginProtocol', accounts => {
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
           const leveragedDebits = (await protocol.positionsById(positionId))[
-            '8'
+            '7'
           ];
           net = net.add(leveragedDebits);
 
