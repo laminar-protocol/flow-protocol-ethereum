@@ -9,6 +9,7 @@ import "../interfaces/MoneyMarketInterface.sol";
 import "./FlowProtocol.sol";
 import "./FlowToken.sol";
 import "./FlowMarginProtocol.sol";
+import "./FlowMarginProtocolSafety.sol";
 import "./MarginTradingPair.sol";
 
 contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface {
@@ -96,7 +97,10 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
 
     function withdrawLiquidityOwner(uint _iTokenAmount) external onlyOwner returns (uint256) {
         uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
-        require(FlowMarginProtocol(protocol).isPoolSafe(LiquidityPoolInterface(this)), "Pool not safe after withdrawal");
+        require(
+            FlowMarginProtocol(protocol).safetyProtocol().isPoolSafe(LiquidityPoolInterface(this)),
+            "Pool not safe after withdrawal"
+        );
 
         return baseTokenAmount;
     }

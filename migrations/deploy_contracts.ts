@@ -75,6 +75,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const IERC20 = artifacts.require('IERC20');
   const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
+  const FlowMarginProtocolSafety = artifacts.require(
+    'FlowMarginProtocolSafety',
+  );
   const MarginTradingPair = artifacts.require('MarginTradingPair');
   const PriceOracleInterface = artifacts.require('PriceOracleInterface');
   const ERC20Detailed = artifacts.require('ERC20Detailed');
@@ -224,11 +227,22 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const flowMarginProtocolImpl = await FlowMarginProtocol.deployed();
     await deployer.deploy(Proxy);
     const flowMarginProtocolProxy = await Proxy.deployed();
-
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
     const marginProtocol = await FlowMarginProtocol.at(
       flowMarginProtocolProxy.address,
     );
+
+    await deployer.deploy(FlowMarginProtocolSafety);
+    const flowMarginProtocolSafetyImpl = await FlowMarginProtocolSafety.deployed();
+    await deployer.deploy(Proxy);
+    const flowMarginProtocolSafetyProxy = await Proxy.deployed();
+    await flowMarginProtocolSafetyProxy.upgradeTo(
+      flowMarginProtocolSafetyImpl.address,
+    );
+    const marginProtocolSafety = await FlowMarginProtocolSafety.at(
+      flowMarginProtocolSafetyProxy.address,
+    );
+
     const initialSwapRate = web3.utils.toWei('1'); // 1 USD per day TODO: per ? amount
     const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.05');
     const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.02');
@@ -240,8 +254,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await (marginProtocol as any).initialize(
       oracle.address,
       moneyMarket.address,
+      marginProtocolSafety.address,
       liquidityPoolRegistry.address,
       initialSwapRate,
+    );
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    await (marginProtocolSafety as any).initialize(
+      marginProtocol.address,
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -458,6 +477,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       fXAU: [fXAU, FlowToken],
       fAAPL: [fAAPL, FlowToken],
       marginProtocol: [marginProtocol, FlowMarginProtocol],
+      marginProtocolSafety: [marginProtocolSafety, FlowMarginProtocolSafety],
       l10USDEUR: [l10USDEUR, MarginTradingPair],
       s10USDEUR: [s10USDEUR, MarginTradingPair],
       l20USDJPY: [l20USDJPY, MarginTradingPair],

@@ -10,6 +10,7 @@ import BN from 'bn.js';
 import {
   SimplePriceOracleInstance,
   TestFlowMarginProtocolInstance,
+  TestFlowMarginProtocolSafetyInstance,
   LiquidityPoolInstance,
   LiquidityPoolRegistryInstance,
   TestTokenInstance,
@@ -33,6 +34,9 @@ import {
 
 const Proxy = artifacts.require('Proxy');
 const TestFlowMarginProtocol = artifacts.require('TestFlowMarginProtocol');
+const TestFlowMarginProtocolSafety = artifacts.require(
+  'TestFlowMarginProtocolSafety',
+);
 const FlowMarginProtocolNewVersion = artifacts.require(
   'FlowMarginProtocolNewVersion',
 );
@@ -50,6 +54,7 @@ contract('FlowMarginProtocol', accounts => {
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestFlowMarginProtocolInstance;
+  let protocolSafety: TestFlowMarginProtocolSafetyInstance;
   let liquidityPoolRegistry: LiquidityPoolRegistryInstance;
   let liquidityPool: LiquidityPoolInstance;
   let usd: TestTokenInstance;
@@ -62,12 +67,6 @@ contract('FlowMarginProtocol', accounts => {
   let initialJpyPrice: BN;
 
   let initialSwapRate: BN;
-  let initialTraderRiskMarginCallThreshold: BN;
-  let initialTraderRiskLiquidateThreshold: BN;
-  let initialLiquidityPoolENPMarginThreshold: BN;
-  let initialLiquidityPoolELLMarginThreshold: BN;
-  let initialLiquidityPoolENPLiquidateThreshold: BN;
-  let initialLiquidityPoolELLLiquidateThreshold: BN;
 
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
@@ -85,14 +84,7 @@ contract('FlowMarginProtocol', accounts => {
     initialUsdPrice = fromPercent(100);
     initialEurPrice = fromPercent(120);
     initialJpyPrice = fromPercent(200);
-
     initialSwapRate = fromPercent(2);
-    initialTraderRiskMarginCallThreshold = fromPercent(5);
-    initialTraderRiskLiquidateThreshold = fromPercent(2);
-    initialLiquidityPoolENPMarginThreshold = fromPercent(50);
-    initialLiquidityPoolELLMarginThreshold = fromPercent(10);
-    initialLiquidityPoolENPLiquidateThreshold = fromPercent(20);
-    initialLiquidityPoolELLLiquidateThreshold = fromPercent(2);
 
     usd = await createTestToken(
       [liquidityProvider, dollar(50000)],
@@ -109,6 +101,15 @@ contract('FlowMarginProtocol', accounts => {
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
     protocol = await TestFlowMarginProtocol.at(flowMarginProtocolProxy.address);
 
+    const flowMarginProtocolSafetyImpl = await TestFlowMarginProtocolSafety.new();
+    const flowMarginProtocolSafetyProxy = await Proxy.new();
+    await flowMarginProtocolSafetyProxy.upgradeTo(
+      flowMarginProtocolSafetyImpl.address,
+    );
+    protocolSafety = await TestFlowMarginProtocolSafety.at(
+      flowMarginProtocolSafetyProxy.address,
+    );
+
     const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.new();
     const liquidityPoolRegistryProxy = await Proxy.new();
     await liquidityPoolRegistryProxy.upgradeTo(
@@ -121,14 +122,19 @@ contract('FlowMarginProtocol', accounts => {
     await (protocol as any).initialize( // eslint-disable-line
       oracle.address,
       moneyMarket.address,
+      protocolSafety.address,
       liquidityPoolRegistry.address,
       initialSwapRate,
-      initialTraderRiskMarginCallThreshold,
-      initialTraderRiskLiquidateThreshold,
-      initialLiquidityPoolENPMarginThreshold,
-      initialLiquidityPoolELLMarginThreshold,
-      initialLiquidityPoolENPLiquidateThreshold,
-      initialLiquidityPoolELLLiquidateThreshold,
+    );
+
+    await (protocolSafety as any).initialize(
+      protocol.address,
+      fromPercent(5),
+      fromPercent(2),
+      fromPercent(50),
+      fromPercent(10),
+      fromPercent(20),
+      fromPercent(2),
     );
 
     await liquidityPoolRegistry.initialize(
@@ -201,20 +207,8 @@ contract('FlowMarginProtocol', accounts => {
   }) => fromEth(leveragedHeld.mul(leverage.isNeg() ? bidPrice : askPrice));
 
   const getLastPositionByPool = async (pool: string) => {
-    const positionByPoolPart1 = await protocol.getLastPositionByPoolPart1(pool);
-    const positionByPoolPart2 = await protocol.getLastPositionByPoolPart2(pool);
-
-    // eslint-disable-next-line array-callback-return
-    Object.keys(positionByPoolPart2).map((key: string) => {
-      const keyNumber = parseInt(key, 10);
-      positionByPoolPart2[keyNumber + 6] = positionByPoolPart2[keyNumber];
-      delete positionByPoolPart2[keyNumber];
-    });
-
-    return {
-      ...positionByPoolPart1,
-      ...positionByPoolPart2,
-    };
+    const positionsLength = await protocol.getPositionsByPoolLength(pool);
+    return protocol.positionsByPool(pool, positionsLength.sub(bn(1)));
   };
 
   const getLastPositionByPoolAndTrader = async ({
@@ -224,27 +218,15 @@ contract('FlowMarginProtocol', accounts => {
     pool: string;
     trader: string;
   }) => {
-    const positionByPoolAndTraderPart1 = await protocol.getLastPositionByPoolAndTraderPart1(
+    const positionsLength = await protocol.getPositionsByPoolAndTraderLength(
       pool,
       trader,
     );
-    const positionByPoolAndTraderPart2 = await protocol.getLastPositionByPoolAndTraderPart2(
+    return protocol.positionsByPoolAndTrader(
       pool,
       trader,
+      positionsLength.sub(bn(1)),
     );
-
-    // eslint-disable-next-line array-callback-return
-    Object.keys(positionByPoolAndTraderPart2).map((key: string) => {
-      const keyNumber = parseInt(key, 10);
-      positionByPoolAndTraderPart2[keyNumber + 6] =
-        positionByPoolAndTraderPart2[keyNumber];
-      delete positionByPoolAndTraderPart2[keyNumber];
-    });
-
-    return {
-      ...positionByPoolAndTraderPart1,
-      ...positionByPoolAndTraderPart2,
-    };
   };
 
   describe('when adding a trading pair', () => {
@@ -279,48 +261,33 @@ contract('FlowMarginProtocol', accounts => {
   });
 
   describe('when setting new parameters', () => {
-    for (const setFunction of [
-      'setCurrentSwapRate',
-      'setTraderRiskMarginCallThreshold',
-      'setTraderRiskLiquidateThreshold',
-      'setLiquidityPoolENPMarginThreshold',
-      'setLiquidityPoolELLMarginThreshold',
-      'setLiquidityPoolENPLiquidateThreshold',
-      'setLiquidityPoolELLLiquidateThreshold',
-    ]) {
-      describe(`when using ${setFunction}`, () => {
-        let newParameter: BN;
+    describe(`when using setCurrentSwapRate`, () => {
+      let newSwapRate: BN;
 
-        beforeEach(() => {
-          newParameter = bn(123);
-        });
-
-        it('sets new parameter', async () => {
-          await (protocol as any)[setFunction](newParameter);
-
-          const setParameter = setFunction
-            .slice(3)
-            .replace(/^\w/, c => c.toLowerCase());
-          const newStoredParameter = await (protocol as any)[setParameter]();
-
-          expect(newStoredParameter).to.be.bignumber.equals(newParameter);
-        });
-
-        it('allows only owner to set parameters', async () => {
-          await expectRevert(
-            (protocol as any)[setFunction](newParameter, { from: alice }),
-            messages.onlyOwner,
-          );
-        });
-
-        it('does not allow zero values', async () => {
-          await expectRevert(
-            (protocol as any)[setFunction](0),
-            messages.settingZeroValueNotAllowed,
-          );
-        });
+      beforeEach(() => {
+        newSwapRate = bn(123);
       });
-    }
+
+      it('sets new currentSwapRate', async () => {
+        await protocol.setCurrentSwapRate(newSwapRate);
+        const newStoredSwapRate = await protocol.currentSwapRate();
+        expect(newStoredSwapRate).to.be.bignumber.equals(newSwapRate);
+      });
+
+      it('allows only owner to set parameters', async () => {
+        await expectRevert(
+          protocol.setCurrentSwapRate(newSwapRate, { from: alice }),
+          messages.onlyOwner,
+        );
+      });
+
+      it('does not allow zero values', async () => {
+        await expectRevert(
+          protocol.setCurrentSwapRate(0),
+          messages.settingZeroValueNotAllowed,
+        );
+      });
+    });
   });
 
   describe('when handling funds', () => {
@@ -465,19 +432,19 @@ contract('FlowMarginProtocol', accounts => {
     quoteToken?: string;
     receipt: Truffle.TransactionResponse;
   }) => {
-    const position = await protocol.getPositionById(id);
+    const position = await protocol.positionsById(id);
     const positionId = position['0'];
     const positionOwner = position['1'];
     const pool = position['2'];
-    const base = position['3'];
-    const quote = position['4'];
-    const leverage = position['5'];
-    const leveragedHeld = position['6'];
-    const leveragedDebits = position['7'];
-    const leveragedDebitsInUsd = position['8'];
-    const marginHeld = position['9'];
-    const swapRate = position['10'];
-    const timeWhenOpened = position['11'];
+    const { base } = position['3'];
+    const { quote } = position['3'];
+    const leverage = position['4'];
+    const leveragedHeld = position['5'];
+    const leveragedDebits = position['6'];
+    const leveragedDebitsInUsd = position['7'];
+    const marginHeld = position['8'];
+    const swapRate = position['9'].value;
+    const timeWhenOpened = position['10'];
 
     const tokenToInitialPrice: { [key: string]: BN } = {};
     tokenToInitialPrice[usd.address] = initialUsdPrice;
@@ -521,6 +488,7 @@ contract('FlowMarginProtocol', accounts => {
     expect(leveragedDebits).to.be.bignumber.equal(
       fromEth(expectedLeveragedDebits),
     );
+
     expect(leveragedDebitsInUsd).to.be.bignumber.equal(
       fromEth(expectedLeveragedDebitsInUsd),
     );
@@ -620,69 +588,39 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
-    describe('when the leverage is 1', () => {
-      beforeEach(() => {
-        leverage = bn(1);
-        leveragedHeldInEuro = euro(10);
-      });
+    for (const leverageValue of [1, -50]) {
+      describe(`with ${leverageValue}x leverage`, () => {
+        beforeEach(() => {
+          leverage = bn(leverageValue);
+          leveragedHeldInEuro = leverageValue === 1 ? euro(50) : euro(1000);
+        });
 
-      it('opens new position correctly', async () => {
-        const receipt = await protocol.openPosition(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          price,
-          { from: alice },
-        );
-        const expectedTimeWhenOpened = await time.latest();
-        const positionId = (await protocol.nextPositionId()).sub(bn(1));
+        it('opens new position correctly', async () => {
+          const receipt = await protocol.openPosition(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            leverage,
+            leveragedHeldInEuro,
+            price,
+            { from: alice },
+          );
+          const expectedTimeWhenOpened = await time.latest();
+          const positionId = (await protocol.nextPositionId()).sub(bn(1));
 
-        await expectCorrectlyOpenedPosition({
-          id: positionId,
-          expectedOwner: alice,
-          expectedPool: liquidityPool.address,
-          expectedLeverage: leverage,
-          leveragedHeldInQuote: leveragedHeldInEuro,
-          expectedSwapRate: initialSwapRate,
-          expectedTimeWhenOpened,
-          receipt,
+          await expectCorrectlyOpenedPosition({
+            id: positionId,
+            expectedOwner: alice,
+            expectedPool: liquidityPool.address,
+            expectedLeverage: leverage,
+            leveragedHeldInQuote: leveragedHeldInEuro,
+            expectedSwapRate: initialSwapRate,
+            expectedTimeWhenOpened,
+            receipt,
+          });
         });
       });
-    });
-
-    describe('when the leverage is -50', () => {
-      beforeEach(() => {
-        leverage = bn(-50);
-        leveragedHeldInEuro = euro(1000);
-      });
-
-      it('opens new position correctly', async () => {
-        const receipt = await protocol.openPosition(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          price,
-          { from: alice },
-        );
-        const expectedTimeWhenOpened = await time.latest();
-        const positionId = (await protocol.nextPositionId()).sub(bn(1));
-
-        await expectCorrectlyOpenedPosition({
-          id: positionId,
-          expectedOwner: alice,
-          expectedPool: liquidityPool.address,
-          expectedLeverage: leverage,
-          leveragedHeldInQuote: leveragedHeldInEuro,
-          expectedSwapRate: initialSwapRate,
-          expectedTimeWhenOpened,
-          receipt,
-        });
-      });
-    });
+    }
 
     describe('when the trading pair has no USD', () => {
       beforeEach(() => {
@@ -900,7 +838,7 @@ contract('FlowMarginProtocol', accounts => {
     quoteToken?: string;
     useMaxRealizable?: boolean;
   }) => {
-    const position = await protocol.getPositionById(id);
+    const position = await protocol.positionsById(id);
 
     const tokenToInitialPrice: { [key: string]: BN } = {};
     tokenToInitialPrice[usd.address] = initialUsdPrice;
@@ -1523,90 +1461,49 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
-    describe('when the leverage is 1', () => {
-      beforeEach(async () => {
-        leverage = bn(1);
-        leveragedHeldInEuro = euro(10);
+    for (const leverageValue of [1, -50]) {
+      describe(`with ${leverageValue}x leverage`, () => {
+        beforeEach(async () => {
+          leverage = bn(leverageValue);
+          leveragedHeldInEuro = leverageValue === 1 ? euro(50) : euro(1000);
 
-        await protocol.openPosition(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          0,
-          { from: alice },
-        );
-        positionId = (await protocol.nextPositionId()).sub(bn(1));
-      });
-
-      it('opens new position correctly', async () => {
-        receipt = await protocol.closePosition(positionId, price, {
-          from: alice,
+          await protocol.openPosition(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            leverage,
+            leveragedHeldInEuro,
+            0,
+            { from: alice },
+          );
+          positionId = (await protocol.nextPositionId()).sub(bn(1));
         });
 
-        await expectCorrectlyClosedPosition({
-          id: positionId,
-          expectedOwner: alice,
-          expectedPool: liquidityPool.address,
-          expectedLeverage: leverage,
-          leveragedHeldInQuote: leveragedHeldInEuro,
-          traderBalanceBefore,
-          poolLiquidityBefore,
-          initialAskPrice,
-          initialBidPrice,
-          receipt,
+        it('opens new position correctly', async () => {
+          receipt = await protocol.closePosition(positionId, price, {
+            from: alice,
+          });
+
+          await expectCorrectlyClosedPosition({
+            id: positionId,
+            expectedOwner: alice,
+            expectedPool: liquidityPool.address,
+            expectedLeverage: leverage,
+            leveragedHeldInQuote: leveragedHeldInEuro,
+            traderBalanceBefore,
+            poolLiquidityBefore,
+            initialAskPrice,
+            initialBidPrice,
+            receipt,
+          });
         });
       });
-    });
-
-    describe('when the leverage is -50', () => {
-      beforeEach(async () => {
-        leverage = bn(-50);
-        leveragedHeldInEuro = euro(1000);
-
-        await protocol.openPosition(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          0,
-          { from: alice },
-        );
-        positionId = (await protocol.nextPositionId()).sub(bn(1));
-      });
-
-      it('opens new position correctly', async () => {
-        receipt = await protocol.closePosition(positionId, price, {
-          from: alice,
-        });
-
-        await expectCorrectlyClosedPosition({
-          id: positionId,
-          expectedOwner: alice,
-          expectedPool: liquidityPool.address,
-          expectedLeverage: leverage,
-          leveragedHeldInQuote: leveragedHeldInEuro,
-          traderBalanceBefore,
-          poolLiquidityBefore,
-          initialAskPrice,
-          initialBidPrice,
-          receipt,
-        });
-      });
-    });
+    }
   });
 
   describe('when there are some positions in the pool', () => {
-    let leveragedHeld1: BN;
-    let leveragedHeld2: BN;
-    let leveragedHeld3: BN;
-    let leveragedHeld4: BN;
-    let leverage1: BN;
-    let leverage2: BN;
-    let leverage3: BN;
-    let leverage4: BN;
+    let leveragedHelds: [BN, BN, BN, BN];
+    let leverages: [BN, BN, BN, BN];
     let initialAskPrice: BN;
     let initialBidPrice: BN;
 
@@ -1632,51 +1529,23 @@ contract('FlowMarginProtocol', accounts => {
         0,
       );
 
-      leveragedHeld1 = euro(10);
-      leveragedHeld2 = euro(5);
-      leveragedHeld3 = euro(4);
-      leveragedHeld4 = euro(2);
-      leverage1 = bn(20);
-      leverage2 = bn(-20);
-      leverage3 = bn(-5);
-      leverage4 = bn(20);
+      leveragedHelds = [euro(10), euro(5), euro(4), euro(2)];
+      leverages = [bn(20), bn(-20), bn(-5), bn(20)];
 
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage1,
-        leveragedHeld1,
-        0,
-        { from: alice },
-      );
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage2,
-        leveragedHeld2,
-        0,
-        { from: alice },
-      );
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage3,
-        leveragedHeld3,
-        0,
-        { from: alice },
-      );
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage4,
-        leveragedHeld4,
-        0,
-        { from: bob },
-      );
+      for (let i = 0; i < leverages.length; i += 1) {
+        const leverage = leverages[i];
+        const leveragedHeld = leveragedHelds[i];
+
+        await protocol.openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeld,
+          0,
+          { from: i === 3 ? bob : alice },
+        );
+      }
     });
 
     describe('when getting accumulated margin held of a trader', () => {
@@ -1692,34 +1561,24 @@ contract('FlowMarginProtocol', accounts => {
 
         const prices = { askPrice: initialAskPrice, bidPrice: initialBidPrice };
 
-        const leveragedDebitAlice1 = getLeveragedDebits({
-          leveragedHeld: leveragedHeld1,
-          leverage: leverage1,
-          ...prices,
-        });
-        const leveragedDebitAlice2 = getLeveragedDebits({
-          leveragedHeld: leveragedHeld2,
-          leverage: leverage2,
-          ...prices,
-        });
-        const leveragedDebitAlice3 = getLeveragedDebits({
-          leveragedHeld: leveragedHeld3,
-          leverage: leverage3,
-          ...prices,
-        });
+        const expectedMarginHeldAlice = leverages
+          .slice(0, -1)
+          .reduce((accValue, leverage, i) => {
+            const leveragedHeld = leveragedHelds[i];
+            const leveragedDebitAlice = getLeveragedDebits({
+              leveragedHeld,
+              leverage,
+              ...prices,
+            });
+
+            return accValue.add(leveragedDebitAlice.div(leverage).abs());
+          }, bn(0));
         const leveragedDebitBob = getLeveragedDebits({
-          leveragedHeld: leveragedHeld4,
-          leverage: leverage4,
+          leveragedHeld: leveragedHelds[3],
+          leverage: leverages[3],
           ...prices,
         });
-
-        const expectedMarginHeldAlice = leveragedDebitAlice1
-          .div(leverage1)
-          .abs()
-          .add(leveragedDebitAlice2.div(leverage2).abs())
-          .add(leveragedDebitAlice3.div(leverage3).abs());
-
-        const expectedMarginHeldBob = leveragedDebitBob.div(leverage4).abs();
+        const expectedMarginHeldBob = leveragedDebitBob.div(leverages[3]).abs();
 
         expect(marginHeldAlice).to.be.bignumber.equal(expectedMarginHeldAlice);
         expect(marginHeldBob).to.be.bignumber.equal(expectedMarginHeldBob);
@@ -1788,490 +1647,18 @@ contract('FlowMarginProtocol', accounts => {
     });
   });
 
-  describe('when margin calling a trader', () => {
-    let leverage: BN;
-    let depositInUsd: BN;
-    let leveragedHeldInEuro: BN;
-    let price: BN;
-    let TRADER_MARGIN_CALL_FEE: BN;
-
-    beforeEach(async () => {
-      leverage = bn(20);
-      depositInUsd = dollar(80);
-      leveragedHeldInEuro = euro(100);
-      price = bn(0); // accept all
-      TRADER_MARGIN_CALL_FEE = await protocol.TRADER_MARGIN_CALL_FEE();
-
-      await protocol.deposit(liquidityPool.address, depositInUsd, {
-        from: alice,
-      });
-
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage,
-        leveragedHeldInEuro,
-        price,
-        { from: alice },
-      );
-    });
-
-    describe('when trader is below margin call threshold', () => {
-      beforeEach(async () => {
-        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
-      });
-
-      it('allows margin calling of trader', async () => {
-        try {
-          await protocol.marginCallTrader(liquidityPool.address, alice, {
-            from: bob,
-          });
-        } catch (error) {
-          expect.fail(
-            `Margin call transaction should not have been reverted: ${error}`,
-          );
-        }
-      });
-
-      it('sends fee back to caller', async () => {
-        const balanceBefore = await usd.balanceOf(bob);
-        await protocol.marginCallTrader(liquidityPool.address, alice, {
-          from: bob,
-        });
-        const balanceAfter = await usd.balanceOf(bob);
-
-        expect(balanceAfter).to.be.bignumber.equal(
-          balanceBefore.add(TRADER_MARGIN_CALL_FEE),
-        );
-      });
-
-      it('does not allow margin calling twice', async () => {
-        await protocol.marginCallTrader(liquidityPool.address, alice, {
-          from: bob,
-        });
-
-        await expectRevert(
-          protocol.marginCallTrader(liquidityPool.address, alice, {
-            from: bob,
-          }),
-          messages.traderAlreadyMarginCalled,
-        );
-      });
-
-      it('does not allow making safe calls', async () => {
-        await protocol.marginCallTrader(liquidityPool.address, alice, {
-          from: bob,
-        });
-
-        await expectRevert(
-          protocol.makeTraderSafe(liquidityPool.address, alice, {
-            from: alice,
-          }),
-          messages.traderCannotBeMadeSafe,
-        );
-      });
-
-      describe('when margin called trader wants to open new position', () => {
-        beforeEach(async () => {
-          await protocol.marginCallTrader(liquidityPool.address, alice, {
-            from: bob,
-          });
-        });
-
-        it('reverts the transaction', async () => {
-          await expectRevert(
-            protocol.openPosition(
-              liquidityPool.address,
-              usd.address,
-              eur,
-              20,
-              euro(5),
-              0,
-              { from: alice },
-            ),
-            messages.traderIsMarginCalled,
-          );
-        });
-      });
-
-      describe('when margin called trader becomes safe again', () => {
-        beforeEach(async () => {
-          await protocol.marginCallTrader(liquidityPool.address, alice, {
-            from: bob,
-          });
-          await oracle.feedPrice(eur, fromPercent(120), { from: owner });
-        });
-
-        it('allows making trader safe again', async () => {
-          try {
-            await protocol.makeTraderSafe(liquidityPool.address, alice, {
-              from: bob,
-            });
-          } catch (error) {
-            expect.fail(
-              `Making safe transaction should not have been reverted: ${error}`,
-            );
-          }
-        });
-
-        it('requires to send back the TRADER_MARGIN_CALL_FEE', async () => {
-          const balanceBefore = await usd.balanceOf(alice);
-          await protocol.makeTraderSafe(liquidityPool.address, alice, {
-            from: alice,
-          });
-          const balanceAfter = await usd.balanceOf(alice);
-
-          expect(balanceAfter).to.be.bignumber.equal(
-            balanceBefore.sub(TRADER_MARGIN_CALL_FEE),
-          );
-        });
-
-        it('does not allow making safe calls twice', async () => {
-          await protocol.makeTraderSafe(liquidityPool.address, alice, {
-            from: alice,
-          });
-
-          await expectRevert(
-            protocol.makeTraderSafe(liquidityPool.address, alice, {
-              from: alice,
-            }),
-            messages.traderNotMarginCalled,
-          );
-        });
-      });
-    });
-
-    describe('when trader is above margin call threshold', () => {
-      it('does not allow margin calling of trader', async () => {
-        await expectRevert(
-          protocol.marginCallTrader(liquidityPool.address, alice, {
-            from: bob,
-          }),
-          messages.traderCannotBeMarginCalled,
-        );
-      });
-    });
-  });
-
-  describe('when margin calling a pool', () => {
-    let leverage: BN;
-    let depositInUsd: BN;
-    let leveragedHeldInEuro: BN;
-    let price: BN;
-    let LIQUIDITY_POOL_MARGIN_CALL_FEE: BN;
-
-    beforeEach(async () => {
-      leverage = bn(20);
-      depositInUsd = dollar(80);
-      leveragedHeldInEuro = euro(100);
-      price = bn(0); // accept all
-      LIQUIDITY_POOL_MARGIN_CALL_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE();
-
-      await protocol.deposit(liquidityPool.address, depositInUsd, {
-        from: alice,
-      });
-
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage,
-        leveragedHeldInEuro,
-        price,
-        { from: alice },
-      );
-    });
-
-    describe('when pool is below margin call threshold', () => {
-      beforeEach(async () => {
-        await liquidityPool.withdrawLiquidityOwner(dollar(199400));
-        await oracle.feedPrice(eur, fromPercent(130), { from: owner });
-      });
-
-      it('allows margin calling of pool', async () => {
-        expect(
-          await liquidityPoolRegistry.isMarginCalled(liquidityPool.address),
-        ).to.be.false;
-        try {
-          await protocol.marginCallLiquidityPool(liquidityPool.address, {
-            from: bob,
-          });
-        } catch (error) {
-          console.log(error);
-          expect.fail(
-            `Margin call transaction should not have been reverted: ${error}`,
-          );
-        }
-        expect(
-          await liquidityPoolRegistry.isMarginCalled(liquidityPool.address),
-        ).to.be.true;
-      });
-
-      it('sends fee back to caller', async () => {
-        const balanceBefore = await usd.balanceOf(bob);
-        await protocol.marginCallLiquidityPool(liquidityPool.address, {
-          from: bob,
-        });
-        const balanceAfter = await usd.balanceOf(bob);
-
-        expect(balanceAfter).to.be.bignumber.equal(
-          balanceBefore.add(LIQUIDITY_POOL_MARGIN_CALL_FEE),
-        );
-      });
-
-      it('does not allow margin calling twice', async () => {
-        await protocol.marginCallLiquidityPool(liquidityPool.address, {
-          from: bob,
-        });
-
-        await expectRevert(
-          protocol.marginCallLiquidityPool(liquidityPool.address, {
-            from: bob,
-          }),
-          messages.poolAlreadyMarginCalled,
-        );
-      });
-
-      it('does not allow making safe calls', async () => {
-        await protocol.marginCallLiquidityPool(liquidityPool.address, {
-          from: bob,
-        });
-
-        await expectRevert(
-          protocol.makeLiquidityPoolSafe(liquidityPool.address, {
-            from: alice,
-          }),
-          messages.poolCannotBeMadeSafe,
-        );
-      });
-
-      describe('when margin called pool has new new position opened', () => {
-        beforeEach(async () => {
-          await protocol.marginCallLiquidityPool(liquidityPool.address, {
-            from: bob,
-          });
-        });
-
-        it('reverts the transaction', async () => {
-          await expectRevert(
-            protocol.openPosition(
-              liquidityPool.address,
-              usd.address,
-              eur,
-              20,
-              euro(5),
-              0,
-              { from: alice },
-            ),
-            messages.poolIsMarginCalled,
-          );
-        });
-      });
-
-      describe('when margin called pool becomes safe again', () => {
-        beforeEach(async () => {
-          await protocol.marginCallLiquidityPool(liquidityPool.address, {
-            from: bob,
-          });
-
-          await usd.approve(liquidityPool.address, dollar(5000), {
-            from: liquidityProvider,
-          });
-          await liquidityPool.depositLiquidity(dollar(5000), {
-            from: liquidityProvider,
-          });
-        });
-
-        it('allows making pool safe again', async () => {
-          try {
-            await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
-              from: bob,
-            });
-          } catch (error) {
-            expect.fail(
-              `Making safe transaction should not have been reverted: ${error}`,
-            );
-          }
-        });
-
-        it('requires to send back the LIQUIDITY_POOL_MARGIN_CALL_FEE', async () => {
-          const balanceBefore = await usd.balanceOf(alice);
-          await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
-            from: alice,
-          });
-          const balanceAfter = await usd.balanceOf(alice);
-
-          expect(balanceAfter).to.be.bignumber.equal(
-            balanceBefore.sub(LIQUIDITY_POOL_MARGIN_CALL_FEE),
-          );
-        });
-
-        it('does not allow making safe calls twice', async () => {
-          await protocol.makeLiquidityPoolSafe(liquidityPool.address, {
-            from: alice,
-          });
-
-          await expectRevert(
-            protocol.makeLiquidityPoolSafe(liquidityPool.address, {
-              from: alice,
-            }),
-            messages.poolNotMarginCalled,
-          );
-        });
-      });
-    });
-
-    describe('when pool is above margin call threshold', () => {
-      it('does not allow margin calling of pool', async () => {
-        await expectRevert(
-          protocol.marginCallLiquidityPool(liquidityPool.address, {
-            from: bob,
-          }),
-          messages.poolCannotBeMarginCalled,
-        );
-      });
-    });
-  });
-
-  const insertPositions = async (positionCount: number, trader: string) => {
-    for (let i = 0; i < positionCount / 2; i += 1) {
-      // console.log(`Open Position ${i}`);
-      const leverage = bn(20).mul(i % 2 === 0 ? bn(1) : bn(-1));
-      const leveragedHeldInEuro = euro(2);
-      await protocol.openPosition(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        leverage,
-        leveragedHeldInEuro,
-        0,
-        { from: trader },
-      );
-    }
-  };
-
-  describe('when checking the trader safety', () => {
-    beforeEach(async () => {
-      await protocol.deposit(liquidityPool.address, dollar(1000), {
-        from: alice,
-      });
-      await protocol.deposit(liquidityPool.address, dollar(1000), {
-        from: bob,
-      });
-    });
-
-    describe('when the trader has 5 positions', () => {
-      beforeEach(async function testSetup() {
-        await insertPositions(5, alice);
-      });
-
-      it('returns if trader is safe', async () => {
-        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
-        await protocol.getIsTraderSafe(liquidityPool.address, alice);
-
-        expect(isSafe).to.be.true;
-      });
-    });
-
-    describe.skip('when the trader has 50 positions', () => {
-      beforeEach(async function testSetup() {
-        this.timeout(0);
-
-        await insertPositions(50, alice);
-      });
-
-      it('returns if pool is safe', async () => {
-        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
-        await protocol.getIsTraderSafe(liquidityPool.address, alice);
-
-        expect(isSafe).to.be.true;
-      }).timeout(0);
-    });
-  });
-
-  describe('when checking the pool safety', () => {
-    beforeEach(async () => {
-      await protocol.deposit(liquidityPool.address, dollar(1000), {
-        from: alice,
-      });
-      await protocol.deposit(liquidityPool.address, dollar(1000), {
-        from: bob,
-      });
-    });
-
-    describe('when the pool has 10 positions', () => {
-      beforeEach(async function testSetup() {
-        await insertPositions(5, alice);
-        await insertPositions(5, bob);
-      });
-
-      it('returns if pool is safe', async () => {
-        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
-        await protocol.isPoolSafe(liquidityPool.address);
-
-        expect(isSafe).to.be.true;
-      });
-    });
-
-    describe.skip('when the pool has 100 positions', () => {
-      beforeEach(async function testSetup() {
-        this.timeout(0);
-
-        await insertPositions(50, alice);
-        await insertPositions(50, bob);
-      });
-
-      it('returns if pool is safe', async () => {
-        const isSafe = await protocol.isPoolSafe.call(liquidityPool.address);
-        await protocol.isPoolSafe(liquidityPool.address);
-
-        expect(isSafe).to.be.true;
-      }).timeout(0);
-    });
-  });
-
   describe('when computing unrealized profit loss along with market price', () => {
-    const itComputesPlWithLeverageCorrectly = (leverage: BN) => {
+    for (const leverage of [bn(1), bn(20), bn(-50)]) {
       let askPrice: BN;
       let bidPrice: BN;
       let leveragedHeldInEuro: BN;
       let leveragedDebits: BN;
       let maxPrice: BN;
 
-      beforeEach(async () => {
-        askPrice = await protocol.getAskPrice.call(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          0,
-        );
-
-        bidPrice = await protocol.getBidPrice.call(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          0,
-        );
-
-        leveragedHeldInEuro = euro(100).mul(!leverage.isNeg() ? bn(1) : bn(-1));
-        leveragedDebits = fromEth(
-          leveragedHeldInEuro.mul(!leverage.isNeg() ? askPrice : bidPrice),
-        ).mul(bn(-1));
-        maxPrice = bn(0);
-      });
-
-      it('should return correct unrealized PL at the beginning of a new position', async () => {
-        const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          leveragedDebits,
-          maxPrice,
-        );
-        const currentPrice = !leverage.isNeg() ? bidPrice : askPrice;
+      const getExpectedPlAndCurrentPrice = async () => {
+        const currentPrice = await protocol[
+          !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
+        ].call(liquidityPool.address, usd.address, eur, 0);
         const openPrice = leveragedDebits
           .mul(bn(1e18))
           .div(leveragedHeldInEuro)
@@ -2281,76 +1668,98 @@ contract('FlowMarginProtocol', accounts => {
           currentPrice.sub(openPrice).mul(leveragedHeldInEuro),
         );
 
-        expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
-        expect(unrealizedPl['1']).to.be.bignumber.equal(currentPrice);
+        return { expectedPl, currentPrice };
+      };
+
+      describe(`when leverage is ${leverage.toString()}`, () => {
+        beforeEach(async () => {
+          askPrice = await protocol.getAskPrice.call(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            0,
+          );
+
+          bidPrice = await protocol.getBidPrice.call(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            0,
+          );
+
+          leveragedHeldInEuro = euro(100).mul(
+            !leverage.isNeg() ? bn(1) : bn(-1),
+          );
+          leveragedDebits = fromEth(
+            leveragedHeldInEuro.mul(!leverage.isNeg() ? askPrice : bidPrice),
+          ).mul(bn(-1));
+          maxPrice = bn(0);
+        });
+
+        it('should return correct unrealized PL at the beginning of a new position', async () => {
+          const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            leverage,
+            leveragedHeldInEuro,
+            leveragedDebits,
+            maxPrice,
+          );
+          const {
+            currentPrice,
+            expectedPl,
+          } = await getExpectedPlAndCurrentPrice();
+
+          expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
+          expect(unrealizedPl['1']).to.be.bignumber.equal(currentPrice);
+        });
+
+        it('should return correct unrealized PL after a profit', async () => {
+          await oracle.feedPrice(eur, fromPercent(240), { from: owner });
+
+          const newPrice: BN = await protocol[
+            !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
+          ].call(liquidityPool.address, usd.address, eur, 0);
+
+          const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            leverage,
+            leveragedHeldInEuro,
+            leveragedDebits,
+            maxPrice,
+          );
+          const { expectedPl } = await getExpectedPlAndCurrentPrice();
+
+          expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
+          expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
+        });
+
+        it('should return correct unrealized PL after a loss', async () => {
+          await oracle.feedPrice(eur, fromPercent(60), { from: owner });
+
+          const newPrice: BN = await protocol[
+            !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
+          ].call(liquidityPool.address, usd.address, eur, 0);
+
+          const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            leverage,
+            leveragedHeldInEuro,
+            leveragedDebits,
+            maxPrice,
+          );
+          const { expectedPl } = await getExpectedPlAndCurrentPrice();
+
+          expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
+          expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
+        });
       });
-
-      it('should return correct unrealized PL after a profit', async () => {
-        await oracle.feedPrice(eur, fromPercent(240), { from: owner });
-
-        const newPrice: BN = await protocol[
-          !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
-        ].call(liquidityPool.address, usd.address, eur, 0);
-
-        const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          leveragedDebits,
-          maxPrice,
-        );
-        const openPrice = leveragedDebits
-          .mul(bn(1e18))
-          .div(leveragedHeldInEuro)
-          .abs();
-        // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-        const expectedPl = fromEth(
-          newPrice.sub(openPrice).mul(leveragedHeldInEuro),
-        );
-
-        expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
-        expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
-      });
-
-      it('should return correct unrealized PL after a loss', async () => {
-        await oracle.feedPrice(eur, fromPercent(60), { from: owner });
-
-        const newPrice: BN = await protocol[
-          !leverage.isNeg() ? 'getBidPrice' : 'getAskPrice'
-        ].call(liquidityPool.address, usd.address, eur, 0);
-
-        const unrealizedPl = await protocol.getUnrealizedPlAndMarketPriceOfPosition.call(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          leveragedDebits,
-          maxPrice,
-        );
-        const openPrice = leveragedDebits
-          .mul(bn(1e18))
-          .div(leveragedHeldInEuro)
-          .abs();
-        // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-        const expectedPl = fromEth(
-          newPrice.sub(openPrice).mul(leveragedHeldInEuro),
-        );
-
-        expect(unrealizedPl['0']).to.be.bignumber.equal(expectedPl);
-        expect(unrealizedPl['1']).to.be.bignumber.equal(newPrice);
-      });
-    };
-
-    describe('when given a long position', () => {
-      itComputesPlWithLeverageCorrectly(bn(20));
-    });
-
-    describe('when given a short position', () => {
-      itComputesPlWithLeverageCorrectly(bn(-20));
-    });
+    }
   });
 
   describe('when computing unrealized profit loss of trader', () => {
@@ -2413,13 +1822,13 @@ contract('FlowMarginProtocol', accounts => {
       );
     });
 
-    it('should return correct unrealized PL at the beginning of a new position', async () => {
-      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
-        liquidityPool.address,
-        alice,
-      );
-      const currentPrice1 = !leverage1.isNeg() ? bidPrice : askPrice;
-      const currentPrice2 = !leverage2.isNeg() ? bidPrice : askPrice;
+    const getExpectedTraderPl = async () => {
+      const currentPrice1: BN = await protocol[
+        !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
+      ].call(liquidityPool.address, usd.address, eur, 0);
+      const currentPrice2: BN = await protocol[
+        !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
+      ].call(liquidityPool.address, usd.address, eur, 0);
       const openPrice1 = leveragedDebits1
         .mul(bn(1e18))
         .div(leveragedHeldInEuro1);
@@ -2436,71 +1845,33 @@ contract('FlowMarginProtocol', accounts => {
       const expectedPl1 = fromEth(priceDelta1.mul(leveragedHeldInEuro1));
       const expectedPl2 = fromEth(priceDelta2.mul(leveragedHeldInEuro2));
 
-      expect(unrealizedPl).to.be.bignumber.equal(expectedPl1.add(expectedPl2));
+      return expectedPl1.add(expectedPl2);
+    };
+
+    it('should return correct unrealized PL at the beginning of a new position', async () => {
+      const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
+        liquidityPool.address,
+        alice,
+      );
+      expect(unrealizedPl).to.be.bignumber.equal(await getExpectedTraderPl());
     });
 
     it('should return correct unrealized PL after a profit', async () => {
       await oracle.feedPrice(eur, fromPercent(240), { from: owner });
-
       const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
         liquidityPool.address,
         alice,
       );
-      const newPrice1: BN = await protocol[
-        !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
-      ].call(liquidityPool.address, usd.address, eur, 0);
-      const newPrice2: BN = await protocol[
-        !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
-      ].call(liquidityPool.address, usd.address, eur, 0);
-      const openPrice1 = leveragedDebits1
-        .mul(bn(1e18))
-        .div(leveragedHeldInEuro1);
-      const openPrice2 = leveragedDebits2
-        .mul(bn(1e18))
-        .div(leveragedHeldInEuro2);
-      // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-      const priceDelta1 = !leverage1.isNeg()
-        ? newPrice1.sub(openPrice1)
-        : openPrice1.sub(newPrice1);
-      const priceDelta2 = !leverage2.isNeg()
-        ? newPrice2.sub(openPrice2)
-        : openPrice2.sub(newPrice2);
-      const expectedPl1 = fromEth(priceDelta1.mul(leveragedHeldInEuro1));
-      const expectedPl2 = fromEth(priceDelta2.mul(leveragedHeldInEuro2));
-
-      expect(unrealizedPl).to.be.bignumber.equal(expectedPl1.add(expectedPl2));
+      expect(unrealizedPl).to.be.bignumber.equal(await getExpectedTraderPl());
     });
 
     it('should return correct unrealized PL after a loss', async () => {
       await oracle.feedPrice(eur, fromPercent(60), { from: owner });
-
       const unrealizedPl = await protocol.getUnrealizedPlOfTrader.call(
         liquidityPool.address,
         alice,
       );
-      const newPrice1: BN = await protocol[
-        !leverage1.isNeg() ? 'getBidPrice' : 'getAskPrice'
-      ].call(liquidityPool.address, usd.address, eur, 0);
-      const newPrice2: BN = await protocol[
-        !leverage2.isNeg() ? 'getBidPrice' : 'getAskPrice'
-      ].call(liquidityPool.address, usd.address, eur, 0);
-      const openPrice1 = leveragedDebits1
-        .mul(bn(1e18))
-        .div(leveragedHeldInEuro1);
-      const openPrice2 = leveragedDebits2
-        .mul(bn(1e18))
-        .div(leveragedHeldInEuro2);
-      // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-      const priceDelta1 = !leverage1.isNeg()
-        ? newPrice1.sub(openPrice1)
-        : openPrice1.sub(newPrice1);
-      const priceDelta2 = !leverage2.isNeg()
-        ? newPrice2.sub(openPrice2)
-        : openPrice2.sub(newPrice2);
-      const expectedPl1 = fromEth(priceDelta1.mul(leveragedHeldInEuro1));
-      const expectedPl2 = fromEth(priceDelta2.mul(leveragedHeldInEuro2));
-
-      expect(unrealizedPl).to.be.bignumber.equal(expectedPl1.add(expectedPl2));
+      expect(unrealizedPl).to.be.bignumber.equal(await getExpectedTraderPl());
     });
   });
 
@@ -2511,7 +1882,7 @@ contract('FlowMarginProtocol', accounts => {
       const ageOfPosition = time.duration.days(daysOfPosition);
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
-      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters(
+      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters.call(
         leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
@@ -2532,7 +1903,7 @@ contract('FlowMarginProtocol', accounts => {
         .sub(time.duration.seconds(5));
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
-      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters(
+      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters.call(
         leveragedDebitsInUsd,
         swapRate,
         timeWhenOpened,
@@ -2553,8 +1924,6 @@ contract('FlowMarginProtocol', accounts => {
     let leverage1: BN;
     let leverage2: BN;
     let leverage3: BN;
-    let initialAskPrice: BN;
-    let initialBidPrice: BN;
 
     beforeEach(async () => {
       await protocol.deposit(liquidityPool.address, dollar(1000), {
@@ -2563,20 +1932,6 @@ contract('FlowMarginProtocol', accounts => {
       await protocol.deposit(liquidityPool.address, dollar(1000), {
         from: bob,
       });
-
-      initialAskPrice = await protocol.getAskPrice.call(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        0,
-      );
-
-      initialBidPrice = await protocol.getBidPrice.call(
-        liquidityPool.address,
-        usd.address,
-        eur,
-        0,
-      );
 
       leveragedHeld1 = euro(10);
       leveragedHeld2 = euro(5);
@@ -2711,136 +2066,6 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
-    describe('when computing equity of pool', () => {
-      it('should return the correct equity', async () => {
-        const poolEquity = await protocol.getEquityOfPool.call(
-          liquidityPool.address,
-        );
-
-        const liquidity = convertToBaseToken(
-          await liquidityPool.getLiquidity.call(),
-        );
-        let allUnrealizedPl = bn(0);
-        let allAccumulatedSwapRate = bn(0);
-
-        const positionCount = 3;
-
-        for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          allUnrealizedPl = allUnrealizedPl.add(
-            await protocol.getUnrealizedPlOfPosition.call(positionId),
-          );
-          allAccumulatedSwapRate = allAccumulatedSwapRate.add(
-            await (protocol as any).getAccumulatedSwapRateOfPosition(
-              bn(positionId),
-            ),
-          );
-        }
-
-        // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate);
-        const expectedPoolEquity = liquidity.sub(
-          allUnrealizedPl.add(allAccumulatedSwapRate),
-        );
-
-        expect(poolEquity).to.be.bignumber.equal(expectedPoolEquity);
-      });
-    });
-
-    describe('when computing ENP of pool', () => {
-      it('should return the correct ENP', async () => {
-        // ENP - Equity to Net Position ratio of a liquidity pool.
-        const enp = (await protocol.getEnpAndEll.call(liquidityPool.address))[
-          '0'
-        ];
-
-        let net = bn(0);
-        let positive = bn(0);
-        let negative = bn(0);
-
-        const positionCount = 3;
-
-        for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = (await protocol.getPositionById(positionId))[
-            '8'
-          ];
-          net = net.add(leveragedDebits);
-
-          if (leveragedDebits.isNeg()) {
-            negative = negative.add(leveragedDebits);
-          } else {
-            positive = positive.add(leveragedDebits);
-          }
-        }
-
-        const equity = await protocol.getEquityOfPool.call(
-          liquidityPool.address,
-        );
-
-        const netAbs = net.abs(); // TODO test netAbs = 0
-        const expectedPoolENP = equity.mul(bn(1e18)).div(netAbs);
-
-        expect(enp).to.be.bignumber.equal(expectedPoolENP);
-      });
-
-      // very difficult and unlikely to get exactly net of 0
-      // code is straight forward just in case, test not really required
-      /* describe('when net positions equals 0', () => {
-        it('should return the correct ENP', async () => {
-          const enp = (await protocol.getEnpAndEll.call(liquidityPool.address))[
-            '0'
-          ];
-          expect(enp).to.be.bignumber.equal(constants.MAX_UINT256);
-        });
-      }); */
-    });
-
-    describe('when computing ELL of pool', () => {
-      it('should return the correct ENP', async () => {
-        // ELL - Equity to Longest Leg ratio of a liquidity pool.
-        const ell = (await protocol.getEnpAndEll.call(liquidityPool.address))[
-          '1'
-        ];
-
-        let net = bn(0);
-        let positive = bn(0);
-        let negative = bn(0);
-
-        const positionCount = 3;
-
-        for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = (await protocol.getPositionById(positionId))[
-            '8'
-          ];
-          net = net.add(leveragedDebits);
-
-          if (leveragedDebits.isNeg()) {
-            negative = negative.add(leveragedDebits);
-          } else {
-            positive = positive.add(leveragedDebits);
-          }
-        }
-
-        const equity = await protocol.getEquityOfPool.call(
-          liquidityPool.address,
-        );
-
-        const longestLeg = BN.max(positive, negative.abs()); // TODO longestLeg = 0
-        const expectedPoolELL = equity.mul(bn(1e18)).div(longestLeg);
-
-        expect(ell).to.be.bignumber.equal(expectedPoolELL);
-      });
-
-      // very difficult and unlikely to get exactly longest leg of 0
-      // code is straight forward just in case, test not really required
-      /* describe('when longest leg equals 0', () => {
-        it('should return the correct ELL', async () => {
-          const ell = (await protocol.getEnpAndEll.call(liquidityPool.address))[
-            '0'
-          ];
-          expect(ell).to.be.bignumber.equal(constants.MAX_UINT256);
-        });
-      }); */
-    });
-
     describe('when removing a position from the lists', () => {
       it('should remove the correct position from all lists', async () => {
         const positionsByPoolBefore = await protocol.getPositionsByPool(
@@ -2882,29 +2107,6 @@ contract('FlowMarginProtocol', accounts => {
       });
     });
 
-    describe('when getting accumulated leveraged debits of a trader', () => {
-      it('should return the correct value', async () => {
-        const leveragedDebits = await protocol.getLeveragedDebitsOfTrader(
-          liquidityPool.address,
-          alice,
-        );
-
-        const leveragedDebit1 = fromEth(
-          leveragedHeld1.mul(
-            leverage1.isNeg() ? initialBidPrice : initialAskPrice,
-          ),
-        );
-        const leveragedDebit2 = fromEth(
-          leveragedHeld2.mul(
-            leverage2.isNeg() ? initialBidPrice : initialAskPrice,
-          ),
-        );
-        const expectedLeveragedDebits = leveragedDebit1.add(leveragedDebit2);
-
-        expect(leveragedDebits).to.be.bignumber.equal(expectedLeveragedDebits);
-      });
-    });
-
     describe('when getting accumulated swap rates of all positions from a trader', () => {
       it('should return the correct value', async () => {
         const daysOfPosition = 5;
@@ -2934,8 +2136,8 @@ contract('FlowMarginProtocol', accounts => {
       const price1 = await protocol.getPrice.call(usd.address, eur);
       const price2 = await protocol.getPrice.call(eur, usd.address);
 
-      expect(price1).to.be.bignumber.equal(fromPercent(120));
-      expect(price2).to.be.bignumber.equal(bn('833333333333333333'));
+      expect(price1.value).to.be.bignumber.equal(fromPercent(120));
+      expect(price2.value).to.be.bignumber.equal(bn('833333333333333333'));
     });
   });
 

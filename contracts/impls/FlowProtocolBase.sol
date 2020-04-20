@@ -49,13 +49,13 @@ contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGua
         return price;
     }
 
-    function getAskSpread(LiquidityPoolInterface pool, address token) internal view returns (uint) {
+    function getAskSpread(LiquidityPoolInterface pool, address token) public view returns (uint) {
         uint spread = pool.getAskSpread(token);
         require(spread > 0, "Token disabled for this pool");
         return Math.min(spread, maxSpread);
     }
 
-    function getBidSpread(LiquidityPoolInterface pool, address token) internal view returns (uint) {
+    function getBidSpread(LiquidityPoolInterface pool, address token) public view returns (uint) {
         uint spread = pool.getBidSpread(token);
         require(spread > 0, "Token disabled for this pool");
         return Math.min(spread, maxSpread);

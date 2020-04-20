@@ -19,7 +19,7 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
     using SafeERC20 for IERC20;
 
     MoneyMarketInterface private moneyMarket;
-    address private protocol;
+    address private protocolSafety;
 
     mapping (LiquidityPoolInterface => bool) public isVerifiedPool;
     mapping (LiquidityPoolInterface => bool) public poolHasPaidFees;
@@ -28,12 +28,12 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
     uint256 constant public LIQUIDITY_POOL_MARGIN_CALL_FEE = 1000 ether; // TODO
     uint256 constant public LIQUIDITY_POOL_LIQUIDATION_FEE = 3000 ether; // TODO
 
-    function initialize(MoneyMarketInterface _moneyMarket, address _protocol) public initializer {
+    function initialize(MoneyMarketInterface _moneyMarket, address _protocolSafety) public initializer {
         UpgradeOwnable.initialize(msg.sender);
         UpgradeReentrancyGuard.initialize();
 
         moneyMarket = _moneyMarket;
-        protocol = _protocol;
+        protocolSafety = _protocolSafety;
     }
 
     /**
@@ -45,7 +45,7 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
         require(!poolHasPaidFees[_pool], "PR1");
 
         uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
-        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, protocol, feeSum);
+        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, protocolSafety, feeSum);
 
         poolHasPaidFees[_pool] = true;
     }
@@ -70,22 +70,22 @@ contract LiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentran
     }
 
     /**
-     * @dev Margin call a pool, only used by the protocol.
+     * @dev Margin call a pool, only used by the protocolSafety.
      * @param _pool The MarginLiquidityPool.
      */
     function marginCallPool(LiquidityPoolInterface _pool) public {
-        require(msg.sender == protocol, "Only protocol can call this function");
+        require(msg.sender == protocolSafety, "Only protocol can call this function");
         require(!isMarginCalled[_pool], "PM1");
 
         isMarginCalled[_pool] = true;
     }
 
     /**
-     * @dev Make pool safe, only used by protocol.
+     * @dev Make pool safe, only used by protocolSafety.
      * @param _pool The MarginLiquidityPool.
      */
     function makePoolSafe(LiquidityPoolInterface _pool) public {
-        require(msg.sender == protocol, "Only protocol can call this function");
+        require(msg.sender == protocolSafety, "Only protocol can call this function");
         require(isMarginCalled[_pool], "PS1");
 
         isMarginCalled[_pool] = false;
