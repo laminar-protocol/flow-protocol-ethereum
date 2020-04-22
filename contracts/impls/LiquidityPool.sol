@@ -16,11 +16,12 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
     using SafeERC20 for IERC20;
 
     // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
-    uint constant MAX_UINT = 2**256 - 1;
+    uint256 constant MAX_UINT = 2**256 - 1;
 
     MoneyMarketInterface internal moneyMarket;
-    uint private spread;
-    uint private collateralRatio;
+    uint256 private spread;
+    mapping (address => uint256) private spreadsPerToken;
+    uint256 private collateralRatio;
 
     address public protocol;
     mapping (address => bool) public allowedTokens;
@@ -30,7 +31,7 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         _;
     }
 
-    function initialize(MoneyMarketInterface _moneyMarket, address _protocol, uint _spread) public initializer {
+    function initialize(MoneyMarketInterface _moneyMarket, address _protocol, uint256 _spread) public initializer {
         UpgradeOwnable.initialize(msg.sender);
 
         moneyMarket = _moneyMarket;
@@ -39,49 +40,61 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         collateralRatio = 0; // use fToken default
     }
 
-    function getBidSpread(address fToken) external view override returns (uint) {
-        if (allowedTokens[fToken]) {
+    function getBidSpread(address _fToken) external view override returns (uint256) {
+        if (allowedTokens[_fToken] && spreadsPerToken[_fToken] > 0) {
+            return spreadsPerToken[_fToken];
+        } else if (allowedTokens[_fToken]) {
             return spread;
         }
+
         return 0;
     }
 
-    function getAskSpread(address fToken) external view override returns (uint) {
-        if (allowedTokens[fToken]) {
+    function getAskSpread(address _fToken) external view override returns (uint256) {
+        if (allowedTokens[_fToken] && spreadsPerToken[_fToken] > 0) {
+            return spreadsPerToken[_fToken];
+        } else if (allowedTokens[_fToken]) {
             return spread;
         }
+
         return 0;
     }
 
-    function getAdditionalCollateralRatio(address fToken) external view override returns (uint) {
+    function getAdditionalCollateralRatio(address fToken) external view override returns (uint256) {
         if (allowedTokens[fToken]) {
             return collateralRatio;
         }
         return 0;
     }
 
-    function approve(address _protocol, uint amount) external onlyOwner {
-        moneyMarket.iToken().safeApprove(_protocol, amount);
+    function approve(address _protocol, uint256 _amount) external onlyOwner {
+        moneyMarket.iToken().safeApprove(_protocol, _amount);
     }
 
-    function setSpread(uint value) external onlyOwner {
-        spread = value;
+    function setSpread(uint256 _value) external onlyOwner {
+        spread = _value;
 
         emit SpreadUpdated();
     }
 
-    function setCollateralRatio(uint value) external onlyOwner {
-        collateralRatio = value;
+    function setSpread(address _token, uint256 _value) external onlyOwner {
+        spreadsPerToken[_token] = _value;
+
+        emit SpreadUpdated(_token, _value);
+    }
+
+    function setCollateralRatio(uint256 _value) external onlyOwner {
+        collateralRatio = _value;
 
         emit AdditionalCollateralRatioUpdated();
     }
 
-    function enableToken(address token) external onlyOwner {
-        allowedTokens[token] = true;
+    function enableToken(address _token) external onlyOwner {
+        allowedTokens[_token] = true;
     }
 
-    function disableToken(address token) external onlyOwner {
-        allowedTokens[token] = false;
+    function disableToken(address _token) external onlyOwner {
+        allowedTokens[_token] = false;
     }
 
     function depositLiquidity(uint _baseTokenAmount) external override returns (uint256) {
@@ -105,12 +118,12 @@ contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface 
         return baseTokenAmount;
     }
 
-    function addCollateral(FlowProtocol _protocol, FlowToken token, uint baseTokenAmount) external onlyOwner {
-        _protocol.addCollateral(token, address(this), baseTokenAmount);
+    function addCollateral(FlowProtocol _protocol, FlowToken _token, uint256 _baseTokenAmount) external onlyOwner {
+        _protocol.addCollateral(_token, address(this), _baseTokenAmount);
     }
 
-    function withdrawCollateral(FlowProtocol _protocol, FlowToken token) external onlyOwner {
-        _protocol.withdrawCollateral(token);
+    function withdrawCollateral(FlowProtocol _protocol, FlowToken _token) external onlyOwner {
+        _protocol.withdrawCollateral(_token);
     }
 
     function getLiquidity() external override returns (uint256) {

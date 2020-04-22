@@ -20,5 +20,6 @@ interface LiquidityPoolInterface {
         returns (uint256);
 
     event SpreadUpdated();
+    event SpreadUpdated(address indexed token, uint256 newSpread);
     event AdditionalCollateralRatioUpdated();
 }

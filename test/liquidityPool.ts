@@ -73,9 +73,12 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to set and get new value', async () => {
-      await liquidityPool.setSpread(helper.fromPip(20), {
-        from: liquidityProvider,
-      });
+      await (liquidityPool as any).methods['setSpread(uint256)'](
+        helper.fromPip(20),
+        {
+          from: liquidityProvider,
+        },
+      );
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(helper.fromPip(20));
       spread = await liquidityPool.getAskSpread(fToken);
@@ -84,9 +87,24 @@ contract('LiquidityPool', accounts => {
 
     it('requires owner to set spread', async () => {
       await expectRevert(
-        liquidityPool.setSpread(helper.fromPip(30), { from: badAddress }),
+        (liquidityPool as any).methods['setSpread(uint256)'](
+          helper.fromPip(30),
+          {
+            from: badAddress,
+          },
+        ),
         helper.messages.onlyOwner,
       );
+    });
+
+    it('should be able to set and get new value per token', async () => {
+      await (liquidityPool as any).setSpread(fToken, helper.fromPip(12), {
+        from: liquidityProvider,
+      });
+      let spread = await liquidityPool.getBidSpread(fToken);
+      expect(spread).bignumber.equal(helper.fromPip(12));
+      spread = await liquidityPool.getAskSpread(fToken);
+      expect(spread).bignumber.equal(helper.fromPip(12));
     });
   });
 
