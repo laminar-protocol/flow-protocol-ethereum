@@ -77,5 +77,5 @@ dataSources:
           file: ../build/contracts/MoneyMarket.json
       file: ./src/mapping.ts
       eventHandlers:
-        - event: NewTradingPair(address,address)
+        - event: NewTradingPair(indexed address,indexed address)
           handler: handleNewTradingPair
