@@ -51,6 +51,17 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 timeWhenOpened;
     }
 
+    /**
+     * @dev Event for deposits.
+     * @param sender The sender
+     * @param liquidityPool The MarginLiquidityPool
+     * @param liquidityPool The MarginLiquidityPool
+     * @param baseToken The base token
+     * @param quoteToken The quote token
+     * @param leverage The leverage, e.g., 20x
+     * @param amount The quoteToken amount to open position
+     * @param price The max/min price for opening, 0 means accept all.
+     */
     event PositionOpened(
         address indexed sender,
         address indexed liquidityPool,
@@ -60,6 +71,16 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 amount,
         uint256 price
     );
+
+    /**
+     * @dev Event for deposits.
+     * @param sender The sender
+     * @param liquidityPool The MarginLiquidityPool
+     * @param baseToken The base token
+     * @param quoteToken The quote token
+     * @param positionId The position id
+     * @param price The max/min price for closing, 0 means accept all.
+     */
     event PositionClosed(
         address indexed sender,
         address indexed liquidityPool,
@@ -68,31 +89,105 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 positionId,
         uint256 price
     );
-    event Deposited(address indexed sender, uint256 amount);
-    event Withdrew(address indexed sender, uint256 amount);
-    event NewTradingPair(address base, address quote);
 
+    /**
+     * @dev Event for deposits.
+     * @param sender The sender
+     * @param amount The amount
+     */
+    event Deposited(address indexed sender, uint256 amount);
+
+    /**
+     * @dev Event for withdrawals..
+     * @param sender The sender
+     * @param amount The amount
+     */
+    event Withdrew(address indexed sender, uint256 amount);
+
+    /**
+     * @dev Event for new trading pair being added.
+     * @param base The base token
+     * @param quote The quote token
+     */
+    event NewTradingPair(address indexed base, address indexed quote);
+
+    /**
+     * @dev Return the next position id, meaning the last one is this one minus one.
+     */
     uint256 public nextPositionId;
 
+    /**
+     * @dev Return the MarginFlowProtocolSafety address.
+     */
     MarginFlowProtocolSafety public safetyProtocol;
+
+    /**
+     * @dev Return the MarginLiquidityPoolRegistry address.
+     */
     MarginLiquidityPoolRegistry public liquidityPoolRegistry;
 
-    // positions
+    /**
+     * @dev Return the position with given id.
+     * @param id The id of the position
+     */
     mapping (uint256 => Position) public positionsById;
+
+    /**
+     * @dev Return the position at index for given pool and trader.
+     * @param pool The MarginLiquidityPool
+     * @param trader The trader
+     * @param index The index inside the positions list.
+     */
     mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
+
+    /**
+     * @dev Return the position at index for given pool.
+     * @param pool The MarginLiquidityPool
+     * @param index The index inside the positions list.
+     */
     mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
 
-    // protocol state per pool
+    /**
+     * @dev Return the current balance of a trader. This does not include unrealized PL..
+     * @param pool The MarginLiquidityPool
+     * @param trader The trader.
+     */
     mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
+
+    /**
+     * @dev Return if the trader has paid fees for given pool.
+     * @param pool The MarginLiquidityPool
+     * @param trader The trader.
+     */
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
+
+    /**
+     * @dev Return if the trader is margin called for given pool.
+     * @param pool The MarginLiquidityPool
+     * @param trader The trader.
+     */
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
 
-    // trading pairs
+    /**
+     * @dev Return if the trading pair is whitelisted..
+     * @param base The base token
+     * @param quote The quote token
+     */
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
 
+    /**
+     * @dev Return the current swap rate.
+     */
     Percentage.Percent public currentSwapRate;
 
+    /**
+     * @dev Return the trader margin call fee..
+     */
     uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
+
+    /**
+     * @dev Return trader liquidation fee.
+     */
     uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
 
     modifier poolIsVerified(MarginLiquidityPoolInterface _pool) {
