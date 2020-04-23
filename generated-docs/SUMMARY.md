@@ -1,23 +1,28 @@
 # Summary
 * contracts
   * impls
-    * [FlowMarginProtocol](docs/impls/FlowMarginProtocol.md)
-    * [FlowMarginProtocolSafety](docs/impls/FlowMarginProtocolSafety.md)
-    * [FlowProtocol](docs/impls/FlowProtocol.md)
     * [FlowProtocolBase](docs/impls/FlowProtocolBase.md)
-    * [FlowToken](docs/impls/FlowToken.md)
     * [LiquidityPool](docs/impls/LiquidityPool.md)
-    * [LiquidityPoolRegistry](docs/impls/LiquidityPoolRegistry.md)
-    * [MarginTradingPair](docs/impls/MarginTradingPair.md)
+    * margin
+      * [MarginFlowProtocol](docs/impls/margin/MarginFlowProtocol.md)
+      * [MarginFlowProtocolSafety](docs/impls/margin/MarginFlowProtocolSafety.md)
+      * [MarginLiquidityPool](docs/impls/margin/MarginLiquidityPool.md)
+      * [MarginLiquidityPoolRegistry](docs/impls/margin/MarginLiquidityPoolRegistry.md)
     * [MintableToken](docs/impls/MintableToken.md)
     * [MoneyMarket](docs/impls/MoneyMarket.md)
     * [PriceOracleConfig](docs/impls/PriceOracleConfig.md)
     * [SimplePriceOracle](docs/impls/SimplePriceOracle.md)
+    * synthetic
+      * [SyntheticFlowProtocol](docs/impls/synthetic/SyntheticFlowProtocol.md)
+      * [SyntheticFlowToken](docs/impls/synthetic/SyntheticFlowToken.md)
+      * [SyntheticLiquidityPool](docs/impls/synthetic/SyntheticLiquidityPool.md)
   * interfaces
     * [CErc20Interface](docs/interfaces/CErc20Interface.md)
     * [LiquidityPoolInterface](docs/interfaces/LiquidityPoolInterface.md)
+    * [MarginLiquidityPoolInterface](docs/interfaces/MarginLiquidityPoolInterface.md)
     * [MoneyMarketInterface](docs/interfaces/MoneyMarketInterface.md)
     * [PriceOracleInterface](docs/interfaces/PriceOracleInterface.md)
+    * [SyntheticLiquidityPoolInterface](docs/interfaces/SyntheticLiquidityPoolInterface.md)
   * libs
     * [Arrays](docs/libs/Arrays.md)
     * [Percentage](docs/libs/Percentage.md)
@@ -34,20 +39,20 @@
     * [FaucetInterface](docs/mocks/FaucetInterface.md)
     * margin
       * [MockIsPoolSafeMarginProtocol](docs/mocks/margin/MockIsPoolSafeMarginProtocol.md)
-      * [TestFlowMarginProtocol](docs/mocks/margin/TestFlowMarginProtocol.md)
-      * [TestFlowMarginProtocolSafety](docs/mocks/margin/TestFlowMarginProtocolSafety.md)
+      * [TestMarginFlowProtocol](docs/mocks/margin/TestMarginFlowProtocol.md)
+      * [TestMarginFlowProtocolSafety](docs/mocks/margin/TestMarginFlowProtocolSafety.md)
     * [TestCToken](docs/mocks/TestCToken.md)
     * [TestToken](docs/mocks/TestToken.md)
     * upgrades
       * [FlowMarginProtocolNewVersion](docs/mocks/upgrades/FlowMarginProtocolNewVersion.md)
       * [FlowMarginProtocolSafetyNewVersion](docs/mocks/upgrades/FlowMarginProtocolSafetyNewVersion.md)
-      * [FlowProtocolNewVersion](docs/mocks/upgrades/FlowProtocolNewVersion.md)
       * [FlowTokenNewVersion](docs/mocks/upgrades/FlowTokenNewVersion.md)
-      * [LiquidityPoolNewVersion](docs/mocks/upgrades/LiquidityPoolNewVersion.md)
-      * [LiquidityPoolRegistryNewVersion](docs/mocks/upgrades/LiquidityPoolRegistryNewVersion.md)
-      * [MarginTradingPairNewVersion](docs/mocks/upgrades/MarginTradingPairNewVersion.md)
+      * [MarginLiquidityPoolNewVersion](docs/mocks/upgrades/MarginLiquidityPoolNewVersion.md)
+      * [MarginLiquidityPoolRegistryNewVersion](docs/mocks/upgrades/MarginLiquidityPoolRegistryNewVersion.md)
       * [MoneyMarketNewVersion copy](docs/mocks/upgrades/MoneyMarketNewVersion copy.md)
       * [SimplePriceOracleNewVersion](docs/mocks/upgrades/SimplePriceOracleNewVersion.md)
+      * [SyntheticFlowProtocolNewVersion](docs/mocks/upgrades/SyntheticFlowProtocolNewVersion.md)
+      * [SyntheticLiquidityPoolNewVersion](docs/mocks/upgrades/SyntheticLiquidityPoolNewVersion.md)
   * roles
     * [PriceFeederRole](docs/roles/PriceFeederRole.md)
     * [ProtocolOwnable](docs/roles/ProtocolOwnable.md)
