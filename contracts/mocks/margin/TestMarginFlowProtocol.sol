@@ -1,13 +1,13 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../../impls/FlowMarginProtocol.sol";
+import "../../impls/margin/MarginFlowProtocol.sol";
 
-contract TestFlowMarginProtocol is FlowMarginProtocol {
+contract TestMarginFlowProtocol is MarginFlowProtocol {
     function getUnrealizedPlAndMarketPriceOfPosition(
-        LiquidityPoolInterface _pool,
-        FlowToken _base,
-        FlowToken _quote,
+        MarginLiquidityPoolInterface _pool,
+        address _base,
+        address _quote,
         int256 _leverage,
         int256 _leveragedHeld,
         int256 _leveragedDebits,
@@ -21,26 +21,26 @@ contract TestFlowMarginProtocol is FlowMarginProtocol {
         return (unrealized, price.value);
     }
 
-    function getAskPrice(LiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _max) public returns (uint256) {
+    function getAskPrice(MarginLiquidityPoolInterface _pool, address _base, address _quote, uint256 _max) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
         return _getAskPrice(_pool, pair, _max).value;
     }
 
-    function getBidPrice(LiquidityPoolInterface _pool, FlowToken _base,FlowToken _quote, uint256 _min) public returns (uint256) {
+    function getBidPrice(MarginLiquidityPoolInterface _pool, address _base, address _quote, uint256 _min) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
         return _getBidPrice(_pool, pair, _min).value;
     }
 
-    function removePositionFromPoolList(LiquidityPoolInterface _pool, uint256 _positionId) public {
-        TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
+    function removePositionFromPoolList(MarginLiquidityPoolInterface _pool, uint256 _positionId) public {
+        TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
         Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.Percent(0), 0);
 
         _removePositionFromLists(position);
     }
 
-    function getPositionsByPool(LiquidityPoolInterface _pool, address _trader) public view returns (uint256[] memory) {
+    function getPositionsByPool(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256[] memory) {
         Position[] memory positions = _trader == address(0) ? positionsByPool[_pool] : positionsByPoolAndTrader[_pool][_trader];
         uint256[] memory positionIds = new uint256[](positions.length);
 
@@ -51,19 +51,19 @@ contract TestFlowMarginProtocol is FlowMarginProtocol {
         return positionIds;
     }
 
-    function getSwapRatesOfTrader(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+    function getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
         return _getSwapRatesOfTrader(_pool, _trader);
     }
 
-    function getUnrealizedPlOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
+    function getUnrealizedPlOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
         return _getUnrealizedPlOfTrader(_pool, _trader);
     }
 
     function getAccumulatedSwapRateFromParameters(
         int256 _leveragedDebitsInUsd, uint256 _swapRate, uint256 _timeWhenOpened
     ) public returns (uint256) {
-        TradingPair memory pair = TradingPair(FlowToken(address(0)), FlowToken(address(0)));
-        LiquidityPoolInterface pool = LiquidityPoolInterface(address(0));
+        TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
+        MarginLiquidityPoolInterface pool = MarginLiquidityPoolInterface(address(0));
         Position memory position = Position(
             12,
             msg.sender,

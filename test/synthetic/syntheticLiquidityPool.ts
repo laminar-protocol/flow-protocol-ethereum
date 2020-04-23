@@ -1,32 +1,26 @@
 import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import {
-  LiquidityPoolInstance,
+  SyntheticLiquidityPoolInstance,
   TestTokenInstance,
   MoneyMarketInstance,
-  IERC20Instance,
 } from 'types/truffle-contracts';
-import * as helper from './helpers';
+import * as helper from '../helpers';
 
-const LiquidityPool = artifacts.require('LiquidityPool');
-const LiquidityPoolNewVersion = artifacts.require('LiquidityPoolNewVersion');
-const MockPoolIsSafeMarginProtocol = artifacts.require(
-  'MockPoolIsSafeMarginProtocol',
-);
-const MockPoolIsNotSafeMarginProtocol = artifacts.require(
-  'MockPoolIsNotSafeMarginProtocol',
+const SyntheticLiquidityPool = artifacts.require('SyntheticLiquidityPool');
+const SyntheticLiquidityPoolNewVersion = artifacts.require(
+  'SyntheticLiquidityPoolNewVersion',
 );
 const Proxy = artifacts.require('Proxy');
 
-contract('LiquidityPool', accounts => {
+contract('SyntheticLiquidityPool', accounts => {
   const liquidityProvider = accounts[1];
   const protocol = accounts[2];
   const fToken = accounts[3];
   const fTokenTwo = accounts[4];
   const badAddress = accounts[5];
-  let liquidityPool: LiquidityPoolInstance;
+  let liquidityPool: SyntheticLiquidityPoolInstance;
   let usd: TestTokenInstance;
-  let iToken: IERC20Instance;
   let moneyMarket: MoneyMarketInstance;
 
   beforeEach(async () => {
@@ -34,25 +28,26 @@ contract('LiquidityPool', accounts => {
       [liquidityProvider, 10000],
       [protocol, 10000],
     );
-    ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
+    ({ moneyMarket } = await helper.createMoneyMarket(usd.address));
 
-    const liquidityPoolImpl = await LiquidityPool.new();
+    const liquidityPoolImpl = await SyntheticLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await (liquidityPool as any).methods['initialize(address,address,uint256)'](
+    liquidityPool = await SyntheticLiquidityPool.at(liquidityPoolProxy.address);
+    await (liquidityPool as any).methods['initialize(address,address)'](
       moneyMarket.address,
       protocol,
-      helper.fromPip(10),
       {
         from: liquidityProvider,
       },
     );
 
-    await liquidityPool.approve(protocol, constants.MAX_UINT256, {
+    await liquidityPool.approveToProtocol(constants.MAX_UINT256, {
       from: liquidityProvider,
     });
-    await liquidityPool.enableToken(fToken, { from: liquidityProvider });
+    await liquidityPool.enableToken(fToken, helper.fromPip(10), {
+      from: liquidityProvider,
+    });
 
     usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
   });
@@ -73,12 +68,9 @@ contract('LiquidityPool', accounts => {
     });
 
     it('should be able to set and get new value', async () => {
-      await (liquidityPool as any).methods['setSpread(uint256)'](
-        helper.fromPip(20),
-        {
-          from: liquidityProvider,
-        },
-      );
+      await liquidityPool.setSpreadForToken(fToken, helper.fromPip(20), {
+        from: liquidityProvider,
+      });
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(helper.fromPip(20));
       spread = await liquidityPool.getAskSpread(fToken);
@@ -87,18 +79,15 @@ contract('LiquidityPool', accounts => {
 
     it('requires owner to set spread', async () => {
       await expectRevert(
-        (liquidityPool as any).methods['setSpread(uint256)'](
-          helper.fromPip(30),
-          {
-            from: badAddress,
-          },
-        ),
+        liquidityPool.setSpreadForToken(fToken, helper.fromPip(30), {
+          from: badAddress,
+        }),
         helper.messages.onlyOwner,
       );
     });
 
     it('should be able to set and get new value per token', async () => {
-      await (liquidityPool as any).setSpread(fToken, helper.fromPip(12), {
+      await liquidityPool.setSpreadForToken(fToken, helper.fromPip(12), {
         from: liquidityProvider,
       });
       let spread = await liquidityPool.getBidSpread(fToken);
@@ -141,7 +130,9 @@ contract('LiquidityPool', accounts => {
 
   describe('enable token', () => {
     it('should be able to enable token', async () => {
-      await liquidityPool.enableToken(fTokenTwo, { from: liquidityProvider });
+      await liquidityPool.enableToken(fTokenTwo, helper.fromPip(10), {
+        from: liquidityProvider,
+      });
 
       let spread = await liquidityPool.getBidSpread(fTokenTwo);
       expect(spread).bignumber.equal(
@@ -172,7 +163,9 @@ contract('LiquidityPool', accounts => {
 
     it('requires owner to enable token', async () => {
       await expectRevert(
-        liquidityPool.enableToken(fTokenTwo, { from: badAddress }),
+        liquidityPool.enableToken(fTokenTwo, helper.fromPip(10), {
+          from: badAddress,
+        }),
         helper.messages.onlyOwner,
       );
     });
@@ -185,106 +178,12 @@ contract('LiquidityPool', accounts => {
     });
   });
 
-  describe('deposit', () => {
-    beforeEach(async () => {
-      await usd.approve(liquidityPool.address, 500, {
-        from: protocol,
-      });
-    });
-
-    it('should be able to withdraw by protocol', async () => {
-      await liquidityPool.depositLiquidity(500, {
-        from: protocol,
-      });
-      expect(await usd.balanceOf(protocol)).bignumber.equal(helper.bn(9500));
-      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
-        helper.bn(5000),
-      );
-    });
-  });
-
-  describe('withdraw', () => {
-    beforeEach(async () => {
-      await moneyMarket.mintTo(liquidityPool.address, 1000, {
-        from: liquidityProvider,
-      });
-    });
-
-    it('should be able to withdraw by protocol', async () => {
-      await liquidityPool.withdrawLiquidity(5000, {
-        from: protocol,
-      });
-      expect(await usd.balanceOf(protocol)).bignumber.equal(helper.bn(10500));
-      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
-        helper.bn(5000),
-      );
-    });
-
-    describe('when pool is safe', () => {
-      beforeEach(async () => {
-        const mockedProtocol = await MockPoolIsSafeMarginProtocol.new();
-        liquidityPool = await LiquidityPool.new();
-        await (liquidityPool as any).methods[
-          'initialize(address,address,uint256)'
-        ](moneyMarket.address, mockedProtocol.address, helper.fromPip(10), {
-          from: liquidityProvider,
-        });
-        await moneyMarket.mintTo(liquidityPool.address, 1000, {
-          from: liquidityProvider,
-        });
-      });
-
-      it('should be able to withdraw by owner', async () => {
-        await liquidityPool.withdrawLiquidityOwner(5000, {
-          from: liquidityProvider,
-        });
-        expect(await usd.balanceOf(liquidityProvider)).bignumber.equal(
-          helper.bn(8500),
-        );
-        expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
-          helper.bn(5000),
-        );
-      });
-    });
-
-    describe('when pool is not safe', () => {
-      beforeEach(async () => {
-        const mockedProtocol = await MockPoolIsNotSafeMarginProtocol.new();
-        liquidityPool = await LiquidityPool.new();
-        await (liquidityPool as any).methods[
-          'initialize(address,address,uint256)'
-        ](moneyMarket.address, mockedProtocol.address, helper.fromPip(10), {
-          from: liquidityProvider,
-        });
-        await moneyMarket.mintTo(liquidityPool.address, 1000, {
-          from: liquidityProvider,
-        });
-      });
-
-      it('should not be able to withdraw by others', async () => {
-        await expectRevert(
-          liquidityPool.withdrawLiquidityOwner(1, {
-            from: liquidityProvider,
-          }),
-          helper.messages.poolNotSafeAfterWithdrawal,
-        );
-      });
-    });
-
-    it('should not be able to withdraw by others', async () => {
-      await expectRevert(
-        liquidityPool.withdrawLiquidityOwner(500, { from: badAddress }),
-        helper.messages.onlyOwner,
-      );
-    });
-  });
-
   describe('when upgrading the contract', () => {
     it('upgrades the contract', async () => {
       const liquidityPoolProxy = await Proxy.at(liquidityPool.address);
-      const newLiquidityPoolImpl = await LiquidityPoolNewVersion.new();
+      const newLiquidityPoolImpl = await SyntheticLiquidityPoolNewVersion.new();
       await liquidityPoolProxy.upgradeTo(newLiquidityPoolImpl.address);
-      const newLiquidityPool = await LiquidityPoolNewVersion.at(
+      const newLiquidityPool = await SyntheticLiquidityPoolNewVersion.at(
         liquidityPool.address,
       );
       const value = helper.bn(345);

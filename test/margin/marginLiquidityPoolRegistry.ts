@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import BN from 'bn.js';
 
 import {
-  LiquidityPoolRegistryInstance,
+  MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
 } from 'types/truffle-contracts';
@@ -13,7 +13,7 @@ import {
   createMoneyMarket,
   dollar,
   messages,
-} from './helpers';
+} from '../helpers';
 
 const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
 const LiquidityPoolRegistryNewVersion = artifacts.require(
@@ -21,14 +21,13 @@ const LiquidityPoolRegistryNewVersion = artifacts.require(
 );
 const Proxy = artifacts.require('Proxy');
 
-contract('LiquidityPoolRegistry', accounts => {
+contract('MarginLiquidityPoolRegistry', accounts => {
   const liquidityProvider = accounts[1];
   const protocol = accounts[2];
-  const liquidityPool = accounts[3];
-  const alice = accounts[4];
-  const newPool = accounts[5];
+  const alice = accounts[3];
+  const newPool = accounts[4];
 
-  let liquidityPoolRegistry: LiquidityPoolRegistryInstance;
+  let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let usd: TestTokenInstance;
   let moneyMarket: MoneyMarketInstance;
 

@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../../impls/LiquidityPoolRegistry.sol";
+import "../../impls/margin/MarginLiquidityPoolRegistry.sol";
 
-contract LiquidityPoolRegistryNewVersion is LiquidityPoolRegistry {
+contract MarginLiquidityPoolRegistryNewVersion is MarginLiquidityPoolRegistry {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 

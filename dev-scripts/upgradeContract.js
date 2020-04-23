@@ -12,18 +12,8 @@ const contractMapping = {
   MoneyMarket: ['moneyMarket'],
   SimplePriceOracle: ['oracle'],
   FlowProtocol: ['protocol'],
-  FlowMarginProtocol: ['marginProtocol'],
+  MarginFlowProtocol: ['marginProtocol'],
   FlowToken: ['fEUR', 'fJPY', 'fXAU', 'fAAPL'],
-  MarginTradingPair: [
-    'l10USDEUR',
-    's10USDEUR',
-    'l20USDJPY',
-    's20USDJPY',
-    'l20USDXAU',
-    's20USDXAU',
-    'l5USDAAPL',
-    's5USDAAPL',
-  ],
   LiquidityPool: ['pool', 'pool2'],
 };
 

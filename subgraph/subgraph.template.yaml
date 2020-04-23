@@ -24,22 +24,22 @@ dataSources:
         - event: PriceFeeded(indexed address,indexed address,uint256)
           handler: handlePriceFeeded
   - kind: ethereum/contract
-    name: FlowProtocol
+    name: SyntheticFlowProtocol
     network: ${ network }
     source:
       address: '${ deployment.protocol }'
-      abi: FlowProtocol
+      abi: SyntheticFlowProtocol
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - FlowToken
+        - SyntheticFlowToken
       abis:
-        - name: FlowProtocol
-          file: ../build/contracts/FlowProtocol.json
-        - name: FlowToken
-          file: ../build/contracts/FlowToken.json
+        - name: SyntheticFlowProtocol
+          file: ../build/contracts/SyntheticFlowProtocol.json
+        - name: SyntheticFlowToken
+          file: ../build/contracts/SyntheticFlowToken.json
       file: ./src/mapping.ts
       eventHandlers:
         - event: NewFlowToken(indexed address)
@@ -59,11 +59,11 @@ dataSources:
         - event: FlowTokenWithdrew(indexed address,indexed address,uint256,uint256)
           handler: handleFlowTokenWithdrew
   - kind: ethereum/contract
-    name: FlowMarginProtocol
+    name: MarginFlowProtocol
     network: ${ network }
     source:
       address: '${ deployment.marginProtocol }'
-      abi: FlowMarginProtocol
+      abi: MarginFlowProtocol
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -71,36 +71,11 @@ dataSources:
       entities:
         - Price
       abis:
-        - name: FlowMarginProtocol
-          file: ../build/contracts/FlowMarginProtocol.json
-        - name: MarginTradingPair
-          file: ../build/contracts/MarginTradingPair.json
+        - name: MarginFlowProtocol
+          file: ../build/contracts/MarginFlowProtocol.json
         - name: MoneyMarket
           file: ../build/contracts/MoneyMarket.json
       file: ./src/mapping.ts
       eventHandlers:
         - event: NewTradingPair(address,address)
           handler: handleNewTradingPair
-templates:
-  - name: MarginTradingPair
-    kind: ethereum/contract
-    network: ${ network }
-    source:
-      abi: MarginTradingPair
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.3
-      language: wasm/assemblyscript
-      file: ./src/mapping.ts
-      entities:
-        - MarginTradingPair
-      abis:
-        - name: MarginTradingPair
-          file: ../build/contracts/MarginTradingPair.json
-        - name: MoneyMarket
-          file: ../build/contracts/MoneyMarket.json
-      eventHandlers:
-        - event: OpenPosition(indexed address,indexed address,uint256,uint256,uint256,uint256)
-          handler: handleOpenPosition
-        - event: ClosePosition(indexed address,indexed address,indexed address,uint256,uint256,uint256,uint256)
-          handler: handleClosePosition

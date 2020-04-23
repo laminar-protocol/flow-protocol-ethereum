@@ -1,24 +1,24 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../../impls/FlowMarginProtocolSafety.sol";
+import "../../impls/margin/MarginFlowProtocolSafety.sol";
 
-contract MockPoolIsSafeMarginProtocol is FlowMarginProtocolSafety {
-    function safetyProtocol() public view returns (FlowMarginProtocolSafety) {
-        return FlowMarginProtocolSafety(this);
+contract MockPoolIsSafeMarginProtocol is MarginFlowProtocolSafety {
+    function safetyProtocol() public view returns (MarginFlowProtocolSafety) {
+        return MarginFlowProtocolSafety(this);
     }
 
-    function isPoolSafe(LiquidityPoolInterface _pool) public override returns (bool) {
+    function isPoolSafe(MarginLiquidityPoolInterface _pool) public override returns (bool) {
         return address(_pool) != address(0);
     }
 }
 
-contract MockPoolIsNotSafeMarginProtocol is FlowMarginProtocolSafety {
-    function safetyProtocol() public view returns (FlowMarginProtocolSafety) {
-        return FlowMarginProtocolSafety(this);
+contract MockPoolIsNotSafeMarginProtocol is MarginFlowProtocolSafety {
+    function safetyProtocol() public view returns (MarginFlowProtocolSafety) {
+        return MarginFlowProtocolSafety(this);
     }
 
-    function isPoolSafe(LiquidityPoolInterface _pool) public override returns (bool) {
+    function isPoolSafe(MarginLiquidityPoolInterface _pool) public override returns (bool) {
         return address(_pool) == address(0);
     }
 }

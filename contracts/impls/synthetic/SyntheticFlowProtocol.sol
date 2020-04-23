@@ -5,19 +5,20 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
-import "../libs/Percentage.sol";
-import "../interfaces/LiquidityPoolInterface.sol";
-import "../interfaces/PriceOracleInterface.sol";
-import "../interfaces/MoneyMarketInterface.sol";
-import "./FlowToken.sol";
-import "./FlowProtocolBase.sol";
+import "../../libs/Percentage.sol";
+import "../../interfaces/SyntheticLiquidityPoolInterface.sol";
+import "../../interfaces/PriceOracleInterface.sol";
+import "../../interfaces/MoneyMarketInterface.sol";
 
-contract FlowProtocol is FlowProtocolBase {
+import "../FlowProtocolBase.sol";
+import "./SyntheticFlowToken.sol";
+
+contract SyntheticFlowProtocol is FlowProtocolBase {
     using SafeMath for uint256;
     using Percentage for uint256;
     using SafeERC20 for IERC20;
 
-    mapping (string => FlowToken) public tokens;
+    mapping (string => SyntheticFlowToken) public tokens;
     mapping (address => bool) public tokenWhitelist;
 
     event NewFlowToken(address indexed token);
@@ -29,7 +30,7 @@ contract FlowProtocol is FlowProtocolBase {
     event FlowTokenDeposited(address indexed sender, address indexed token, uint256 baseTokenAmount, uint256 flowTokenAmount);
     event FlowTokenWithdrew(address indexed sender, address indexed token, uint256 baseTokenAmount, uint256 flowTokenAmount);
 
-    function addFlowToken(FlowToken token) external onlyOwner {
+    function addFlowToken(SyntheticFlowToken token) external onlyOwner {
         string memory symbol = token.symbol();
         require(address(tokens[symbol]) == address(0), "already exists");
         tokens[symbol] = token;
@@ -38,13 +39,17 @@ contract FlowProtocol is FlowProtocolBase {
         emit NewFlowToken(address(token));
     }
 
-    function mint(FlowToken _token, LiquidityPoolInterface _pool, uint256 _baseTokenAmount) external nonReentrant returns (uint256) {
+    function mint(
+        SyntheticFlowToken _token,
+        SyntheticLiquidityPoolInterface _pool,
+        uint256 _baseTokenAmount
+    ) external nonReentrant returns (uint256) {
         return _mint(_token, _pool, _baseTokenAmount, 0);
     }
 
     function mintWithMaxPrice(
-        FlowToken _token,
-        LiquidityPoolInterface _pool,
+        SyntheticFlowToken _token,
+        SyntheticLiquidityPoolInterface _pool,
         uint256 _baseTokenAmount,
         uint256 _maxPrice
     ) external nonReentrant returns (uint256) {
@@ -53,13 +58,17 @@ contract FlowProtocol is FlowProtocolBase {
         return _mint(_token, _pool, _baseTokenAmount, _maxPrice);
     }
 
-    function redeem(FlowToken _token, LiquidityPoolInterface _pool, uint256 _flowTokenAmount) external nonReentrant returns (uint256) {
+    function redeem(
+        SyntheticFlowToken _token,
+        SyntheticLiquidityPoolInterface _pool,
+        uint256 _flowTokenAmount
+    ) external nonReentrant returns (uint256) {
         return _redeem(_token, _pool, _flowTokenAmount, 0);
     }
 
     function redeemWithMinPrice(
-        FlowToken _token,
-        LiquidityPoolInterface _pool,
+        SyntheticFlowToken _token,
+        SyntheticLiquidityPoolInterface _pool,
         uint256 _flowTokenAmount,
         uint256 _minPrice
     ) external nonReentrant returns (uint256) {
@@ -68,7 +77,11 @@ contract FlowProtocol is FlowProtocolBase {
         return _redeem(_token, _pool, _flowTokenAmount, _minPrice);
     }
 
-    function liquidate(FlowToken token, LiquidityPoolInterface pool, uint256 flowTokenAmount) external nonReentrant returns (uint256) {
+    function liquidate(
+        SyntheticFlowToken token,
+        SyntheticLiquidityPoolInterface pool,
+        uint256 flowTokenAmount
+    ) external nonReentrant returns (uint256) {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
@@ -96,7 +109,7 @@ contract FlowProtocol is FlowProtocolBase {
         return baseTokenAmount;
     }
 
-    function addCollateral(FlowToken token, address poolAddr, uint256 baseTokenAmount) external nonReentrant {
+    function addCollateral(SyntheticFlowToken token, address poolAddr, uint256 baseTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         uint256 iTokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), baseTokenAmount);
@@ -107,12 +120,12 @@ contract FlowProtocol is FlowProtocolBase {
         emit CollateralAdded(address(token), poolAddr, baseTokenAmount, iTokenAmount);
     }
 
-    function withdrawCollateral(FlowToken token) external nonReentrant returns (uint256) {
+    function withdrawCollateral(SyntheticFlowToken token) external nonReentrant returns (uint256) {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         IERC20 iToken = moneyMarket.iToken();
 
-        LiquidityPoolInterface pool = LiquidityPoolInterface(msg.sender);
+        SyntheticLiquidityPoolInterface pool = SyntheticLiquidityPoolInterface(msg.sender);
         address tokenAddr = address(token);
         uint256 price = getPrice(tokenAddr);
 
@@ -130,7 +143,7 @@ contract FlowProtocol is FlowProtocolBase {
         return refundToPoolITokenAmount;
     }
 
-    function deposit(FlowToken token, uint256 flowTokenAmount) external nonReentrant {
+    function deposit(SyntheticFlowToken token, uint256 flowTokenAmount) external nonReentrant {
         require(token.balanceOf(msg.sender) >= flowTokenAmount, "Not enough balance");
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
@@ -141,7 +154,7 @@ contract FlowProtocol is FlowProtocolBase {
         emit FlowTokenDeposited(msg.sender, address(token), baseTokenAmount, flowTokenAmount);
     }
 
-    function withdraw(FlowToken token, uint256 flowTokenAmount) external nonReentrant {
+    function withdraw(SyntheticFlowToken token, uint256 flowTokenAmount) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         uint256 baseTokenAmount = token.withdraw(msg.sender, flowTokenAmount);
@@ -149,9 +162,29 @@ contract FlowProtocol is FlowProtocolBase {
         emit FlowTokenWithdrew(msg.sender, address(token), baseTokenAmount, flowTokenAmount);
     }
 
+    function getAskSpread(SyntheticLiquidityPoolInterface _pool, address _flowToken) public view returns (uint) {
+        uint256 spread = _pool.getAskSpread(_flowToken);
+        return _getSpread(spread);
+    }
+
+    function getBidSpread(SyntheticLiquidityPoolInterface _pool, address _flowToken) public view returns (uint) {
+        uint256 spread = _pool.getBidSpread(_flowToken);
+        return _getSpread(spread);
+    }
+
+    function getAskPrice(SyntheticLiquidityPoolInterface _pool, address _flowToken, uint256 _price) internal view returns (uint256) {
+        uint256 spread = getAskSpread(_pool, _flowToken);
+        return _price.add(_price.mul(spread).div(1 ether));
+    }
+
+    function getBidPrice(SyntheticLiquidityPoolInterface _pool, address _flowToken, uint256 _price) internal view returns (uint256) {
+        uint256 spread = getBidSpread(_pool, _flowToken);
+        return _price.sub(_price.mul(spread).div(1 ether));
+    }
+
     function _mint(
-        FlowToken _token,
-        LiquidityPoolInterface _pool,
+        SyntheticFlowToken _token,
+        SyntheticLiquidityPoolInterface _pool,
         uint256 _baseTokenAmount,
         uint256 _maxPrice
     ) private returns (uint256) {
@@ -186,8 +219,8 @@ contract FlowProtocol is FlowProtocolBase {
     }
 
     function _redeem(
-        FlowToken _token,
-        LiquidityPoolInterface _pool,
+        SyntheticFlowToken _token,
+        SyntheticLiquidityPoolInterface _pool,
         uint256 _flowTokenAmount,
         uint256 _minPrice
     ) private returns (uint256) {
@@ -219,8 +252,8 @@ contract FlowProtocol is FlowProtocolBase {
     }
 
     function _calculateRemovePosition(
-        FlowToken token,
-        LiquidityPoolInterface pool,
+        SyntheticFlowToken token,
+        SyntheticLiquidityPoolInterface pool,
         uint256 price,
         uint256 flowTokenAmount,
         uint256 baseTokenAmount
@@ -245,16 +278,16 @@ contract FlowProtocol is FlowProtocolBase {
 
     function _calcAdditionalCollateralAmount(
         uint256 flowTokenCurrentValue,
-        FlowToken token,
-        LiquidityPoolInterface pool,
+        SyntheticFlowToken token,
+        SyntheticLiquidityPoolInterface pool,
         uint256 baseTokenAmount
     ) private view returns (uint256) {
         return flowTokenCurrentValue.mulPercent(_getAdditionalCollateralRatio(token, pool)).add(flowTokenCurrentValue).sub(baseTokenAmount);
     }
 
     function _calculateRemovePositionAndIncentive(
-        FlowToken token,
-        LiquidityPoolInterface pool,
+        SyntheticFlowToken token,
+        SyntheticLiquidityPoolInterface pool,
         uint256 price,
         uint256 flowTokenAmount,
         uint256 baseTokenAmount
@@ -284,7 +317,7 @@ contract FlowProtocol is FlowProtocolBase {
 
     // just to get it compile without stack too deep issue
     function _calculateIncentive(
-        FlowToken token,
+        SyntheticFlowToken token,
         uint256 mintedAfter,
         uint256 price,
         uint256 collaterals,
@@ -305,7 +338,10 @@ contract FlowProtocol is FlowProtocolBase {
         return (baseTokenAmount, 0, 0);
     }
 
-    function _getAdditionalCollateralRatio(FlowToken token, LiquidityPoolInterface pool) private view returns (Percentage.Percent memory) {
+    function _getAdditionalCollateralRatio(
+        SyntheticFlowToken token,
+        SyntheticLiquidityPoolInterface pool
+    ) private view returns (Percentage.Percent memory) {
         uint256 ratio = pool.getAdditionalCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }

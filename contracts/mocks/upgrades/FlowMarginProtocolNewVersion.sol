@@ -1,9 +1,9 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "../../impls/FlowMarginProtocol.sol";
+import "../../impls/margin/MarginFlowProtocol.sol";
 
-contract FlowMarginProtocolNewVersion is FlowMarginProtocol {
+contract MarginFlowProtocolNewVersion is MarginFlowProtocol {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 

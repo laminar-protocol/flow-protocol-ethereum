@@ -4,10 +4,10 @@ import BN from 'bn.js';
 
 import {
   SimplePriceOracleInstance,
-  TestFlowMarginProtocolInstance,
-  TestFlowMarginProtocolSafetyInstance,
-  LiquidityPoolInstance,
-  LiquidityPoolRegistryInstance,
+  TestMarginFlowProtocolInstance,
+  TestMarginFlowProtocolSafetyInstance,
+  MarginLiquidityPoolInstance,
+  MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
   IERC20Instance,
@@ -24,21 +24,23 @@ import {
   euro,
   bn,
   messages,
-} from './helpers';
+} from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
-const TestFlowMarginProtocol = artifacts.require('TestFlowMarginProtocol');
-const TestFlowMarginProtocolSafety = artifacts.require(
-  'TestFlowMarginProtocolSafety',
+const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
+const TestMarginFlowProtocolSafety = artifacts.require(
+  'TestMarginFlowProtocolSafety',
 );
 const FlowMarginProtocolSafetyNewVersion = artifacts.require(
   'FlowMarginProtocolSafetyNewVersion',
 );
-const LiquidityPool = artifacts.require('LiquidityPool');
-const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
+const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
+const MarginLiquidityPoolRegistry = artifacts.require(
+  'MarginLiquidityPoolRegistry',
+);
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
-contract('FlowMarginProtocol', accounts => {
+contract('MarginFlowProtocolSafety', accounts => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -47,10 +49,10 @@ contract('FlowMarginProtocol', accounts => {
   const jpy = accounts[5];
 
   let oracle: SimplePriceOracleInstance;
-  let protocol: TestFlowMarginProtocolInstance;
-  let protocolSafety: TestFlowMarginProtocolSafetyInstance;
-  let liquidityPoolRegistry: LiquidityPoolRegistryInstance;
-  let liquidityPool: LiquidityPoolInstance;
+  let protocol: TestMarginFlowProtocolInstance;
+  let protocolSafety: TestMarginFlowProtocolSafetyInstance;
+  let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
+  let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
   let iUsd: IERC20Instance; // eslint-disable-line
   let moneyMarket: MoneyMarketInstance;
@@ -103,26 +105,26 @@ contract('FlowMarginProtocol', accounts => {
       fromPercent(100),
     ));
 
-    const flowMarginProtocolImpl = await TestFlowMarginProtocol.new();
+    const flowMarginProtocolImpl = await TestMarginFlowProtocol.new();
     const flowMarginProtocolProxy = await Proxy.new();
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
-    protocol = await TestFlowMarginProtocol.at(flowMarginProtocolProxy.address);
+    protocol = await TestMarginFlowProtocol.at(flowMarginProtocolProxy.address);
 
-    const flowMarginProtocolSafetyImpl = await TestFlowMarginProtocolSafety.new();
+    const flowMarginProtocolSafetyImpl = await TestMarginFlowProtocolSafety.new();
     const flowMarginProtocolSafetyProxy = await Proxy.new();
     await flowMarginProtocolSafetyProxy.upgradeTo(
       flowMarginProtocolSafetyImpl.address,
     );
-    protocolSafety = await TestFlowMarginProtocolSafety.at(
+    protocolSafety = await TestMarginFlowProtocolSafety.at(
       flowMarginProtocolSafetyProxy.address,
     );
 
-    const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.new();
+    const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
     const liquidityPoolRegistryProxy = await Proxy.new();
     await liquidityPoolRegistryProxy.upgradeTo(
       liquidityPoolRegistryImpl.address,
     );
-    liquidityPoolRegistry = await LiquidityPoolRegistry.at(
+    liquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
       liquidityPoolRegistryProxy.address,
     );
 
@@ -165,20 +167,21 @@ contract('FlowMarginProtocol', accounts => {
       from: liquidityProvider,
     });
 
-    const liquidityPoolImpl = await LiquidityPool.new();
+    const liquidityPoolImpl = await MarginLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
+    liquidityPool = await MarginLiquidityPool.at(liquidityPoolProxy.address);
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address, // need 3 pools or only use first one for withdraw tests
-      initialSpread,
     );
 
-    await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
+    await liquidityPool.approveToProtocol(constants.MAX_UINT256);
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
-    await liquidityPool.enableToken(eur);
-    await liquidityPool.enableToken(jpy);
+    await liquidityPool.enableToken(usd.address, eur, initialSpread);
+    await liquidityPool.enableToken(eur, usd.address, initialSpread);
+    await liquidityPool.enableToken(usd.address, jpy, initialSpread);
+    await liquidityPool.enableToken(jpy, usd.address, initialSpread);
 
     await usd.approve(liquidityPool.address, dollar(20000), {
       from: liquidityProvider,

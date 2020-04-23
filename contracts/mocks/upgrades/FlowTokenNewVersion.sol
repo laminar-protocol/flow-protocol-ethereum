@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../../impls/FlowToken.sol";
+import "../../impls/synthetic/SyntheticFlowToken.sol";
 
-contract FlowTokenNewVersion is FlowToken {
+contract SyntheticFlowTokenNewVersion is SyntheticFlowToken {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 

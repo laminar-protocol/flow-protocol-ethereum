@@ -9,10 +9,10 @@ import BN from 'bn.js';
 
 import {
   SimplePriceOracleInstance,
-  TestFlowMarginProtocolInstance,
-  TestFlowMarginProtocolSafetyInstance,
-  LiquidityPoolInstance,
-  LiquidityPoolRegistryInstance,
+  TestMarginFlowProtocolInstance,
+  TestMarginFlowProtocolSafetyInstance,
+  MarginLiquidityPoolInstance,
+  MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
   IERC20Instance,
@@ -30,21 +30,23 @@ import {
   euro,
   bn,
   messages,
-} from './helpers';
+} from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
-const TestFlowMarginProtocol = artifacts.require('TestFlowMarginProtocol');
-const TestFlowMarginProtocolSafety = artifacts.require(
-  'TestFlowMarginProtocolSafety',
+const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
+const TestMarginFlowProtocolSafety = artifacts.require(
+  'TestMarginFlowProtocolSafety',
 );
-const FlowMarginProtocolNewVersion = artifacts.require(
-  'FlowMarginProtocolNewVersion',
+const MarginFlowProtocolNewVersion = artifacts.require(
+  'MarginFlowProtocolNewVersion',
 );
-const LiquidityPool = artifacts.require('LiquidityPool');
-const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
+const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
+const MarginLiquidityPoolRegistry = artifacts.require(
+  'MarginLiquidityPoolRegistry',
+);
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
-contract('FlowMarginProtocol', accounts => {
+contract('MarginFlowProtocol', accounts => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -53,10 +55,10 @@ contract('FlowMarginProtocol', accounts => {
   const jpy = accounts[5];
 
   let oracle: SimplePriceOracleInstance;
-  let protocol: TestFlowMarginProtocolInstance;
-  let protocolSafety: TestFlowMarginProtocolSafetyInstance;
-  let liquidityPoolRegistry: LiquidityPoolRegistryInstance;
-  let liquidityPool: LiquidityPoolInstance;
+  let protocol: TestMarginFlowProtocolInstance;
+  let protocolSafety: TestMarginFlowProtocolSafetyInstance;
+  let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
+  let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
   let iUsd: IERC20Instance; // eslint-disable-line
   let moneyMarket: MoneyMarketInstance;
@@ -96,26 +98,26 @@ contract('FlowMarginProtocol', accounts => {
       fromPercent(100),
     ));
 
-    const flowMarginProtocolImpl = await TestFlowMarginProtocol.new();
+    const flowMarginProtocolImpl = await TestMarginFlowProtocol.new();
     const flowMarginProtocolProxy = await Proxy.new();
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
-    protocol = await TestFlowMarginProtocol.at(flowMarginProtocolProxy.address);
+    protocol = await TestMarginFlowProtocol.at(flowMarginProtocolProxy.address);
 
-    const flowMarginProtocolSafetyImpl = await TestFlowMarginProtocolSafety.new();
+    const flowMarginProtocolSafetyImpl = await TestMarginFlowProtocolSafety.new();
     const flowMarginProtocolSafetyProxy = await Proxy.new();
     await flowMarginProtocolSafetyProxy.upgradeTo(
       flowMarginProtocolSafetyImpl.address,
     );
-    protocolSafety = await TestFlowMarginProtocolSafety.at(
+    protocolSafety = await TestMarginFlowProtocolSafety.at(
       flowMarginProtocolSafetyProxy.address,
     );
 
-    const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.new();
+    const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
     const liquidityPoolRegistryProxy = await Proxy.new();
     await liquidityPoolRegistryProxy.upgradeTo(
       liquidityPoolRegistryImpl.address,
     );
-    liquidityPoolRegistry = await LiquidityPoolRegistry.at(
+    liquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
       liquidityPoolRegistryProxy.address,
     );
 
@@ -152,20 +154,21 @@ contract('FlowMarginProtocol', accounts => {
       from: liquidityProvider,
     });
 
-    const liquidityPoolImpl = await LiquidityPool.new();
+    const liquidityPoolImpl = await MarginLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
+    liquidityPool = await MarginLiquidityPool.at(liquidityPoolProxy.address);
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address, // need 3 pools or only use first one for withdraw tests
-      initialSpread,
     );
 
-    await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
+    await liquidityPool.approveToProtocol(constants.MAX_UINT256);
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
-    await liquidityPool.enableToken(eur);
-    await liquidityPool.enableToken(jpy);
+    await liquidityPool.enableToken(usd.address, eur, initialSpread);
+    await liquidityPool.enableToken(eur, usd.address, initialSpread);
+    await liquidityPool.enableToken(eur, jpy, initialSpread);
+    await liquidityPool.enableToken(jpy, eur, initialSpread);
 
     await usd.approve(liquidityPool.address, dollar(20000), {
       from: liquidityProvider,
@@ -657,19 +660,20 @@ contract('FlowMarginProtocol', accounts => {
     });
 
     describe('when there are multiple pools', () => {
-      let liquidityPool2: LiquidityPoolInstance;
+      let liquidityPool2: MarginLiquidityPoolInstance;
 
       beforeEach(async () => {
-        liquidityPool2 = await LiquidityPool.new();
+        liquidityPool2 = await MarginLiquidityPool.new();
         await (liquidityPool2 as any).initialize(
           moneyMarket.address,
           protocol.address,
-          initialSpread,
         );
-        await liquidityPool2.approve(protocol.address, constants.MAX_UINT256);
+        await liquidityPool2.approveToProtocol(constants.MAX_UINT256);
         await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
-        await liquidityPool2.enableToken(eur);
-        await liquidityPool2.enableToken(jpy);
+        await liquidityPool2.enableToken(usd.address, eur, initialSpread);
+        await liquidityPool2.enableToken(eur, usd.address, initialSpread);
+        await liquidityPool2.enableToken(eur, jpy, initialSpread);
+        await liquidityPool2.enableToken(jpy, eur, initialSpread);
 
         const feeSum = (
           await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
@@ -893,7 +897,7 @@ contract('FlowMarginProtocol', accounts => {
       useMaxRealizable ? maxRealizable : convertFromBaseToken(expectedPl),
     );
 
-    const usedLiquidtyPool = await LiquidityPool.at(expectedPool);
+    const usedLiquidtyPool = await MarginLiquidityPool.at(expectedPool);
     const poolLiquidityAfter = await usedLiquidtyPool.getLiquidity.call();
     const poolLiquidityDifference = poolLiquidityAfter.sub(poolLiquidityBefore);
     const expectedPoolLiquidityDifference = convertFromBaseToken(
@@ -1133,22 +1137,23 @@ contract('FlowMarginProtocol', accounts => {
     });
 
     describe('when there are multiple pools', () => {
-      let liquidityPool2: LiquidityPoolInstance;
+      let liquidityPool2: MarginLiquidityPoolInstance;
       let poolLiquidityBefore2: BN;
       let positionId1: BN;
       let positionId2: BN;
 
       beforeEach(async () => {
-        liquidityPool2 = await LiquidityPool.new();
+        liquidityPool2 = await MarginLiquidityPool.new();
         await (liquidityPool2 as any).initialize(
           moneyMarket.address,
           protocol.address,
-          initialSpread,
         );
-        await liquidityPool2.approve(protocol.address, constants.MAX_UINT256);
+        await liquidityPool2.approveToProtocol(constants.MAX_UINT256);
         await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
-        await liquidityPool2.enableToken(eur);
-        await liquidityPool2.enableToken(jpy);
+        await liquidityPool2.enableToken(usd.address, eur, initialSpread);
+        await liquidityPool2.enableToken(eur, usd.address, initialSpread);
+        await liquidityPool2.enableToken(eur, jpy, initialSpread);
+        await liquidityPool2.enableToken(jpy, eur, initialSpread);
 
         const feeSum = (
           await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
@@ -2232,11 +2237,11 @@ contract('FlowMarginProtocol', accounts => {
   describe('when upgrading the contract', () => {
     it('upgrades the contract', async () => {
       const flowMarginProtocolProxy = await Proxy.at(protocol.address);
-      const newFlowMarginProtocolImpl = await FlowMarginProtocolNewVersion.new();
+      const newMarginFlowProtocolImpl = await MarginFlowProtocolNewVersion.new();
       await flowMarginProtocolProxy.upgradeTo(
-        newFlowMarginProtocolImpl.address,
+        newMarginFlowProtocolImpl.address,
       );
-      const newFlowMarginProtocol = await FlowMarginProtocolNewVersion.at(
+      const newMarginFlowProtocol = await MarginFlowProtocolNewVersion.at(
         protocol.address,
       );
       const value = bn(345);
@@ -2245,13 +2250,13 @@ contract('FlowMarginProtocol', accounts => {
       const secondBytes32 =
         '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
 
-      const newValueBefore = await newFlowMarginProtocol.newStorageUint();
-      await newFlowMarginProtocol.addNewStorageBytes32(firstBytes32);
-      await newFlowMarginProtocol.setNewStorageUint(value);
-      await newFlowMarginProtocol.addNewStorageBytes32(secondBytes32);
-      const newValueAfter = await newFlowMarginProtocol.newStorageUint();
-      const newStorageByte1 = await newFlowMarginProtocol.newStorageBytes32(0);
-      const newStorageByte2 = await newFlowMarginProtocol.newStorageBytes32(1);
+      const newValueBefore = await newMarginFlowProtocol.newStorageUint();
+      await newMarginFlowProtocol.addNewStorageBytes32(firstBytes32);
+      await newMarginFlowProtocol.setNewStorageUint(value);
+      await newMarginFlowProtocol.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newMarginFlowProtocol.newStorageUint();
+      const newStorageByte1 = await newMarginFlowProtocol.newStorageBytes32(0);
+      const newStorageByte2 = await newMarginFlowProtocol.newStorageBytes32(1);
 
       expect(newValueBefore).to.be.bignumber.equal(bn(0));
       expect(newValueAfter).to.be.bignumber.equal(value);
@@ -2263,16 +2268,16 @@ contract('FlowMarginProtocol', accounts => {
       const maxSpread = await protocol.maxSpread();
 
       const flowMarginProtocolProxy = await Proxy.at(protocol.address);
-      const newFlowMarginProtocolImpl = await FlowMarginProtocolNewVersion.new();
+      const newMarginFlowProtocolImpl = await MarginFlowProtocolNewVersion.new();
       await flowMarginProtocolProxy.upgradeTo(
-        newFlowMarginProtocolImpl.address,
+        newMarginFlowProtocolImpl.address,
       );
-      const newFlowMarginProtocol = await FlowMarginProtocolNewVersion.at(
+      const newMarginFlowProtocol = await MarginFlowProtocolNewVersion.at(
         protocol.address,
       );
       const value = bn(345);
-      await newFlowMarginProtocol.setNewStorageUint(value);
-      const maxSpreadPlusNewValue = await newFlowMarginProtocol.getNewValuePlusMaxSpread();
+      await newMarginFlowProtocol.setNewStorageUint(value);
+      const maxSpreadPlusNewValue = await newMarginFlowProtocol.getNewValuePlusMaxSpread();
 
       expect(maxSpreadPlusNewValue).to.be.bignumber.equal(value.add(maxSpread));
     });

@@ -10,20 +10,19 @@ import "@openzeppelin/contracts/math/Math.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
-import "../libs/Percentage.sol";
-import "../libs/upgrades/UpgradeOwnable.sol";
-import "../libs/upgrades/UpgradeReentrancyGuard.sol";
+import "../../libs/Percentage.sol";
+import "../../libs/upgrades/UpgradeOwnable.sol";
+import "../../libs/upgrades/UpgradeReentrancyGuard.sol";
 
-import "../interfaces/PriceOracleInterface.sol";
-import "../interfaces/MoneyMarketInterface.sol";
-import "../interfaces/LiquidityPoolInterface.sol";
+import "../../interfaces/PriceOracleInterface.sol";
+import "../../interfaces/MoneyMarketInterface.sol";
+import "../../interfaces/MarginLiquidityPoolInterface.sol";
 
-import "./FlowProtocolBase.sol";
-import "./FlowMarginProtocolSafety.sol";
-import "./FlowToken.sol";
-import "./LiquidityPoolRegistry.sol";
+import "../FlowProtocolBase.sol";
+import "./MarginLiquidityPoolRegistry.sol";
+import "./MarginFlowProtocolSafety.sol";
 
-contract FlowMarginProtocol is FlowProtocolBase {
+contract MarginFlowProtocol is FlowProtocolBase {
     using Percentage for uint256;
     using Percentage for int256;
     using SafeERC20 for IERC20;
@@ -31,14 +30,14 @@ contract FlowMarginProtocol is FlowProtocolBase {
     using SignedSafeMath for int256;
 
     struct TradingPair {
-        FlowToken base;
-        FlowToken quote;
+        address base;
+        address quote;
     }
 
     struct Position {
         uint256 id;
         address owner;
-        LiquidityPoolInterface pool;
+        MarginLiquidityPoolInterface pool;
         TradingPair pair;
         int256 leverage;
         int256 leveragedHeld;
@@ -75,18 +74,18 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     uint256 public nextPositionId;
 
-    FlowMarginProtocolSafety public safetyProtocol;
-    LiquidityPoolRegistry public liquidityPoolRegistry;
+    MarginFlowProtocolSafety public safetyProtocol;
+    MarginLiquidityPoolRegistry public liquidityPoolRegistry;
 
     // positions
     mapping (uint256 => Position) public positionsById;
-    mapping (LiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
-    mapping (LiquidityPoolInterface => Position[]) public positionsByPool;
+    mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
+    mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
 
     // protocol state per pool
-    mapping (LiquidityPoolInterface => mapping(address => int256)) public balances;
-    mapping (LiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
-    mapping (LiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
+    mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
+    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
+    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
 
     // trading pairs
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
@@ -96,20 +95,20 @@ contract FlowMarginProtocol is FlowProtocolBase {
     uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
     uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
 
-    modifier poolIsVerified(LiquidityPoolInterface _pool) {
+    modifier poolIsVerified(MarginLiquidityPoolInterface _pool) {
         require(liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
 
         _;
     }
 
-    modifier tradingPairWhitelisted(FlowToken _base, FlowToken _quote) {
+    modifier tradingPairWhitelisted(address _base, address _quote) {
         require(tradingPairWhitelist[address(_base)][address(_quote)], "TP1");
 
         _;
     }
 
     /**
-     * @dev Initialize the FlowMarginProtocol.
+     * @dev Initialize the MarginFlowProtocol.
      * @param _oracle The price oracle
      * @param _moneyMarket The money market.
      * @param _liquidityPoolRegistry The liquidity pool registry.
@@ -118,8 +117,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
     function initialize(
         PriceOracleInterface _oracle,
         MoneyMarketInterface _moneyMarket,
-        FlowMarginProtocolSafety _safetyProtocol,
-        LiquidityPoolRegistry _liquidityPoolRegistry,
+        MarginFlowProtocolSafety _safetyProtocol,
+        MarginLiquidityPoolRegistry _liquidityPoolRegistry,
         uint256 _initialSwapRate
     ) external initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
@@ -130,16 +129,16 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     /**
      * @dev Add new trading pair, only for the owner.
-     * @param _base The base FlowToken.
-     * @param _quote The quote FlowToken.
+     * @param _base The base token.
+     * @param _quote The quote token.
      */
-    function addTradingPair(FlowToken _base, FlowToken _quote) external onlyOwner {
-        require(address(_base) != address(0) && address(_quote) != address(0), "0");
-        require(address(_base) != address(_quote), "TP3");
-        require(!tradingPairWhitelist[address(_base)][address(_quote)], "TP2");
-        tradingPairWhitelist[address(_base)][address(_quote)] = true;
+    function addTradingPair(address _base, address _quote) external onlyOwner {
+        require(_base != address(0) && _quote != address(0), "0");
+        require(_base != _quote, "TP3");
+        require(!tradingPairWhitelist[_base][_quote], "TP2");
+        tradingPairWhitelist[_base][_quote] = true;
 
-        emit NewTradingPair(address(_base), address(_quote));
+        emit NewTradingPair(_base, _quote);
     }
 
     /**
@@ -156,7 +155,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      * @param _baseTokenAmount The base token amount to deposit.
      */
-    function deposit(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) external nonReentrant poolIsVerified(_pool) {
+    function deposit(MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount) external nonReentrant poolIsVerified(_pool) {
         require(_baseTokenAmount > 0, "0");
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         moneyMarket.baseToken().approve(address(moneyMarket), _baseTokenAmount);
@@ -171,7 +170,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @param _pool The MarginLiquidityPool.
      * @param _baseTokenAmount The base token amount to withdraw.
      */
-    function withdraw(LiquidityPoolInterface _pool, uint256 _baseTokenAmount) external nonReentrant poolIsVerified(_pool) {
+    function withdraw(MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount) external nonReentrant poolIsVerified(_pool) {
         require(getFreeMargin(_pool, msg.sender) >= _baseTokenAmount, "W1");
         require(_baseTokenAmount > 0, "0");
 
@@ -185,16 +184,16 @@ contract FlowMarginProtocol is FlowProtocolBase {
      * @dev Open a new position with a min/max price. Trader must pay fees for first position.
      * Set price to 0 if you want to use the current market price.
      * @param _pool The MarginLiquidityPool.
-     * @param _base The base FlowToken.
-     * @param _quote The quote FlowToken.
+     * @param _base The base token.
+     * @param _quote The quote token.
      * @param _leverage The leverage number, e.g., 20x.
      * @param _leveragedHeld The leveraged held balance.
      * @param _price The max/min price when opening the position.
      */
     function openPosition(
-        LiquidityPoolInterface _pool,
-        FlowToken _base,
-        FlowToken _quote,
+        MarginLiquidityPoolInterface _pool,
+        address _base,
+        address _quote,
         int256 _leverage,
         uint256 _leveragedHeld,
         uint256 _price
@@ -224,8 +223,8 @@ contract FlowMarginProtocol is FlowProtocolBase {
         emit PositionOpened(
             msg.sender,
             address(_pool),
-            address(_base),
-            address(_quote),
+            _base,
+            _quote,
             _leverage,
             _leveragedHeld,
             debitsPrice.value
@@ -247,11 +246,11 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
         if (balanceDelta >= 0) {
             // trader has profit, max realizable is the pool's liquidity
-            uint256 poolLiquidityIToken = LiquidityPoolInterface(position.pool).getLiquidity();
+            uint256 poolLiquidityIToken = MarginLiquidityPoolInterface(position.pool).getLiquidity();
             uint256 realizedIToken = moneyMarket.convertAmountFromBase(uint256(balanceDelta));
             uint256 realized = Math.min(poolLiquidityIToken, realizedIToken);
 
-            LiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
+            MarginLiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(realized));
         } else {
             // trader has loss, max realizable is the trader's equity without the given position
@@ -264,7 +263,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
                 uint256 realized = Math.min(uint256(maxRealizable), balanceDeltaAbs);
                 moneyMarket.baseToken().approve(address(position.pool), realized);
 
-                uint256 iTokenAmount = LiquidityPoolInterface(position.pool).depositLiquidity(realized);
+                uint256 iTokenAmount = MarginLiquidityPoolInterface(position.pool).depositLiquidity(realized);
                 balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(int256(iTokenAmount));
             }
         }
@@ -289,7 +288,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     * @param _trader The trader address.
     * @return The margin held sum.
     */
-    function getMarginHeld(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+    function getMarginHeld(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
         uint256 accumulatedMarginHeld = 0;
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
@@ -306,7 +305,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     * @param _trader The trader address.
     * @return The free margin amount (int256).
     */
-    function getFreeMargin(LiquidityPoolInterface _pool, address _trader) public returns (uint256) {
+    function getFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
         int256 equity = getEquityOfTrader(_pool, _trader);
         uint256 marginHeld = getMarginHeld(_pool, _trader);
 
@@ -319,7 +318,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     }
 
     // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-    function getEquityOfTrader(LiquidityPoolInterface _pool, address _trader) public returns (int256) {
+    function getEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
         int256 unrealized = _getUnrealizedPlOfTrader(_pool, _trader);
         uint256 accumulatedSwapRates = _getSwapRatesOfTrader(_pool, _trader);
         int256 traderBalance = balances[_pool][_trader];
@@ -339,16 +338,16 @@ contract FlowMarginProtocol is FlowProtocolBase {
     }
 
     // usdValue = amount * price
-    function getUsdValue(IERC20 _currencyToken, int256 _amount) public returns (int256) {
-        Percentage.Percent memory price = getPrice(moneyMarket.baseToken(), _currencyToken);
+    function getUsdValue(address _currencyToken, int256 _amount) public returns (int256) {
+        Percentage.Percent memory price = getPrice(address(moneyMarket.baseToken()), _currencyToken);
 
         return _amount.signedMulPercent(Percentage.SignedPercent(int256(price.value)));
     }
 
     // The price from oracle.
-    function getPrice(IERC20 _baseCurrencyId, IERC20 _quoteCurrencyId) public returns (Percentage.Percent memory) {
-        uint256 basePrice = getPrice(address(_baseCurrencyId));
-        uint256 quotePrice = getPrice(address(_quoteCurrencyId));
+    function getPrice(address _baseCurrencyId, address _quoteCurrencyId) public returns (Percentage.Percent memory) {
+        uint256 basePrice = getPrice(_baseCurrencyId);
+        uint256 quotePrice = getPrice(_quoteCurrencyId);
 
         return Percentage.fromFraction(quotePrice, basePrice);
     }
@@ -367,44 +366,58 @@ contract FlowMarginProtocol is FlowProtocolBase {
         return accumulatedSwapRate;
     }
 
-    function getPositionsByPoolLength(LiquidityPoolInterface _pool) public view returns (uint256) {
+    function getPositionsByPoolLength(MarginLiquidityPoolInterface _pool) public view returns (uint256) {
         return positionsByPool[_pool].length;
     }
 
-    function getPositionIdByPoolAndIndex(LiquidityPoolInterface _pool, uint256 _index) public view returns (uint256) {
+    function getPositionIdByPoolAndIndex(MarginLiquidityPoolInterface _pool, uint256 _index) public view returns (uint256) {
         return positionsByPool[_pool][_index].id;
     }
 
-    function getLeveragedDebitsByPoolAndIndex(LiquidityPoolInterface _pool, uint256 _index) public view returns (int256) {
+    function getLeveragedDebitsByPoolAndIndex(MarginLiquidityPoolInterface _pool, uint256 _index) public view returns (int256) {
         return positionsByPool[_pool][_index].leveragedDebitsInUsd;
     }
 
-    function getPositionsByPoolAndTraderLength(LiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+    function getPositionsByPoolAndTraderLength(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
         return positionsByPoolAndTrader[_pool][_trader].length;
     }
 
-    function getPositionIdByPoolAndTraderAndIndex(LiquidityPoolInterface _pool, address _trader, uint256 _index) public view returns (uint256) {
+    function getPositionIdByPoolAndTraderAndIndex(MarginLiquidityPoolInterface _pool, address _trader, uint256 _index) public view returns (uint256) {
         return positionsByPoolAndTrader[_pool][_trader][_index].id;
     }
 
-    function getLeveragedDebitsByPoolAndTraderAndIndex(LiquidityPoolInterface _pool, address _trader, uint256 _index) public view returns (int256) {
+    function getLeveragedDebitsByPoolAndTraderAndIndex(
+        MarginLiquidityPoolInterface _pool,
+        address _trader, uint256 _index
+    ) public view returns (int256) {
         return positionsByPoolAndTrader[_pool][_trader][_index].leveragedDebitsInUsd;
     }
 
-    function setTraderIsMarginCalled(LiquidityPoolInterface _pool, address _trader, bool _isMarginCalled) public {
+    function setTraderIsMarginCalled(MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled) public {
         require(msg.sender == address(safetyProtocol), "SP1");
         traderIsMarginCalled[_pool][_trader] = _isMarginCalled;
     }
 
-    function setTraderHasPaidFees(LiquidityPoolInterface _pool, address _trader, bool _hasPaidFees) public {
+    function setTraderHasPaidFees(MarginLiquidityPoolInterface _pool, address _trader, bool _hasPaidFees) public {
         require(msg.sender == address(safetyProtocol), "SP1");
         traderHasPaidFees[_pool][_trader] = _hasPaidFees;
     }
 
+    function getAskSpread(MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken) public view returns (uint) {
+        uint256 spread = _pool.getAskSpread(_baseToken, _quoteToken);
+        return _getSpread(spread);
+    }
+
+    function getBidSpread(MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken) public view returns (uint) {
+        uint256 spread = _pool.getBidSpread(_baseToken, _quoteToken);
+        return _getSpread(spread);
+    }
+
     // askPrice = price * (1 + ask_spread)
-    function _getAskPrice(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns (Percentage.Percent memory) {
+    function _getAskPrice(MarginLiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = getPrice(_pair.base, _pair.quote);
-        uint256 spread = getAskSpread(_pool, address(_pair.quote));
+
+        uint256 spread = getAskSpread(_pool, address(_pair.base), address(_pair.quote));
         Percentage.Percent memory askPrice = Percentage.Percent(price.value.add(price.value.mul(spread).div(1e18)));
 
         if (_max > 0) {
@@ -415,9 +428,9 @@ contract FlowMarginProtocol is FlowProtocolBase {
     }
 
 	// bidPrice = price * (1 - bid_spread)
-    function _getBidPrice(LiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns (Percentage.Percent memory) {
+    function _getBidPrice(MarginLiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = getPrice(_pair.base, _pair.quote);
-        uint256 spread = getBidSpread(_pool, address(_pair.quote));
+        uint256 spread = getBidSpread(_pool, address(_pair.base), address(_pair.quote));
         Percentage.Percent memory bidPrice = Percentage.Percent(price.value.sub(price.value.mul(spread).div(1e18)));
 
         if (_min > 0) {
@@ -427,7 +440,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
         return bidPrice;
     }
 
-    function _getSwapRatesOfTrader(LiquidityPoolInterface _pool, address _trader) internal view returns (uint256) {
+    function _getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal view returns (uint256) {
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
         uint256 accumulatedSwapRates = uint256(0);
@@ -441,7 +454,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
 
     // Unrealized profit and loss of a given trader(USD value). It is the sum of unrealized profit and loss of all positions
 	// opened by a trader.
-    function _getUnrealizedPlOfTrader(LiquidityPoolInterface _pool, address _trader) internal returns (int256) {
+    function _getUnrealizedPlOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (int256) {
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
         int256 accumulatedUnrealized = 0;
 
@@ -470,7 +483,7 @@ contract FlowMarginProtocol is FlowProtocolBase {
     }
 
     function _insertPosition(
-        LiquidityPoolInterface _pool,
+        MarginLiquidityPoolInterface _pool,
         TradingPair memory _pair,
         int256 _leverage,
         uint256 _leveragedHeld,

@@ -2,10 +2,10 @@ import { expectRevert, constants } from 'openzeppelin-test-helpers';
 import { expect } from 'chai';
 import {
   SimplePriceOracleInstance,
-  FlowProtocolInstance,
-  LiquidityPoolInstance,
+  SyntheticFlowProtocolInstance,
+  SyntheticLiquidityPoolInstance,
   TestTokenInstance,
-  FlowTokenInstance,
+  SyntheticFlowTokenInstance,
   MoneyMarketInstance,
   IERC20Instance,
 } from 'types/truffle-contracts';
@@ -17,16 +17,18 @@ import {
   bn,
   fromPip,
   dollar,
-} from './helpers';
+} from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
-const FlowProtocol = artifacts.require('FlowProtocol');
-const FlowProtocolNewVersion = artifacts.require('FlowProtocolNewVersion');
-const LiquidityPool = artifacts.require('LiquidityPool');
+const FlowProtocol = artifacts.require('SyntheticFlowProtocol');
+const FlowProtocolNewVersion = artifacts.require(
+  'SyntheticFlowProtocolNewVersion',
+);
+const SyntheticLiquidityPool = artifacts.require('SyntheticLiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
-const FlowToken = artifacts.require('FlowToken');
+const FlowToken = artifacts.require('SyntheticFlowToken');
 
-contract('FlowProtocol', accounts => {
+contract('SyntheticFlowProtocol', accounts => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -34,11 +36,11 @@ contract('FlowProtocol', accounts => {
   const badAddress = accounts[4];
 
   let oracle: SimplePriceOracleInstance;
-  let protocol: FlowProtocolInstance;
-  let liquidityPool: LiquidityPoolInstance;
+  let protocol: SyntheticFlowProtocolInstance;
+  let liquidityPool: SyntheticLiquidityPoolInstance;
   let usd: TestTokenInstance;
   let iUsd: IERC20Instance;
-  let fToken: FlowTokenInstance;
+  let fToken: SyntheticFlowTokenInstance;
   let moneyMarket: MoneyMarketInstance;
 
   before(async () => {
@@ -92,18 +94,17 @@ contract('FlowProtocol', accounts => {
       from: liquidityProvider,
     });
 
-    const liquidityPoolImpl = await LiquidityPool.new();
+    const liquidityPoolImpl = await SyntheticLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
     await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    liquidityPool = await LiquidityPool.at(liquidityPoolProxy.address);
+    liquidityPool = await SyntheticLiquidityPool.at(liquidityPoolProxy.address);
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address,
-      fromPip(10),
     );
 
-    await liquidityPool.approve(protocol.address, constants.MAX_UINT256);
-    await liquidityPool.enableToken(fToken.address);
+    await liquidityPool.approveToProtocol(constants.MAX_UINT256);
+    await liquidityPool.enableToken(fToken.address, fromPip(10));
 
     await moneyMarket.mintTo(liquidityPool.address, dollar(10000), {
       from: liquidityProvider,

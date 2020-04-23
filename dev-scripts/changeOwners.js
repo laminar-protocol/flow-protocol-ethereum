@@ -12,7 +12,7 @@ module.exports = callback => {
   async function changeOwners() {
     const network = process.env.NETWORK;
 
-    const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
+    const MarginFlowProtocol = artifacts.require('MarginFlowProtocol');
     const FlowProtocol = artifacts.require('FlowProtocol');
     const LiquidityPool = artifacts.require('LiquidityPool');
     const MoneyMarket = artifacts.require('MoneyMarket');
@@ -36,7 +36,7 @@ module.exports = callback => {
       { address: deployedContracts.protocol, contract: FlowProtocol },
       {
         address: deployedContracts.marginProtocol,
-        contract: FlowMarginProtocol,
+        contract: MarginFlowProtocol,
       },
       { address: deployedContracts.pool, contract: LiquidityPool },
       { address: deployedContracts.pool2, contract: LiquidityPool },

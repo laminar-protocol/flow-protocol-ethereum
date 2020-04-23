@@ -1,8 +1,8 @@
 pragma solidity ^0.6.4;
 
-import "../../impls/LiquidityPool.sol";
+import "../../impls/synthetic/SyntheticLiquidityPool.sol";
 
-contract LiquidityPoolNewVersion is LiquidityPool {
+contract SyntheticLiquidityPoolNewVersion is SyntheticLiquidityPool {
     bytes32[] public newStorageBytes32;
     uint256 public newStorageUint;
 

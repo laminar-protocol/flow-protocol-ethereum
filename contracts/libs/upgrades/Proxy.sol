@@ -1,5 +1,7 @@
 pragma solidity ^0.6.4;
 
+import "@nomiclabs/buidler/console.sol";
+
 contract Proxy {  
     bytes32 private constant implementationPosition = keccak256("implementation.address");
     bytes32 private constant proxyOwnerPosition = keccak256("proxy.owner");

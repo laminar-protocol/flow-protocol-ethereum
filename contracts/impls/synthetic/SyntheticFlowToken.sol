@@ -6,17 +6,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../interfaces/MoneyMarketInterface.sol";
-import "../roles/ProtocolOwnable.sol";
-import "../libs/Percentage.sol";
-import "../libs/upgrades/ERC20DetailedUpgradable.sol";
+import "../../interfaces/MoneyMarketInterface.sol";
+import "../../roles/ProtocolOwnable.sol";
+import "../../libs/Percentage.sol";
+import "../../libs/upgrades/ERC20DetailedUpgradable.sol";
 
-contract FlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
+contract SyntheticFlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     uint constant MAX_UINT = 2**256 - 1;
 
     MoneyMarketInterface moneyMarket;
@@ -39,17 +38,17 @@ contract FlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
     mapping (address => uint) public deposits;
 
     function initialize(
-        string memory name,
-        string memory symbol,
-        MoneyMarketInterface moneyMarket_,
-        address protocol
+        string memory _name,
+        string memory _symbol,
+        MoneyMarketInterface _moneyMarket,
+        address _protocol
     ) public initializer {
-        ProtocolOwnable.initialize(protocol);
-        ERC20DetailedUpgradable.initialize(name, symbol, 18);
+        ProtocolOwnable.initialize(_protocol);
+        ERC20DetailedUpgradable.initialize(_name, _symbol, 18);
 
-        moneyMarket = moneyMarket_;
+        moneyMarket = _moneyMarket;
 
-        moneyMarket.iToken().safeApprove(protocol, MAX_UINT);
+        moneyMarket.iToken().safeApprove(_protocol, MAX_UINT);
 
         // TODO: from constructor parameter
         extremeCollateralRatio = Percentage.fromFraction(1, 100);
