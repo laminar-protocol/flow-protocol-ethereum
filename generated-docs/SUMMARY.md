@@ -44,14 +44,14 @@
     * [TestCToken](docs/mocks/TestCToken.md)
     * [TestToken](docs/mocks/TestToken.md)
     * upgrades
-      * [FlowMarginProtocolNewVersion](docs/mocks/upgrades/FlowMarginProtocolNewVersion.md)
-      * [FlowMarginProtocolSafetyNewVersion](docs/mocks/upgrades/FlowMarginProtocolSafetyNewVersion.md)
-      * [FlowTokenNewVersion](docs/mocks/upgrades/FlowTokenNewVersion.md)
+      * [MarginFlowProtocolNewVersion](docs/mocks/upgrades/MarginFlowProtocolNewVersion.md)
+      * [MarginFlowProtocolSafetyNewVersion](docs/mocks/upgrades/MarginFlowProtocolSafetyNewVersion.md)
       * [MarginLiquidityPoolNewVersion](docs/mocks/upgrades/MarginLiquidityPoolNewVersion.md)
       * [MarginLiquidityPoolRegistryNewVersion](docs/mocks/upgrades/MarginLiquidityPoolRegistryNewVersion.md)
       * [MoneyMarketNewVersion copy](docs/mocks/upgrades/MoneyMarketNewVersion copy.md)
       * [SimplePriceOracleNewVersion](docs/mocks/upgrades/SimplePriceOracleNewVersion.md)
       * [SyntheticFlowProtocolNewVersion](docs/mocks/upgrades/SyntheticFlowProtocolNewVersion.md)
+      * [SyntheticFlowTokenNewVersion](docs/mocks/upgrades/SyntheticFlowTokenNewVersion.md)
       * [SyntheticLiquidityPoolNewVersion](docs/mocks/upgrades/SyntheticLiquidityPoolNewVersion.md)
   * roles
     * [PriceFeederRole](docs/roles/PriceFeederRole.md)
