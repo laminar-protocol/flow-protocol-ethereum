@@ -27,7 +27,7 @@ dataSources:
     name: SyntheticFlowProtocol
     network: ${ network }
     source:
-      address: '${ deployment.protocol }'
+      address: '${ deployment.syntheticProtocol }'
       abi: SyntheticFlowProtocol
     mapping:
       kind: ethereum/events
