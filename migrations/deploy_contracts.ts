@@ -393,7 +393,10 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       fAAPL: [fAAPL, SyntheticFlowToken],
       marginProtocol: [marginProtocol, MarginFlowProtocol],
       marginProtocolSafety: [marginProtocolSafety, MarginFlowProtocolSafety],
-      poolRegistry: [marginLiquidityPoolRegistry, MarginLiquidityPoolRegistry],
+      marginPoolRegistry: [
+        marginLiquidityPoolRegistry,
+        MarginLiquidityPoolRegistry,
+      ],
       marginPool: [marginPools[0], MarginLiquidityPoolInterface],
       marginPool2: [marginPools[1], MarginLiquidityPoolInterface],
       syntheticPool: [syntheticPools[0], SyntheticLiquidityPoolInterface],

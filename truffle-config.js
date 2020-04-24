@@ -34,7 +34,8 @@ module.exports = {
         ),
       network_id: 42,
       gasPrice: '1000000000',
-      gas: 9500000
+      gas: 9500000,
+      networkCheckTimeout: 1000000000,
     },
     development: {
       host: 'localhost',
