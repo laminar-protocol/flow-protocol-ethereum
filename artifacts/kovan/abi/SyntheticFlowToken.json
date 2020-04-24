@@ -525,22 +525,22 @@
     "inputs": [
       {
         "internalType": "string",
-        "name": "name",
+        "name": "_name",
         "type": "string"
       },
       {
         "internalType": "string",
-        "name": "symbol",
+        "name": "_symbol",
         "type": "string"
       },
       {
         "internalType": "contract MoneyMarketInterface",
-        "name": "moneyMarket_",
+        "name": "_moneyMarket",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "protocol",
+        "name": "_protocol",
         "type": "address"
       }
     ],
