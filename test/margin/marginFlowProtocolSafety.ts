@@ -31,8 +31,8 @@ const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
 const TestMarginFlowProtocolSafety = artifacts.require(
   'TestMarginFlowProtocolSafety',
 );
-const FlowMarginProtocolSafetyNewVersion = artifacts.require(
-  'FlowMarginProtocolSafetyNewVersion',
+const MarginFlowProtocolSafetyNewVersion = artifacts.require(
+  'MarginFlowProtocolSafetyNewVersion',
 );
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
@@ -928,11 +928,11 @@ contract('MarginFlowProtocolSafety', accounts => {
   describe('when upgrading the contract', () => {
     it('upgrades the contract', async () => {
       const flowMarginProtocolSafetyProxy = await Proxy.at(protocol.address);
-      const newFlowMarginProtocolSafetyImpl = await FlowMarginProtocolSafetyNewVersion.new();
+      const newFlowMarginProtocolSafetyImpl = await MarginFlowProtocolSafetyNewVersion.new();
       await flowMarginProtocolSafetyProxy.upgradeTo(
         newFlowMarginProtocolSafetyImpl.address,
       );
-      const newFlowMarginProtocolSafety = await FlowMarginProtocolSafetyNewVersion.at(
+      const newFlowMarginProtocolSafety = await MarginFlowProtocolSafetyNewVersion.at(
         protocol.address,
       );
       const value = bn(345);
