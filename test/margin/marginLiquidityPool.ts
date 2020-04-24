@@ -9,7 +9,9 @@ import {
 import * as helper from '../helpers';
 
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
-const LiquidityPoolNewVersion = artifacts.require('LiquidityPoolNewVersion');
+const MarginLiquidityPoolNewVersion = artifacts.require(
+  'MarginLiquidityPoolNewVersion',
+);
 const MockPoolIsSafeMarginProtocol = artifacts.require(
   'MockPoolIsSafeMarginProtocol',
 );
@@ -279,9 +281,9 @@ contract('MarginLiquidityPool', accounts => {
   describe('when upgrading the contract', () => {
     it('upgrades the contract', async () => {
       const liquidityPoolProxy = await Proxy.at(liquidityPool.address);
-      const newLiquidityPoolImpl = await LiquidityPoolNewVersion.new();
+      const newLiquidityPoolImpl = await MarginLiquidityPoolNewVersion.new();
       await liquidityPoolProxy.upgradeTo(newLiquidityPoolImpl.address);
-      const newLiquidityPool = await LiquidityPoolNewVersion.at(
+      const newLiquidityPool = await MarginLiquidityPoolNewVersion.at(
         liquidityPool.address,
       );
       const value = helper.bn(345);

@@ -13,8 +13,10 @@ import {
   bn,
 } from '../helpers';
 
-const FlowToken = artifacts.require('FlowToken');
-const FlowTokenNewVersion = artifacts.require('FlowTokenNewVersion');
+const SyntheticFlowToken = artifacts.require('SyntheticFlowToken');
+const SyntheticFlowTokenNewVersion = artifacts.require(
+  'SyntheticFlowTokenNewVersion',
+);
 const Proxy = artifacts.require('Proxy');
 
 contract('SyntheticFlowToken', accounts => {
@@ -35,10 +37,10 @@ contract('SyntheticFlowToken', accounts => {
       fromPercent(100),
     ));
 
-    const fTokenImpl = await FlowToken.new();
+    const fTokenImpl = await SyntheticFlowToken.new();
     const fTokenProxy = await Proxy.new();
     await fTokenProxy.upgradeTo(fTokenImpl.address);
-    fToken = await FlowToken.at(fTokenProxy.address);
+    fToken = await SyntheticFlowToken.at(fTokenProxy.address);
     await (fToken as any).initialize('Euro', 'EUR', moneyMarket.address, owner);
 
     await usd.approve(moneyMarket.address, constants.MAX_UINT256);
@@ -273,9 +275,9 @@ contract('SyntheticFlowToken', accounts => {
   describe('when upgrading the contract', () => {
     it('upgrades the contract', async () => {
       const flowTokenProxy = await Proxy.at(fToken.address);
-      const newFTokenImpl = await FlowTokenNewVersion.new();
+      const newFTokenImpl = await SyntheticFlowTokenNewVersion.new();
       await flowTokenProxy.upgradeTo(newFTokenImpl.address);
-      const newFToken = await FlowTokenNewVersion.at(fToken.address);
+      const newFToken = await SyntheticFlowTokenNewVersion.at(fToken.address);
       const value = bn(345);
       const firstBytes32 =
         '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';

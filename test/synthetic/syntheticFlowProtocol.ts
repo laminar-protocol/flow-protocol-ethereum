@@ -26,7 +26,7 @@ const FlowProtocolNewVersion = artifacts.require(
 );
 const SyntheticLiquidityPool = artifacts.require('SyntheticLiquidityPool');
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
-const FlowToken = artifacts.require('SyntheticFlowToken');
+const SyntheticFlowToken = artifacts.require('SyntheticFlowToken');
 
 contract('SyntheticFlowProtocol', accounts => {
   const owner = accounts[0];
@@ -72,10 +72,10 @@ contract('SyntheticFlowProtocol', accounts => {
     protocol = await SyntheticFlowProtocol.at(flowProtocolProxy.address);
     await protocol.initialize(oracle.address, moneyMarket.address);
 
-    const fTokenImpl = await FlowToken.new();
+    const fTokenImpl = await SyntheticFlowToken.new();
     const fTokenProxy = await Proxy.new();
     await fTokenProxy.upgradeTo(fTokenImpl.address);
-    fToken = await FlowToken.at(fTokenProxy.address);
+    fToken = await SyntheticFlowToken.at(fTokenProxy.address);
     await (fToken as any).initialize(
       'Euro',
       'EUR',

@@ -2,10 +2,10 @@
 
 const main = async time => {
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
-  const FlowToken = artifacts.require('FlowToken');
+  const SyntheticFlowToken = artifacts.require('SyntheticFlowToken');
 
   const oracle = await SimplePriceOracle.deployed();
-  const fEUR = await FlowToken.deployed();
+  const fEUR = await SyntheticFlowToken.deployed();
 
   const cycles = [50, 30, 10];
   const step = 0.001;

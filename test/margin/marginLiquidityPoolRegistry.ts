@@ -15,9 +15,11 @@ import {
   messages,
 } from '../helpers';
 
-const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
-const LiquidityPoolRegistryNewVersion = artifacts.require(
-  'LiquidityPoolRegistryNewVersion',
+const MarginLiquidityPoolRegistry = artifacts.require(
+  'MarginLiquidityPoolRegistry',
+);
+const MarginLiquidityPoolRegistryNewVersion = artifacts.require(
+  'MarginLiquidityPoolRegistryNewVersion',
 );
 const Proxy = artifacts.require('Proxy');
 
@@ -39,12 +41,12 @@ contract('MarginLiquidityPoolRegistry', accounts => {
     );
     ({ moneyMarket } = await createMoneyMarket(usd.address));
 
-    const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.new();
+    const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
     const liquidityPoolRegistryProxy = await Proxy.new();
     await liquidityPoolRegistryProxy.upgradeTo(
       liquidityPoolRegistryImpl.address,
     );
-    liquidityPoolRegistry = await LiquidityPoolRegistry.at(
+    liquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
       liquidityPoolRegistryProxy.address,
     );
     await liquidityPoolRegistry.initialize(moneyMarket.address, protocol);
@@ -186,11 +188,11 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       const liquidityPoolRegistryProxy = await Proxy.at(
         liquidityPoolRegistry.address,
       );
-      const newLiquidityPoolRegistryImpl = await LiquidityPoolRegistryNewVersion.new();
+      const newLiquidityPoolRegistryImpl = await MarginLiquidityPoolRegistryNewVersion.new();
       await liquidityPoolRegistryProxy.upgradeTo(
         newLiquidityPoolRegistryImpl.address,
       );
-      const newLiquidityPoolRegistry = await LiquidityPoolRegistryNewVersion.at(
+      const newLiquidityPoolRegistry = await MarginLiquidityPoolRegistryNewVersion.at(
         liquidityPoolRegistry.address,
       );
       const value = bn(345);
