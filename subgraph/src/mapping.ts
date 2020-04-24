@@ -1,9 +1,4 @@
-import {
-  BigDecimal,
-  BigInt,
-  EthereumEvent,
-  Address,
-} from '@graphprotocol/graph-ts';
+import { BigDecimal, BigInt, EthereumEvent } from '@graphprotocol/graph-ts';
 import {
   NewFlowToken,
   Minted,
@@ -13,27 +8,19 @@ import {
   CollateralWithdrew,
   FlowTokenWithdrew,
   FlowTokenDeposited,
-} from '../generated/FlowProtocol/FlowProtocol';
-import { FlowToken } from '../generated/FlowProtocol/FlowToken';
-import { NewTradingPair } from '../generated/FlowMarginProtocol/FlowMarginProtocol';
+} from '../generated/SyntheticFlowProtocol/SyntheticFlowProtocol';
+import { SyntheticFlowToken } from '../generated/SyntheticFlowProtocol/SyntheticFlowToken';
+import { NewTradingPair } from '../generated/MarginFlowProtocol/MarginFlowProtocol';
 import {
   PriceFeeded,
   PriceOracleInterface,
 } from '../generated/PriceOracle/PriceOracleInterface';
-import { MoneyMarket } from '../generated/FlowMarginProtocol/MoneyMarket';
-import {
-  MarginTradingPair,
-  OpenPosition,
-  ClosePosition,
-} from '../generated/templates/MarginTradingPair/MarginTradingPair';
 import {
   TokenEntity,
   PriceEntity,
   EventEntity,
   FlowProtocolEntity,
-  MarginPositionEntity,
 } from '../generated/schema';
-import * as deployment from '../generated/deployment';
 
 let one = BigDecimal.fromString('1000000000000000000');
 
@@ -60,7 +47,7 @@ function createNewEventEntity(
 
 export function handleNewFlowToken(event: NewFlowToken): void {
   let token = new TokenEntity(event.params.token.toHex());
-  let flowToken = FlowToken.bind(event.params.token);
+  let flowToken = SyntheticFlowToken.bind(event.params.token);
   token.name = flowToken.name();
   token.symbol = flowToken.symbol();
   token.save();
@@ -186,6 +173,7 @@ export function handleNewTradingPair(event: NewTradingPair): void {
   entityQuote.save();
 }
 
+/*
 export function handleOpenPosition(event: OpenPosition): void {
   let entity = new MarginPositionEntity(
     event.address.toHex() + event.params.positionId.toString(),
@@ -207,7 +195,9 @@ export function handleOpenPosition(event: OpenPosition): void {
   entity.openBlock = event.block.number.toI32();
   entity.save();
 }
+*/
 
+/*
 export function handleClosePosition(event: ClosePosition): void {
   let entity = new MarginPositionEntity(
     event.address.toHex() + event.params.positionId.toString(),
@@ -234,3 +224,4 @@ export function handleClosePosition(event: ClosePosition): void {
   entity.closeBlock = event.block.number.toI32();
   entity.save();
 }
+*/

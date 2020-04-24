@@ -14,7 +14,6 @@ import "../libs/Percentage.sol";
 import "../libs/upgrades/UpgradeOwnable.sol";
 import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 
-import "./FlowToken.sol";
 import "./MintableToken.sol";
 
 contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface {
@@ -22,7 +21,6 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     uint256 constant private MAX_UINT = 2**256 - 1;
 
     IERC20 public _baseToken;

@@ -68,20 +68,27 @@ type Network = keyof typeof getTokensByNetwork;
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const MoneyMarket = artifacts.require('MoneyMarket');
   const Proxy = artifacts.require('Proxy');
-  const FlowProtocol = artifacts.require('FlowProtocol');
-  const FlowToken = artifacts.require('FlowToken');
-  const LiquidityPool = artifacts.require('LiquidityPool');
-  const LiquidityPoolRegistry = artifacts.require('LiquidityPoolRegistry');
+  const SyntheticFlowProtocol = artifacts.require('SyntheticFlowProtocol');
+  const SyntheticFlowToken = artifacts.require('SyntheticFlowToken');
+  const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
+  const SyntheticLiquidityPool = artifacts.require('SyntheticLiquidityPool');
+  const MarginLiquidityPoolRegistry = artifacts.require(
+    'MarginLiquidityPoolRegistry',
+  );
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const IERC20 = artifacts.require('IERC20');
-  const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
-  const FlowMarginProtocolSafety = artifacts.require(
-    'FlowMarginProtocolSafety',
+  const MarginFlowProtocol = artifacts.require('MarginFlowProtocol');
+  const MarginFlowProtocolSafety = artifacts.require(
+    'MarginFlowProtocolSafety',
   );
-  const MarginTradingPair = artifacts.require('MarginTradingPair');
   const PriceOracleInterface = artifacts.require('PriceOracleInterface');
   const ERC20Detailed = artifacts.require('ERC20Detailed');
-  const LiquidityPoolInterface = artifacts.require('LiquidityPoolInterface');
+  const MarginLiquidityPoolInterface = artifacts.require(
+    'MarginLiquidityPoolInterface',
+  );
+  const SyntheticLiquidityPoolInterface = artifacts.require(
+    'SyntheticLiquidityPoolInterface',
+  );
   const FaucetInterface = artifacts.require('FaucetInterface');
 
   return async (
@@ -106,7 +113,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
 
     await (moneyMarket as any).initialize(
-      // workaround since init is overloaded function which isnt supported by typechain yet
       cToken.address,
       'iUSD',
       'iUSD',
@@ -126,22 +132,23 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     await oracle.initialize();
 
-    await deployer.deploy(FlowProtocol);
-    const flowProtocolImpl = await FlowProtocol.deployed();
+    await deployer.deploy(SyntheticFlowProtocol);
+    const flowProtocolImpl = await SyntheticFlowProtocol.deployed();
     await deployer.deploy(Proxy);
     const flowProtocolProxy = await Proxy.deployed();
 
     await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
-    const protocol = await FlowProtocol.at(flowProtocolProxy.address);
+    const protocol = await SyntheticFlowProtocol.at(flowProtocolProxy.address);
     await protocol.initialize(oracle.address, moneyMarket.address);
 
-    await deployer.deploy(FlowToken);
-    const flowTokenImpl = await FlowToken.deployed();
+    await deployer.deploy(SyntheticFlowToken);
+    const flowTokenImpl = await SyntheticFlowToken.deployed();
 
     await deployer.deploy(Proxy);
     const fEURProxy = await Proxy.deployed();
     await fEURProxy.upgradeTo(flowTokenImpl.address);
-    const fEUR = await FlowToken.at(fEURProxy.address);
+    const fEUR = await SyntheticFlowToken.at(fEURProxy.address);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (fEUR as any).initialize(
       'Flow Euro',
       'fEUR',
@@ -152,7 +159,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(Proxy);
     const fJPYProxy = await Proxy.deployed();
     await fJPYProxy.upgradeTo(flowTokenImpl.address);
-    const fJPY = await FlowToken.at(fJPYProxy.address);
+    const fJPY = await SyntheticFlowToken.at(fJPYProxy.address);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (fJPY as any).initialize(
       'Flow Japanese Yen',
       'fJPY',
@@ -163,7 +171,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(Proxy);
     const fXAUProxy = await Proxy.deployed();
     await fXAUProxy.upgradeTo(flowTokenImpl.address);
-    const fXAU = await FlowToken.at(fXAUProxy.address);
+    const fXAU = await SyntheticFlowToken.at(fXAUProxy.address);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (fXAU as any).initialize(
       'Gold',
       'fXAU',
@@ -174,7 +183,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(Proxy);
     const fAAPLProxy = await Proxy.deployed();
     await fAAPLProxy.upgradeTo(flowTokenImpl.address);
-    const fAAPL = await FlowToken.at(fAAPLProxy.address);
+    const fAAPL = await SyntheticFlowToken.at(fAAPLProxy.address);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (fAAPL as any).initialize(
       'Apple Inc.',
       'fAAPL',
@@ -209,37 +219,37 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // --- pool registry
 
-    await deployer.deploy(LiquidityPoolRegistry);
-    const liquidityPoolRegistryImpl = await LiquidityPoolRegistry.deployed();
+    await deployer.deploy(MarginLiquidityPoolRegistry);
+    const marginLiquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.deployed();
     await deployer.deploy(Proxy);
-    const liquidityPoolRegistryProxy = await Proxy.deployed();
+    const marginLiquidityPoolRegistryProxy = await Proxy.deployed();
 
-    await liquidityPoolRegistryProxy.upgradeTo(
-      liquidityPoolRegistryImpl.address,
+    await marginLiquidityPoolRegistryProxy.upgradeTo(
+      marginLiquidityPoolRegistryImpl.address,
     );
-    const liquidityPoolRegistry = await LiquidityPoolRegistry.at(
-      liquidityPoolRegistryProxy.address,
+    const marginLiquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
+      marginLiquidityPoolRegistryProxy.address,
     );
 
     // --- margin protocol
 
-    await deployer.deploy(FlowMarginProtocol);
-    const flowMarginProtocolImpl = await FlowMarginProtocol.deployed();
+    await deployer.deploy(MarginFlowProtocol);
+    const flowMarginProtocolImpl = await MarginFlowProtocol.deployed();
     await deployer.deploy(Proxy);
     const flowMarginProtocolProxy = await Proxy.deployed();
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
-    const marginProtocol = await FlowMarginProtocol.at(
+    const marginProtocol = await MarginFlowProtocol.at(
       flowMarginProtocolProxy.address,
     );
 
-    await deployer.deploy(FlowMarginProtocolSafety);
-    const flowMarginProtocolSafetyImpl = await FlowMarginProtocolSafety.deployed();
+    await deployer.deploy(MarginFlowProtocolSafety);
+    const flowMarginProtocolSafetyImpl = await MarginFlowProtocolSafety.deployed();
     await deployer.deploy(Proxy);
     const flowMarginProtocolSafetyProxy = await Proxy.deployed();
     await flowMarginProtocolSafetyProxy.upgradeTo(
       flowMarginProtocolSafetyImpl.address,
     );
-    const marginProtocolSafety = await FlowMarginProtocolSafety.at(
+    const marginProtocolSafety = await MarginFlowProtocolSafety.at(
       flowMarginProtocolSafetyProxy.address,
     );
 
@@ -251,11 +261,12 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.2');
     const initialLiquidityPoolELLLiquidateThreshold = web3.utils.toWei('0.02');
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocol as any).initialize(
       oracle.address,
       moneyMarket.address,
       marginProtocolSafety.address,
-      liquidityPoolRegistry.address,
+      marginLiquidityPoolRegistry.address,
       initialSwapRate,
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
@@ -269,120 +280,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       initialLiquidityPoolELLLiquidateThreshold,
     );
 
-    await liquidityPoolRegistry.initialize(
+    await marginLiquidityPoolRegistry.initialize(
       moneyMarket.address,
       marginProtocol.address,
     );
     await baseToken.approve(
-      liquidityPoolRegistry.address,
+      marginLiquidityPoolRegistry.address,
       web3.utils.toWei('8000', 'ether'),
-    );
-
-    await deployer.deploy(MarginTradingPair);
-    const marginTradingPairImpl = await MarginTradingPair.deployed();
-
-    await deployer.deploy(Proxy);
-    const l10USDEURProxy = await Proxy.deployed();
-    await l10USDEURProxy.upgradeTo(marginTradingPairImpl.address);
-    const l10USDEUR = await MarginTradingPair.at(l10USDEURProxy.address);
-    l10USDEUR.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fEUR.address,
-      10,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const s10USDEURProxy = await Proxy.deployed();
-    await s10USDEURProxy.upgradeTo(marginTradingPairImpl.address);
-    const s10USDEUR = await MarginTradingPair.at(s10USDEURProxy.address);
-    s10USDEUR.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fEUR.address,
-      -10,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const l20USDJPYProxy = await Proxy.deployed();
-    await l20USDJPYProxy.upgradeTo(marginTradingPairImpl.address);
-    const l20USDJPY = await MarginTradingPair.at(l20USDJPYProxy.address);
-    l20USDJPY.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fJPY.address,
-      20,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const s20USDJPYProxy = await Proxy.deployed();
-    await s20USDJPYProxy.upgradeTo(marginTradingPairImpl.address);
-    const s20USDJPY = await MarginTradingPair.at(s20USDJPYProxy.address);
-    s20USDJPY.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fJPY.address,
-      -20,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const l20USDXAUProxy = await Proxy.deployed();
-    await l20USDXAUProxy.upgradeTo(marginTradingPairImpl.address);
-    const l20USDXAU = await MarginTradingPair.at(l20USDXAUProxy.address);
-    l20USDXAU.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fXAU.address,
-      20,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const s20USDXAUProxy = await Proxy.deployed();
-    await s20USDXAUProxy.upgradeTo(marginTradingPairImpl.address);
-    const s20USDXAU = await MarginTradingPair.at(s20USDXAUProxy.address);
-    s20USDXAU.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fXAU.address,
-      -20,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const l5USDAAPLProxy = await Proxy.deployed();
-    await l5USDAAPLProxy.upgradeTo(marginTradingPairImpl.address);
-    const l5USDAAPL = await MarginTradingPair.at(l5USDAAPLProxy.address);
-    l5USDAAPL.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fAAPL.address,
-      5,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
-    );
-
-    await deployer.deploy(Proxy);
-    const s5USDAAPLProxy = await Proxy.deployed();
-    await s5USDAAPLProxy.upgradeTo(marginTradingPairImpl.address);
-    const s5USDAAPL = await MarginTradingPair.at(s5USDAAPLProxy.address);
-    s5USDAAPL.initialize(
-      marginProtocol.address,
-      moneyMarket.address,
-      fAAPL.address,
-      -5,
-      web3.utils.toWei('0.8'),
-      web3.utils.toWei('1'),
     );
 
     const usd = await moneyMarket.baseToken();
@@ -408,87 +312,95 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('100000000000'),
     );
 
-    // liquidity pool
+    // synthetic liquidity pool
 
-    await deployer.deploy(LiquidityPool);
-    const liquidityPoolImpl = await LiquidityPool.deployed();
-    await deployer.deploy(Proxy);
-    const liquidityPoolProxy = await Proxy.deployed();
+    const syntheticPools = [];
+    for (let i = 0; i < 2; i += 1) {
+      await deployer.deploy(SyntheticLiquidityPool);
+      const syntheticLiquidityPoolImpl = await SyntheticLiquidityPool.deployed();
+      await deployer.deploy(Proxy);
+      const syntheticliquidityPoolProxy = await Proxy.deployed();
 
-    await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    const pool = await LiquidityPool.at(liquidityPoolProxy.address);
-    await (pool as any).initialize(
-      // workaround since init is overloaded function which isnt supported by typechain yet
-      moneyMarket.address,
-      protocol.address,
-      web3.utils.toWei('0.003'),
-    );
+      await syntheticliquidityPoolProxy.upgradeTo(
+        syntheticLiquidityPoolImpl.address,
+      );
+      const syntheticPool = await SyntheticLiquidityPool.at(
+        syntheticliquidityPoolProxy.address,
+      );
+      await syntheticPool.initialize(
+        moneyMarket.address,
+        marginProtocol.address,
+      );
+      await syntheticPool.approveToProtocol(web3.utils.toWei('100000000000'));
 
-    await pool.approve(protocol.address, web3.utils.toWei('100000000000'));
-    await pool.approve(
-      marginProtocol.address,
-      web3.utils.toWei('100000000000'),
-    );
-    await pool.enableToken(fEUR.address);
-    await pool.enableToken(fJPY.address);
-    await pool.enableToken(fXAU.address);
-    await pool.enableToken(fAAPL.address);
+      for (const token of [
+        usd,
+        fEUR.address,
+        fJPY.address,
+        fXAU.address,
+        fAAPL.address,
+      ]) {
+        await syntheticPool.enableToken(token, web3.utils.toWei('0.003'));
+      }
 
-    await liquidityPoolRegistry.registerPool(pool.address);
-    await liquidityPoolRegistry.verifyPool(pool.address);
+      syntheticPools.push(syntheticPool);
+    }
 
-    await deployer.deploy(Proxy);
-    const liquidityPoolProxy2 = await Proxy.deployed();
+    // margin liquidity pool
+    const marginPools = [];
+    for (let i = 0; i < 2; i += 1) {
+      await deployer.deploy(MarginLiquidityPool);
+      const marginLiquidityPoolImpl = await MarginLiquidityPool.deployed();
+      await deployer.deploy(Proxy);
+      const marginliquidityPoolProxy = await Proxy.deployed();
 
-    await liquidityPoolProxy2.upgradeTo(liquidityPoolImpl.address);
-    const pool2 = await LiquidityPool.at(liquidityPoolProxy2.address);
-    await (pool2 as any).initialize(
-      // workaround since init is overloaded function which isnt supported by typechain yet
-      moneyMarket.address,
-      marginProtocol.address,
-      web3.utils.toWei('0.0031'),
-    );
+      await marginliquidityPoolProxy.upgradeTo(marginLiquidityPoolImpl.address);
+      const marginPool = await MarginLiquidityPool.at(
+        marginliquidityPoolProxy.address,
+      );
+      await marginPool.initialize(moneyMarket.address, marginProtocol.address);
+      await marginPool.approveToProtocol(web3.utils.toWei('100000000000'));
 
-    await pool2.approve(protocol.address, web3.utils.toWei('100000000000'));
-    await pool2.approve(
-      marginProtocol.address,
-      web3.utils.toWei('100000000000'),
-    );
-    await pool2.enableToken(fEUR.address);
-    await pool2.enableToken(fJPY.address);
-    await pool2.enableToken(fXAU.address);
-    await pool2.enableToken(fAAPL.address);
+      for (const [base, quote] of [
+        [usd, fEUR.address],
+        [fEUR.address, usd],
+        [usd, fJPY.address],
+        [fJPY.address, usd],
+        [usd, fXAU.address],
+        [fXAU.address, usd],
+        [usd, fAAPL.address],
+        [fAAPL.address, usd],
+      ]) {
+        await marginPool.enableToken(base, quote, web3.utils.toWei('0.003'));
+      }
 
-    await liquidityPoolRegistry.registerPool(pool2.address);
-    await liquidityPoolRegistry.verifyPool(pool2.address);
+      await marginLiquidityPoolRegistry.registerPool(marginPool.address);
+      await marginLiquidityPoolRegistry.verifyPool(marginPool.address);
 
-    // topup liquidity pool
+      await moneyMarket.mintTo(marginPool.address, web3.utils.toWei('20000'));
 
-    await moneyMarket.mintTo(pool.address, web3.utils.toWei('20000'));
-    await moneyMarket.mintTo(pool2.address, web3.utils.toWei('20000'));
+      marginPools.push(marginPool);
+    }
 
     const deployment = {
       moneyMarket: [moneyMarket, MoneyMarket],
       iToken: [iToken, ERC20Detailed],
       oracle: [oracle, PriceOracleInterface],
-      protocol: [protocol, FlowProtocol],
-      fEUR: [fEUR, FlowToken],
-      fJPY: [fJPY, FlowToken],
-      fXAU: [fXAU, FlowToken],
-      fAAPL: [fAAPL, FlowToken],
-      marginProtocol: [marginProtocol, FlowMarginProtocol],
-      marginProtocolSafety: [marginProtocolSafety, FlowMarginProtocolSafety],
-      l10USDEUR: [l10USDEUR, MarginTradingPair],
-      s10USDEUR: [s10USDEUR, MarginTradingPair],
-      l20USDJPY: [l20USDJPY, MarginTradingPair],
-      s20USDJPY: [s20USDJPY, MarginTradingPair],
-      l20USDXAU: [l20USDXAU, MarginTradingPair],
-      s20USDXAU: [s20USDXAU, MarginTradingPair],
-      l5USDAAPL: [l5USDAAPL, MarginTradingPair],
-      s5USDAAPL: [s5USDAAPL, MarginTradingPair],
-      poolRegistry: [liquidityPoolRegistry, LiquidityPoolRegistry],
-      pool: [pool, LiquidityPoolInterface],
-      pool2: [pool2, LiquidityPoolInterface],
+      syntheticProtocol: [protocol, SyntheticFlowProtocol],
+      fEUR: [fEUR, SyntheticFlowToken],
+      fJPY: [fJPY, SyntheticFlowToken],
+      fXAU: [fXAU, SyntheticFlowToken],
+      fAAPL: [fAAPL, SyntheticFlowToken],
+      marginProtocol: [marginProtocol, MarginFlowProtocol],
+      marginProtocolSafety: [marginProtocolSafety, MarginFlowProtocolSafety],
+      marginPoolRegistry: [
+        marginLiquidityPoolRegistry,
+        MarginLiquidityPoolRegistry,
+      ],
+      marginPool: [marginPools[0], MarginLiquidityPoolInterface],
+      marginPool2: [marginPools[1], MarginLiquidityPoolInterface],
+      syntheticPool: [syntheticPools[0], SyntheticLiquidityPoolInterface],
+      syntheticPool2: [syntheticPools[1], SyntheticLiquidityPoolInterface],
     };
 
     console.log('Deploy success');

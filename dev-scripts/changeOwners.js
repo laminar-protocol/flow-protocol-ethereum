@@ -12,9 +12,16 @@ module.exports = callback => {
   async function changeOwners() {
     const network = process.env.NETWORK;
 
-    const FlowMarginProtocol = artifacts.require('FlowMarginProtocol');
-    const FlowProtocol = artifacts.require('FlowProtocol');
-    const LiquidityPool = artifacts.require('LiquidityPool');
+    const MarginFlowProtocol = artifacts.require('MarginFlowProtocol');
+    const MarginFlowProtocolSafety = artifacts.require(
+      'MarginFlowProtocolSafety',
+    );
+    const SyntheticFlowProtocol = artifacts.require('SyntheticFlowProtocol');
+    const SyntheticLiquidityPool = artifacts.require('SyntheticLiquidityPool');
+    const MarginLiquidityPoolRegistry = artifacts.require(
+      'MarginLiquidityPoolRegistry',
+    );
+    const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
     const MoneyMarket = artifacts.require('MoneyMarket');
     const Proxy = artifacts.require('Proxy');
     const SimplePriceOracle = artifacts.require('SimplePriceOracle');
@@ -33,13 +40,32 @@ module.exports = callback => {
     const changeOwnerContracts = [
       { address: deployedContracts.moneyMarket, contract: MoneyMarket },
       { address: deployedContracts.oracle, contract: SimplePriceOracle },
-      { address: deployedContracts.protocol, contract: FlowProtocol },
+      {
+        address: deployedContracts.syntheticProtocol,
+        contract: SyntheticFlowProtocol,
+      },
       {
         address: deployedContracts.marginProtocol,
-        contract: FlowMarginProtocol,
+        contract: MarginFlowProtocol,
       },
-      { address: deployedContracts.pool, contract: LiquidityPool },
-      { address: deployedContracts.pool2, contract: LiquidityPool },
+      {
+        address: deployedContracts.marginProtocolSafety,
+        contract: MarginFlowProtocolSafety,
+      },
+      {
+        address: deployedContracts.marginPoolRegistry,
+        contract: MarginLiquidityPoolRegistry,
+      },
+      { address: deployedContracts.marginPool, contract: MarginLiquidityPool },
+      { address: deployedContracts.marginPool2, contract: MarginLiquidityPool },
+      {
+        address: deployedContracts.syntheticPool,
+        contract: SyntheticLiquidityPool,
+      },
+      {
+        address: deployedContracts.syntheticPool2,
+        contract: SyntheticLiquidityPool,
+      },
     ];
 
     for (const { address, contract } of changeOwnerContracts) {

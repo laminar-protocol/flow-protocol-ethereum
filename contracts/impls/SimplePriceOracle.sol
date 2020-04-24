@@ -55,7 +55,6 @@ contract PriceOracleDataSource {
 
 
 contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeederRole, PriceOracleDataSource {
-    // DO NOT CHANGE ORDER WHEN UPDATING, ONLY ADDING NEW VARIABLES IS ALLOWED
     mapping(address => uint) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
