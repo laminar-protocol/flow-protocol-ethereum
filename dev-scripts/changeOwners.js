@@ -16,7 +16,7 @@ module.exports = callback => {
     const MarginFlowProtocolSafety = artifacts.require(
       'MarginFlowProtocolSafety',
     );
-    const FlowProtocol = artifacts.require('SyntheticFlowProtocol');
+    const SyntheticFlowProtocol = artifacts.require('SyntheticFlowProtocol');
     const SyntheticLiquidityPool = artifacts.require('SyntheticLiquidityPool');
     const MarginLiquidityPoolRegistry = artifacts.require(
       'MarginLiquidityPoolRegistry',
@@ -40,7 +40,10 @@ module.exports = callback => {
     const changeOwnerContracts = [
       { address: deployedContracts.moneyMarket, contract: MoneyMarket },
       { address: deployedContracts.oracle, contract: SimplePriceOracle },
-      { address: deployedContracts.protocol, contract: FlowProtocol },
+      {
+        address: deployedContracts.syntheticProtocol,
+        contract: SyntheticFlowProtocol,
+      },
       {
         address: deployedContracts.marginProtocol,
         contract: MarginFlowProtocol,

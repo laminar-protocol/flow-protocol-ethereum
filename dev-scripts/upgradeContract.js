@@ -11,10 +11,13 @@ const readFile = filePath => {
 const contractMapping = {
   MoneyMarket: ['moneyMarket'],
   SimplePriceOracle: ['oracle'],
-  FlowProtocol: ['protocol'],
+  SyntheticFlowProtocol: ['syntheticProtocol'],
+  SyntheticFlowToken: ['fEUR', 'fJPY', 'fXAU', 'fAAPL'],
+  SyntheticLiquidityPool: ['syntheticPool', 'syntheticPool2'],
   MarginFlowProtocol: ['marginProtocol'],
-  FlowToken: ['fEUR', 'fJPY', 'fXAU', 'fAAPL'],
-  LiquidityPool: ['pool', 'pool2'],
+  MarginFlowProtocolSafety: ['marginProtocolSafety'],
+  MarginLiquidityPoolRegistry: ['marginPoolRegistry'],
+  MarginLiquidityPool: ['marginPool', 'marginPool2'],
 };
 
 module.exports = callback => {

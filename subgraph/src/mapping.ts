@@ -8,8 +8,8 @@ import {
   CollateralWithdrew,
   FlowTokenWithdrew,
   FlowTokenDeposited,
-} from '../generated/FlowProtocol/FlowProtocol';
-import { FlowToken } from '../generated/FlowProtocol/FlowToken';
+} from '../generated/SyntheticFlowProtocol/SyntheticFlowProtocol';
+import { SyntheticFlowToken } from '../generated/SyntheticFlowProtocol/SyntheticFlowToken';
 import { NewTradingPair } from '../generated/MarginFlowProtocol/MarginFlowProtocol';
 import {
   PriceFeeded,
@@ -47,7 +47,7 @@ function createNewEventEntity(
 
 export function handleNewFlowToken(event: NewFlowToken): void {
   let token = new TokenEntity(event.params.token.toHex());
-  let flowToken = FlowToken.bind(event.params.token);
+  let flowToken = SyntheticFlowToken.bind(event.params.token);
   token.name = flowToken.name();
   token.symbol = flowToken.symbol();
   token.save();

@@ -20,7 +20,7 @@ import {
 } from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
-const FlowProtocol = artifacts.require('SyntheticFlowProtocol');
+const SyntheticFlowProtocol = artifacts.require('SyntheticFlowProtocol');
 const FlowProtocolNewVersion = artifacts.require(
   'SyntheticFlowProtocolNewVersion',
 );
@@ -65,11 +65,11 @@ contract('SyntheticFlowProtocol', accounts => {
       usd.address,
       fromPercent(100),
     ));
-    const flowProtocolImpl = await FlowProtocol.new();
+    const flowProtocolImpl = await SyntheticFlowProtocol.new();
     const flowProtocolProxy = await Proxy.new();
 
     await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
-    protocol = await FlowProtocol.at(flowProtocolProxy.address);
+    protocol = await SyntheticFlowProtocol.at(flowProtocolProxy.address);
     await protocol.initialize(oracle.address, moneyMarket.address);
 
     const fTokenImpl = await FlowToken.new();
