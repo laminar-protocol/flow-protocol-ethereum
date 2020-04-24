@@ -1,0 +1,278 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event",
+    "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
+  },
+  {
+    "inputs": [],
+    "name": "LIQUIDITY_POOL_LIQUIDATION_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xaf000f81"
+  },
+  {
+    "inputs": [],
+    "name": "LIQUIDITY_POOL_MARGIN_CALL_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xb8a05b9c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isMarginCalled",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x9201010a"
+  },
+  {
+    "inputs": [],
+    "name": "isOwner",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x8f32d59b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "isVerifiedPool",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x3cc6df9f"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x8da5cb5b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "poolHasPaidFees",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x94ba13c6"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x715018a6"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xf2fde38b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "_moneyMarket",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_protocolSafety",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x485cc955"
+  },
+  {
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "registerPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xabd90846"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "verifyPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x6cdff948"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "unverifyPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xe982841c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "marginCallPool",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x37a615b5"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "makePoolSafe",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x3c83491d"
+  }
+]

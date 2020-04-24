@@ -1,0 +1,1415 @@
+[
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Deposited",
+    "type": "event",
+    "signature": "0x2da466a7b24304f47e87fa2e1e5a81b9831ce54fec19055ce277ca2f39ba42c4"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "base",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "quote",
+        "type": "address"
+      }
+    ],
+    "name": "NewTradingPair",
+    "type": "event",
+    "signature": "0xcde3195fa385cbb63fc99b7648a4ec890a183dc0f6ab9ae2b9fde3a6ead486b1"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "previousOwner",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "OwnershipTransferred",
+    "type": "event",
+    "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "quoteToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "positionId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
+    ],
+    "name": "PositionClosed",
+    "type": "event",
+    "signature": "0xaa821911f06acaf98bd0a42d5ef527e7af274fd78d3429862a330f4b2d2bad19"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "liquidityPool",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "baseToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "quoteToken",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "int256",
+        "name": "leverage",
+        "type": "int256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "price",
+        "type": "uint256"
+      }
+    ],
+    "name": "PositionOpened",
+    "type": "event",
+    "signature": "0x398fddce06be754879ac768f463a285713032cb072ebac383198860bcaf254c0"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Withdrew",
+    "type": "event",
+    "signature": "0xb244b9a17ad633c6e83b7983ee04320484956a68ddbe96a0b70dfca1cf19d723"
+  },
+  {
+    "inputs": [],
+    "name": "TRADER_LIQUIDATION_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xcb323e0b"
+  },
+  {
+    "inputs": [],
+    "name": "TRADER_MARGIN_CALL_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xb2d61c3d"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "balances",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xc23f001f"
+  },
+  {
+    "inputs": [],
+    "name": "currentSwapRate",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "value",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x5334c231"
+  },
+  {
+    "inputs": [],
+    "name": "isOwner",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x8f32d59b"
+  },
+  {
+    "inputs": [],
+    "name": "liquidityPoolRegistry",
+    "outputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolRegistry",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xab7bcec6"
+  },
+  {
+    "inputs": [],
+    "name": "maxSpread",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x796e8f90"
+  },
+  {
+    "inputs": [],
+    "name": "moneyMarket",
+    "outputs": [
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xd6d75f51"
+  },
+  {
+    "inputs": [],
+    "name": "nextPositionId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x899346c7"
+  },
+  {
+    "inputs": [],
+    "name": "oracle",
+    "outputs": [
+      {
+        "internalType": "contract PriceOracleInterface",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x7dc0d1d0"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x8da5cb5b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "positionsById",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "base",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "quote",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct MarginFlowProtocol.TradingPair",
+        "name": "pair",
+        "type": "tuple"
+      },
+      {
+        "internalType": "int256",
+        "name": "leverage",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedHeld",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedDebits",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedDebitsInUsd",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "marginHeld",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Percentage.Percent",
+        "name": "swapRate",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timeWhenOpened",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xd312671a"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "positionsByPool",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "base",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "quote",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct MarginFlowProtocol.TradingPair",
+        "name": "pair",
+        "type": "tuple"
+      },
+      {
+        "internalType": "int256",
+        "name": "leverage",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedHeld",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedDebits",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedDebitsInUsd",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "marginHeld",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Percentage.Percent",
+        "name": "swapRate",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timeWhenOpened",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x8399c8bb"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "positionsByPoolAndTrader",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "pool",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "base",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "quote",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct MarginFlowProtocol.TradingPair",
+        "name": "pair",
+        "type": "tuple"
+      },
+      {
+        "internalType": "int256",
+        "name": "leverage",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedHeld",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedDebits",
+        "type": "int256"
+      },
+      {
+        "internalType": "int256",
+        "name": "leveragedDebitsInUsd",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "marginHeld",
+        "type": "uint256"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Percentage.Percent",
+        "name": "swapRate",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timeWhenOpened",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x4175b62a"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x715018a6"
+  },
+  {
+    "inputs": [],
+    "name": "safetyProtocol",
+    "outputs": [
+      {
+        "internalType": "contract MarginFlowProtocolSafety",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x81ab46b1"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_maxSpread",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMaxSpread",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xbef648db"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "traderHasPaidFees",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x5b1e7776"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "traderIsMarginCalled",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x4ce5e189"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "tradingPairWhitelist",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x208abab7"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "newOwner",
+        "type": "address"
+      }
+    ],
+    "name": "transferOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xf2fde38b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract PriceOracleInterface",
+        "name": "_oracle",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "_moneyMarket",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x485cc955"
+  },
+  {
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract PriceOracleInterface",
+        "name": "_oracle",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MoneyMarketInterface",
+        "name": "_moneyMarket",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MarginFlowProtocolSafety",
+        "name": "_safetyProtocol",
+        "type": "address"
+      },
+      {
+        "internalType": "contract MarginLiquidityPoolRegistry",
+        "name": "_liquidityPoolRegistry",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_initialSwapRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xf7013ef6"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_base",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_quote",
+        "type": "address"
+      }
+    ],
+    "name": "addTradingPair",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x5728c3f1"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_newSwapRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "setCurrentSwapRate",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x993881ed"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_baseTokenAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x47e7ef24"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_baseTokenAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xf3fef3a3"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_base",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_quote",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "_leverage",
+        "type": "int256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_leveragedHeld",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_price",
+        "type": "uint256"
+      }
+    ],
+    "name": "openPosition",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x76cf55d4"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_positionId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_price",
+        "type": "uint256"
+      }
+    ],
+    "name": "closePosition",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x2d6ce61d"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "getMarginHeld",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x3b05ea7f"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "getFreeMargin",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xa71a39be"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "getEquityOfTrader",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xd67d4989"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_positionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getUnrealizedPlOfPosition",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x90789a2b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_currencyToken",
+        "type": "address"
+      },
+      {
+        "internalType": "int256",
+        "name": "_amount",
+        "type": "int256"
+      }
+    ],
+    "name": "getUsdValue",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xd213f70b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_baseCurrencyId",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_quoteCurrencyId",
+        "type": "address"
+      }
+    ],
+    "name": "getPrice",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Percentage.Percent",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xac41865a"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_positionId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAccumulatedSwapRateOfPosition",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x8272346b"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "getPositionsByPoolLength",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x0dc02f9a"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getPositionIdByPoolAndIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x387047af"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getLeveragedDebitsByPoolAndIndex",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x235517fa"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "getPositionsByPoolAndTraderLength",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xb0e42e99"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getPositionIdByPoolAndTraderAndIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x56020378"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_index",
+        "type": "uint256"
+      }
+    ],
+    "name": "getLeveragedDebitsByPoolAndTraderAndIndex",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xd9c4f8a0"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "_isMarginCalled",
+        "type": "bool"
+      }
+    ],
+    "name": "setTraderIsMarginCalled",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xf26b4122"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "_hasPaidFees",
+        "type": "bool"
+      }
+    ],
+    "name": "setTraderHasPaidFees",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xd5b319cd"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_baseToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_quoteToken",
+        "type": "address"
+      }
+    ],
+    "name": "getAskSpread",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xb2a43a26"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_baseToken",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_quoteToken",
+        "type": "address"
+      }
+    ],
+    "name": "getBidSpread",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x44f9ab52"
+  }
+]

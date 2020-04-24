@@ -403,7 +403,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "value",
+        "name": "_maxSpread",
         "type": "uint256"
       }
     ],
@@ -445,7 +445,7 @@
     "name": "tokens",
     "outputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "",
         "type": "address"
       }
@@ -472,7 +472,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "token",
         "type": "address"
       }
@@ -486,12 +486,12 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "_token",
         "type": "address"
       },
       {
-        "internalType": "contract LiquidityPoolInterface",
+        "internalType": "contract SyntheticLiquidityPoolInterface",
         "name": "_pool",
         "type": "address"
       },
@@ -516,12 +516,12 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "_token",
         "type": "address"
       },
       {
-        "internalType": "contract LiquidityPoolInterface",
+        "internalType": "contract SyntheticLiquidityPoolInterface",
         "name": "_pool",
         "type": "address"
       },
@@ -551,12 +551,12 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "_token",
         "type": "address"
       },
       {
-        "internalType": "contract LiquidityPoolInterface",
+        "internalType": "contract SyntheticLiquidityPoolInterface",
         "name": "_pool",
         "type": "address"
       },
@@ -581,12 +581,12 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "_token",
         "type": "address"
       },
       {
-        "internalType": "contract LiquidityPoolInterface",
+        "internalType": "contract SyntheticLiquidityPoolInterface",
         "name": "_pool",
         "type": "address"
       },
@@ -616,12 +616,12 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "token",
         "type": "address"
       },
       {
-        "internalType": "contract LiquidityPoolInterface",
+        "internalType": "contract SyntheticLiquidityPoolInterface",
         "name": "pool",
         "type": "address"
       },
@@ -646,7 +646,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "token",
         "type": "address"
       },
@@ -670,7 +670,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "token",
         "type": "address"
       }
@@ -690,7 +690,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "token",
         "type": "address"
       },
@@ -709,7 +709,7 @@
   {
     "inputs": [
       {
-        "internalType": "contract FlowToken",
+        "internalType": "contract SyntheticFlowToken",
         "name": "token",
         "type": "address"
       },
@@ -724,5 +724,57 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xf3fef3a3"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract SyntheticLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_flowToken",
+        "type": "address"
+      }
+    ],
+    "name": "getAskSpread",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x383421b1"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract SyntheticLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_flowToken",
+        "type": "address"
+      }
+    ],
+    "name": "getBidSpread",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xcc543880"
   }
 ]
