@@ -59,10 +59,11 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @param baseToken The base token
      * @param quoteToken The quote token
      * @param leverage The leverage, e.g., 20x
-     * @param amount The quoteToken amount to open position
+     * @param amount The base token amount to open position
      * @param price The max/min price for opening, 0 means accept all.
      */
     event PositionOpened(
+        uint256 positionId,
         address indexed sender,
         address indexed liquidityPool,
         address indexed baseToken,
@@ -78,15 +79,17 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @param liquidityPool The MarginLiquidityPool
      * @param baseToken The base token
      * @param quoteToken The quote token
+     * @param realizedPl The realized profit or loss after closing
      * @param positionId The position id
      * @param price The max/min price for closing, 0 means accept all.
      */
     event PositionClosed(
+        uint256 positionId,
         address indexed sender,
         address indexed liquidityPool,
         address indexed baseToken,
         address quoteToken,
-        uint256 positionId,
+        int256 realizedPl,
         uint256 price
     );
 
@@ -314,16 +317,6 @@ contract MarginFlowProtocol is FlowProtocolBase {
             _leveragedHeld,
             debitsPrice
         );
-
-        emit PositionOpened(
-            msg.sender,
-            address(_pool),
-            _base,
-            _quote,
-            _leverage,
-            _leveragedHeld,
-            debitsPrice.value
-        );
     }
 
     /**
@@ -368,11 +361,12 @@ contract MarginFlowProtocol is FlowProtocolBase {
         _removePositionFromLists(position);
 
         emit PositionClosed(
+            _positionId,
             msg.sender,
             address(position.pool),
             address(position.pair.base),
             address(position.pair.quote),
-            _positionId,
+            balanceDelta,
             marketPrice.value
         );
     }
@@ -612,6 +606,17 @@ contract MarginFlowProtocol is FlowProtocolBase {
         positionsById[positionId] = position;
         positionsByPoolAndTrader[_pool][msg.sender].push(position);
         positionsByPool[_pool].push(position);
+
+        emit PositionOpened(
+            positionId,
+            msg.sender,
+            address(_pool),
+            _pair.base,
+            _pair.quote,
+            _leverage,
+            leveragedHeldInUsd,
+            _debitsPrice.value
+        );
     }
 
     function _removePositionFromLists(Position memory _position) internal {

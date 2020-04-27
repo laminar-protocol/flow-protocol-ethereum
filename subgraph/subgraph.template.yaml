@@ -79,3 +79,7 @@ dataSources:
       eventHandlers:
         - event: NewTradingPair(indexed address,indexed address)
           handler: handleNewTradingPair
+        - event: PositionOpened(uint256,indexed address,indexed address,indexed address,address,int256,uint256,uint256)
+          handler: handleOpenPosition
+        - event: PositionClosed(uint256,indexed address,indexed address,indexed address,address,int256,uint256)
+          handler: handleClosePosition

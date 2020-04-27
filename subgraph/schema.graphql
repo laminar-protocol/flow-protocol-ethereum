@@ -1,13 +1,19 @@
-type FlowProtocolEntity @entity {
+type SyntheticFlowProtocolEntity @entity {
     id: ID! # 0, singleton
 
     totalEvents: BigInt!
 }
 
-type TokenEntity @entity {
+type SyntheticTokenEntity @entity {
     id: ID!                         # Token contract address
     name: String!                   # Name of the token
     symbol: String!                 # Symbol of the token
+}
+
+type MarginTokenPairEntity @entity {
+    id: ID!                              # Token Pair Id
+    base: Bytes!                         # Base token contract address
+    quote: Bytes!                        # Quote token contract address
 }
 
 enum EventKind {
@@ -30,7 +36,7 @@ type EventEntity @entity {
     block: Int!                     # Block number that the transaction is recorded
 
     user: Bytes!                    # Address of sender
-    token: TokenEntity!             # Token Entity
+    token: SyntheticTokenEntity!    # Synthetic Token Entity
     liquidityPool: Bytes            # Address of liquidity pool
 
     baseTokenAmount: BigDecimal!    # Base token amount, e.g. 10 DAI
@@ -43,19 +49,11 @@ type PriceEntity @entity {
     updatedAt: Int!         # Timestamp in seconds
 }
 
-type TradingPairEntity @entity {
-    id: ID!                         # Margin Trading Pair Contract Address
-
-    quoteToken: TokenEntity!        # Asset in trade, e.g. Forex fToken fEUR, or any other assets
-    leverage: Int!                  # The leverage, positive is long, negative is short
-    safeMarginPercent: BigDecimal!  # Max amount to lose before liquidity pool can close position voluntariy
-    liquidationFee: BigDecimal!     # The reward both trader and liquidity pool chip in for liquidators
-}
-
 type MarginPositionEntity @entity {
     id: ID!                                 # Margin Trading Pair Contract Address + Position ID
 
-    pair: TradingPairEntity!                # The Trading Pair Entity
+    base: Bytes!                            # The Trading Pair Base Token
+    quote: Bytes!                           # The Trading Pair Quote Token
     positionId: Int!                        # Position ID is returned upon opening a position
 
     owner: Bytes!                           # Address of the position owner, who opens this position
@@ -71,8 +69,7 @@ type MarginPositionEntity @entity {
 
     closePrice: BigDecimal                  # Price when closing this position, accounted for spread
     liquidator: Bytes                       # Address of the liquidator who closes this position
-    closeOwnerAmount: BigDecimal            # Amount in DAI returns to owner when closing position
-    closeLiquidityPoolAmount: BigDecimal    # Amount in DAI returns to liquidity pool when closing position
+    realizedPl: BigDecimal                  # Amount in DAI returns to owner when closing position
 
     closeTime: Int                          # Position close timestamp in seconds
     closeTxhash: Bytes                      # Position close transaction hash

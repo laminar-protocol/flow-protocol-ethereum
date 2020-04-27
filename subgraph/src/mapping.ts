@@ -1,4 +1,9 @@
-import { BigDecimal, BigInt, EthereumEvent } from '@graphprotocol/graph-ts';
+import {
+  Address,
+  BigDecimal,
+  BigInt,
+  EthereumEvent,
+} from '@graphprotocol/graph-ts';
 import {
   NewFlowToken,
   Minted,
@@ -10,31 +15,39 @@ import {
   FlowTokenDeposited,
 } from '../generated/SyntheticFlowProtocol/SyntheticFlowProtocol';
 import { SyntheticFlowToken } from '../generated/SyntheticFlowProtocol/SyntheticFlowToken';
-import { NewTradingPair } from '../generated/MarginFlowProtocol/MarginFlowProtocol';
+import {
+  NewTradingPair,
+  PositionOpened,
+  PositionClosed,
+} from '../generated/MarginFlowProtocol/MarginFlowProtocol';
+import { MoneyMarket } from '../generated/FlowMarginProtocol/MoneyMarket';
 import {
   PriceFeeded,
   PriceOracleInterface,
 } from '../generated/PriceOracle/PriceOracleInterface';
 import {
-  TokenEntity,
+  MarginTokenPairEntity,
+  SyntheticTokenEntity,
   PriceEntity,
   EventEntity,
-  FlowProtocolEntity,
+  MarginPositionEntity,
+  SyntheticFlowProtocolEntity,
 } from '../generated/schema';
+import * as deployment from '../generated/deployment';
 
 let one = BigDecimal.fromString('1000000000000000000');
 
-function getFlowProtocol(): FlowProtocolEntity {
-  let flow = FlowProtocolEntity.load('0');
+function getSyntheticFlowProtocol(): SyntheticFlowProtocolEntity {
+  let flow = SyntheticFlowProtocolEntity.load('0');
   if (flow == null) {
-    flow = new FlowProtocolEntity('0');
+    flow = new SyntheticFlowProtocolEntity('0');
     flow.totalEvents = BigInt.fromI32(0);
   }
-  return flow as FlowProtocolEntity;
+  return flow as SyntheticFlowProtocolEntity;
 }
 
 function createNewEventEntity(
-  flow: FlowProtocolEntity,
+  flow: SyntheticFlowProtocolEntity,
   event: EthereumEvent,
 ): EventEntity {
   flow.totalEvents = flow.totalEvents.plus(BigInt.fromI32(1));
@@ -46,7 +59,7 @@ function createNewEventEntity(
 }
 
 export function handleNewFlowToken(event: NewFlowToken): void {
-  let token = new TokenEntity(event.params.token.toHex());
+  let token = new SyntheticTokenEntity(event.params.token.toHex());
   let flowToken = SyntheticFlowToken.bind(event.params.token);
   token.name = flowToken.name();
   token.symbol = flowToken.symbol();
@@ -54,7 +67,7 @@ export function handleNewFlowToken(event: NewFlowToken): void {
 }
 
 export function handleMinted(event: Minted): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'Minted';
@@ -69,7 +82,7 @@ export function handleMinted(event: Minted): void {
 }
 
 export function handleRedeemed(event: Redeemed): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'Redeemed';
@@ -84,7 +97,7 @@ export function handleRedeemed(event: Redeemed): void {
 }
 
 export function handleLiquidated(event: Liquidated): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'Liquidated';
@@ -99,7 +112,7 @@ export function handleLiquidated(event: Liquidated): void {
 }
 
 export function handleCollateralAdded(event: CollateralAdded): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'CollateralAdded';
@@ -114,7 +127,7 @@ export function handleCollateralAdded(event: CollateralAdded): void {
 }
 
 export function handleCollateralWithdrew(event: CollateralWithdrew): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'CollateralWithdrew';
@@ -129,7 +142,7 @@ export function handleCollateralWithdrew(event: CollateralWithdrew): void {
 }
 
 export function handleFlowTokenDeposited(event: FlowTokenDeposited): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'Deposited';
@@ -143,7 +156,7 @@ export function handleFlowTokenDeposited(event: FlowTokenDeposited): void {
 }
 
 export function handleFlowTokenWithdrew(event: FlowTokenWithdrew): void {
-  let flow = getFlowProtocol();
+  let flow = getSyntheticFlowProtocol();
   let tx = createNewEventEntity(flow, event);
 
   tx.kind = 'Withdrew';
@@ -166,39 +179,35 @@ export function handlePriceFeeded(event: PriceFeeded): void {
 }
 
 export function handleNewTradingPair(event: NewTradingPair): void {
-  let entityBase = new TokenEntity(event.params.base.toHex());
-  let entityQuote = new TokenEntity(event.params.quote.toHex());
+  let entity = new MarginTokenPairEntity(
+    event.params.base.toHex() + event.params.quote.toHex(),
+  );
 
-  entityBase.save();
-  entityQuote.save();
+  entity.base = event.params.base;
+  entity.quote = event.params.quote;
+
+  entity.save();
 }
 
-/*
-export function handleOpenPosition(event: OpenPosition): void {
+export function handleOpenPosition(event: PositionOpened): void {
   let entity = new MarginPositionEntity(
     event.address.toHex() + event.params.positionId.toString(),
   );
-  let pair = MarginTradingPair.bind(event.address);
-  entity.pair = event.address.toHex();
+  entity.base = event.params.baseToken;
+  entity.quote = event.params.quoteToken;
   entity.positionId = event.params.positionId.toI32();
   entity.owner = event.params.sender;
   entity.liquidityPool = event.params.liquidityPool;
-  entity.amount = event.params.baseTokenAmount.toBigDecimal().div(one);
-  entity.openPrice = event.params.openPrice.toBigDecimal().div(one);
-  entity.closeSpread = event.params.closeSpread.toBigDecimal().div(one);
-  entity.liquidationFee = pair
-    .liquidationFee()
-    .toBigDecimal()
-    .div(one);
+  entity.amount = event.params.amount.toBigDecimal().div(one);
+  entity.openPrice = event.params.price.toBigDecimal().div(one);
+  // entity.closeSpread = event.params.closeSpread.toBigDecimal().div(one);
   entity.openTime = event.block.timestamp.toI32();
   entity.openTxhash = event.transaction.hash;
   entity.openBlock = event.block.number.toI32();
   entity.save();
 }
-*/
 
-/*
-export function handleClosePosition(event: ClosePosition): void {
+export function handleClosePosition(event: PositionClosed): void {
   let entity = new MarginPositionEntity(
     event.address.toHex() + event.params.positionId.toString(),
   );
@@ -209,13 +218,9 @@ export function handleClosePosition(event: ClosePosition): void {
     .exchangeRate()
     .toBigDecimal()
     .div(one);
-  entity.closePrice = event.params.closePrice.toBigDecimal().div(one);
-  entity.liquidator = event.params.liquidator;
-  entity.closeOwnerAmount = event.params.ownerAmount
-    .toBigDecimal()
-    .div(one)
-    .times(iTokenRate);
-  entity.closeLiquidityPoolAmount = event.params.liquidityPoolAmount
+  entity.closePrice = event.params.price.toBigDecimal().div(one);
+  entity.liquidator = event.params.sender;
+  entity.realizedPl = event.params.realizedPl
     .toBigDecimal()
     .div(one)
     .times(iTokenRate);
@@ -224,4 +229,3 @@ export function handleClosePosition(event: ClosePosition): void {
   entity.closeBlock = event.block.number.toI32();
   entity.save();
 }
-*/
