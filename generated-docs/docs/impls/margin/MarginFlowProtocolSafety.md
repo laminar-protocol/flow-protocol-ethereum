@@ -28,6 +28,16 @@
 
 - [`liquidateLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-liquidateLiquidityPool-contract-MarginLiquidityPoolInterface-)
 
+- [`isTraderSafe(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-isTraderSafe-contract-MarginLiquidityPoolInterface-address-)
+
+- [`getMarginLevel(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-getMarginLevel-contract-MarginLiquidityPoolInterface-address-)
+
+- [`getEnpAndEll(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-getEnpAndEll-contract-MarginLiquidityPoolInterface-)
+
+- [`getLeveragedDebitsOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-getLeveragedDebitsOfTrader-contract-MarginLiquidityPoolInterface-address-)
+
+- [`getEquityOfPool(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-getEquityOfPool-contract-MarginLiquidityPoolInterface-)
+
 ## Events:
 
 - [`TraderMarginCalled(address liquidityPool, address sender)`](#MarginFlowProtocolSafety-TraderMarginCalled-address-address-)
@@ -173,6 +183,26 @@ Liquidate pool due to funds running too low, distribute funds to all users and s
 #### Parameters:
 
 - `_pool`: The MarginLiquidityPool.
+
+### [Function `isTraderSafe(contract MarginLiquidityPoolInterface _pool, address _trader) → bool`](#MarginFlowProtocolSafety-isTraderSafe-contract-MarginLiquidityPoolInterface-address-)
+
+No description
+
+### [Function `getMarginLevel(contract MarginLiquidityPoolInterface _pool, address _trader) → struct Percentage.SignedPercent`](#MarginFlowProtocolSafety-getMarginLevel-contract-MarginLiquidityPoolInterface-address-)
+
+No description
+
+### [Function `getEnpAndEll(contract MarginLiquidityPoolInterface _pool) → struct Percentage.Percent, struct Percentage.Percent`](#MarginFlowProtocolSafety-getEnpAndEll-contract-MarginLiquidityPoolInterface-)
+
+No description
+
+### [Function `getLeveragedDebitsOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader) → uint256`](#MarginFlowProtocolSafety-getLeveragedDebitsOfTrader-contract-MarginLiquidityPoolInterface-address-)
+
+No description
+
+### [Function `getEquityOfPool(contract MarginLiquidityPoolInterface _pool) → int256`](#MarginFlowProtocolSafety-getEquityOfPool-contract-MarginLiquidityPoolInterface-)
+
+No description
 
 ### Event `TraderMarginCalled(address liquidityPool, address sender)` {#MarginFlowProtocolSafety-TraderMarginCalled-address-address-}
 

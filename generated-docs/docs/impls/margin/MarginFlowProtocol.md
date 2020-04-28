@@ -1,10 +1,16 @@
 ## Functions:
 
-- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolSafety _safetyProtocol, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolSafety-contract-MarginLiquidityPoolRegistry-uint256-)
+- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolSafety _safetyProtocol, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate, uint256 _initialMinLeverage, uint256 _initialMaxLeverage, uint256 _initialMaxLeverageAmount, uint256 _rateUnit)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolSafety-contract-MarginLiquidityPoolRegistry-uint256-uint256-uint256-uint256-uint256-)
 
 - [`addTradingPair(address _base, address _quote)`](#MarginFlowProtocol-addTradingPair-address-address-)
 
 - [`setCurrentSwapRate(uint256 _newSwapRate)`](#MarginFlowProtocol-setCurrentSwapRate-uint256-)
+
+- [`setMinLeverage(uint256 _newMinLeverage)`](#MarginFlowProtocol-setMinLeverage-uint256-)
+
+- [`setMaxLeverage(uint256 _newMaxLeverage)`](#MarginFlowProtocol-setMaxLeverage-uint256-)
+
+- [`setMaxLeverageAmount(uint256 _newMaxLeverageAmount)`](#MarginFlowProtocol-setMaxLeverageAmount-uint256-)
 
 - [`deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#MarginFlowProtocol-deposit-contract-MarginLiquidityPoolInterface-uint256-)
 
@@ -50,9 +56,9 @@
 
 ## Events:
 
-- [`PositionOpened(address sender, address liquidityPool, address baseToken, address quoteToken, int256 leverage, uint256 amount, uint256 price)`](#MarginFlowProtocol-PositionOpened-address-address-address-address-int256-uint256-uint256-)
+- [`PositionOpened(uint256 positionId, address sender, address liquidityPool, address baseToken, address quoteToken, int256 leverage, int256 leveragedDebitsInUsd, uint256 price)`](#MarginFlowProtocol-PositionOpened-uint256-address-address-address-address-int256-int256-uint256-)
 
-- [`PositionClosed(address sender, address liquidityPool, address baseToken, address quoteToken, uint256 positionId, uint256 price)`](#MarginFlowProtocol-PositionClosed-address-address-address-address-uint256-uint256-)
+- [`PositionClosed(uint256 positionId, address sender, address liquidityPool, address baseToken, address quoteToken, int256 realizedPl, uint256 price)`](#MarginFlowProtocol-PositionClosed-uint256-address-address-address-address-int256-uint256-)
 
 - [`Deposited(address sender, uint256 amount)`](#MarginFlowProtocol-Deposited-address-uint256-)
 
@@ -60,7 +66,7 @@
 
 - [`NewTradingPair(address base, address quote)`](#MarginFlowProtocol-NewTradingPair-address-address-)
 
-### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolSafety _safetyProtocol, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolSafety-contract-MarginLiquidityPoolRegistry-uint256-)
+### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolSafety _safetyProtocol, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate, uint256 _initialMinLeverage, uint256 _initialMaxLeverage, uint256 _initialMaxLeverageAmount, uint256 _rateUnit)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolSafety-contract-MarginLiquidityPoolRegistry-uint256-uint256-uint256-uint256-uint256-)
 
 Initialize the MarginFlowProtocol.
 
@@ -91,6 +97,30 @@ Set new swap rate, only for the owner.
 #### Parameters:
 
 - `_newSwapRate`: The new swap rate as percentage.
+
+### [Function `setMinLeverage(uint256 _newMinLeverage)`](#MarginFlowProtocol-setMinLeverage-uint256-)
+
+Set new minimum leverage, only for the owner.
+
+#### Parameters:
+
+- `_newMinLeverage`: The new minimum leverage.
+
+### [Function `setMaxLeverage(uint256 _newMaxLeverage)`](#MarginFlowProtocol-setMaxLeverage-uint256-)
+
+Set new maximum leverage, only for the owner.
+
+#### Parameters:
+
+- `_newMaxLeverage`: The new maximum leverage.
+
+### [Function `setMaxLeverageAmount(uint256 _newMaxLeverageAmount)`](#MarginFlowProtocol-setMaxLeverageAmount-uint256-)
+
+Set new maximum leverage amount, only for the owner.
+
+#### Parameters:
+
+- `_newMaxLeverageAmount`: The new maximum leverage amount.
 
 ### [Function `deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#MarginFlowProtocol-deposit-contract-MarginLiquidityPoolInterface-uint256-)
 
@@ -230,7 +260,7 @@ No description
 
 No description
 
-### Event `PositionOpened(address sender, address liquidityPool, address baseToken, address quoteToken, int256 leverage, uint256 amount, uint256 price)` {#MarginFlowProtocol-PositionOpened-address-address-address-address-int256-uint256-uint256-}
+### Event `PositionOpened(uint256 positionId, address sender, address liquidityPool, address baseToken, address quoteToken, int256 leverage, int256 leveragedDebitsInUsd, uint256 price)` {#MarginFlowProtocol-PositionOpened-uint256-address-address-address-address-int256-int256-uint256-}
 
 Event for deposits.
 
@@ -248,11 +278,11 @@ Event for deposits.
 
 - `leverage`: The leverage, e.g., 20x
 
-- `amount`: The quoteToken amount to open position
+- `leveragedDebitsInUsd`: The base token amount to open position
 
 - `price`: The max/min price for opening, 0 means accept all.
 
-### Event `PositionClosed(address sender, address liquidityPool, address baseToken, address quoteToken, uint256 positionId, uint256 price)` {#MarginFlowProtocol-PositionClosed-address-address-address-address-uint256-uint256-}
+### Event `PositionClosed(uint256 positionId, address sender, address liquidityPool, address baseToken, address quoteToken, int256 realizedPl, uint256 price)` {#MarginFlowProtocol-PositionClosed-uint256-address-address-address-address-int256-uint256-}
 
 Event for deposits.
 
@@ -265,6 +295,8 @@ Event for deposits.
 - `baseToken`: The base token
 
 - `quoteToken`: The quote token
+
+- `realizedPl`: The realized profit or loss after closing
 
 - `positionId`: The position id
 
