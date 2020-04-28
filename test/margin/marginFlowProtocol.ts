@@ -500,12 +500,13 @@ contract('MarginFlowProtocol', accounts => {
     expect(timeWhenOpened).to.be.bignumber.equal(expectedTimeWhenOpened);
 
     await expectEvent(receipt, 'PositionOpened', {
+      positionId,
       sender: expectedOwner,
       liquidityPool: expectedPool,
       baseToken,
       quoteToken,
       leverage: expectedLeverage,
-      amount: leveragedHeldInQuote,
+      leveragedDebitsInUsd,
       price: leverage.isNeg() ? bidPrice : askPrice,
     });
 
@@ -911,10 +912,12 @@ contract('MarginFlowProtocol', accounts => {
     );
 
     await expectEvent(receipt, 'PositionClosed', {
+      positionId: id,
       sender: expectedOwner,
       liquidityPool: expectedPool,
       baseToken,
       quoteToken,
+      realizedPl: expectedPl,
       price: expectedLeverage.isNeg() ? askPrice : bidPrice,
     });
 

@@ -59,7 +59,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @param baseToken The base token
      * @param quoteToken The quote token
      * @param leverage The leverage, e.g., 20x
-     * @param amount The base token amount to open position
+     * @param leveragedDebitsInUsd The base token amount to open position
      * @param price The max/min price for opening, 0 means accept all.
      */
     event PositionOpened(
@@ -69,7 +69,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         address indexed baseToken,
         address quoteToken,
         int256 leverage,
-        uint256 amount,
+        int256 leveragedDebitsInUsd,
         uint256 price
     );
 
@@ -614,7 +614,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
             _pair.base,
             _pair.quote,
             _leverage,
-            leveragedHeldInUsd,
+            int256(leveragedHeldInUsd).mul(debitSignum),
             _debitsPrice.value
         );
     }
