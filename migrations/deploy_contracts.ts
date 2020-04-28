@@ -204,6 +204,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await oracle.addPriceFeeder(priceFeeder);
     await oracle.addPriceFeeder('0x481c00e62cC701925a676BC713E0E71C692aC46d'); // kovan oracle server
     await oracle.setExpireIn(172800); // 2 days for now
+    await oracle.feedPrice(baseToken.address, web3.utils.toWei('1'), {
+      from: priceFeeder,
+    });
     await oracle.feedPrice(fEUR.address, web3.utils.toWei('1.2'), {
       from: priceFeeder,
     });
