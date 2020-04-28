@@ -10,7 +10,7 @@ import BN from 'bn.js';
 import {
   SimplePriceOracleInstance,
   TestMarginFlowProtocolInstance,
-  TestMarginFlowProtocolSafetyInstance,
+  MarginFlowProtocolSafetyInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
@@ -34,9 +34,7 @@ import {
 
 const Proxy = artifacts.require('Proxy');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
-const TestMarginFlowProtocolSafety = artifacts.require(
-  'TestMarginFlowProtocolSafety',
-);
+const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
 const MarginFlowProtocolNewVersion = artifacts.require(
   'MarginFlowProtocolNewVersion',
 );
@@ -56,7 +54,7 @@ contract('MarginFlowProtocol', accounts => {
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
-  let protocolSafety: TestMarginFlowProtocolSafetyInstance;
+  let protocolSafety: MarginFlowProtocolSafetyInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
@@ -103,12 +101,12 @@ contract('MarginFlowProtocol', accounts => {
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
     protocol = await TestMarginFlowProtocol.at(flowMarginProtocolProxy.address);
 
-    const flowMarginProtocolSafetyImpl = await TestMarginFlowProtocolSafety.new();
+    const flowMarginProtocolSafetyImpl = await MarginFlowProtocolSafety.new();
     const flowMarginProtocolSafetyProxy = await Proxy.new();
     await flowMarginProtocolSafetyProxy.upgradeTo(
       flowMarginProtocolSafetyImpl.address,
     );
-    protocolSafety = await TestMarginFlowProtocolSafety.at(
+    protocolSafety = await MarginFlowProtocolSafety.at(
       flowMarginProtocolSafetyProxy.address,
     );
 

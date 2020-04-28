@@ -20,7 +20,7 @@ import {
   PositionOpened,
   PositionClosed,
 } from '../generated/MarginFlowProtocol/MarginFlowProtocol';
-import { MoneyMarket } from '../generated/FlowMarginProtocol/MoneyMarket';
+import { MoneyMarket } from '../generated/MarginFlowProtocol/MoneyMarket';
 import {
   PriceFeeded,
   PriceOracleInterface,
