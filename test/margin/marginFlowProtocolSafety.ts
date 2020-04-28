@@ -5,7 +5,7 @@ import BN from 'bn.js';
 import {
   SimplePriceOracleInstance,
   TestMarginFlowProtocolInstance,
-  TestMarginFlowProtocolSafetyInstance,
+  MarginFlowProtocolSafetyInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
@@ -28,9 +28,7 @@ import {
 
 const Proxy = artifacts.require('Proxy');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
-const TestMarginFlowProtocolSafety = artifacts.require(
-  'TestMarginFlowProtocolSafety',
-);
+const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
 const MarginFlowProtocolSafetyNewVersion = artifacts.require(
   'MarginFlowProtocolSafetyNewVersion',
 );
@@ -50,7 +48,7 @@ contract('MarginFlowProtocolSafety', accounts => {
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
-  let protocolSafety: TestMarginFlowProtocolSafetyInstance;
+  let protocolSafety: MarginFlowProtocolSafetyInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
@@ -110,12 +108,12 @@ contract('MarginFlowProtocolSafety', accounts => {
     await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
     protocol = await TestMarginFlowProtocol.at(flowMarginProtocolProxy.address);
 
-    const flowMarginProtocolSafetyImpl = await TestMarginFlowProtocolSafety.new();
+    const flowMarginProtocolSafetyImpl = await MarginFlowProtocolSafety.new();
     const flowMarginProtocolSafetyProxy = await Proxy.new();
     await flowMarginProtocolSafetyProxy.upgradeTo(
       flowMarginProtocolSafetyImpl.address,
     );
-    protocolSafety = await TestMarginFlowProtocolSafety.at(
+    protocolSafety = await MarginFlowProtocolSafety.at(
       flowMarginProtocolSafetyProxy.address,
     );
 
@@ -636,10 +634,7 @@ contract('MarginFlowProtocolSafety', accounts => {
 
       it('returns if trader is safe', async () => {
         expect(
-          await protocolSafety.getIsTraderSafe.call(
-            liquidityPool.address,
-            alice,
-          ),
+          await protocolSafety.isTraderSafe.call(liquidityPool.address, alice),
         ).to.be.true;
       });
     });
@@ -653,10 +648,7 @@ contract('MarginFlowProtocolSafety', accounts => {
 
       it('returns if trader is safe', async () => {
         expect(
-          await protocolSafety.getIsTraderSafe.call(
-            liquidityPool.address,
-            alice,
-          ),
+          await protocolSafety.isTraderSafe.call(liquidityPool.address, alice),
         ).to.be.true;
       }).timeout(0);
     });
@@ -838,7 +830,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         const netAbs = net.abs(); // TODO test netAbs = 0
         const expectedPoolENP = equity.mul(bn(1e18)).div(netAbs);
 
-        expect(enp).to.be.bignumber.equal(expectedPoolENP);
+        expect(enp.value).to.be.bignumber.equal(expectedPoolENP);
       });
 
       // very difficult and unlikely to get exactly net of 0
@@ -886,7 +878,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         const longestLeg = BN.max(positive, negative.abs()); // TODO longestLeg = 0
         const expectedPoolELL = equity.mul(bn(1e18)).div(longestLeg);
 
-        expect(ell).to.be.bignumber.equal(expectedPoolELL);
+        expect(ell.value).to.be.bignumber.equal(expectedPoolELL);
       });
 
       // very difficult and unlikely to get exactly longest leg of 0
