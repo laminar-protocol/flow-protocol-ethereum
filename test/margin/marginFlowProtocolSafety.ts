@@ -44,7 +44,6 @@ contract('MarginFlowProtocolSafety', accounts => {
   const alice = accounts[2];
   const bob = accounts[3];
   const eur = accounts[4];
-  const jpy = accounts[5];
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
@@ -58,9 +57,7 @@ contract('MarginFlowProtocolSafety', accounts => {
   let initialSpread: BN;
   let initialUsdPrice: BN;
   let initialEurPrice: BN;
-  let initialJpyPrice: BN;
 
-  let initialSwapRate: BN;
   let initialTraderRiskMarginCallThreshold: BN;
   let initialTraderRiskLiquidateThreshold: BN;
   let initialLiquidityPoolENPMarginThreshold: BN;
@@ -83,9 +80,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     initialSpread = fromPip(10);
     initialUsdPrice = fromPercent(100);
     initialEurPrice = fromPercent(120);
-    initialJpyPrice = fromPercent(200);
 
-    initialSwapRate = fromPercent(2);
     initialTraderRiskMarginCallThreshold = fromPercent(5);
     initialTraderRiskLiquidateThreshold = fromPercent(2);
     initialLiquidityPoolENPMarginThreshold = fromPercent(50);
@@ -131,7 +126,11 @@ contract('MarginFlowProtocolSafety', accounts => {
       moneyMarket.address,
       protocolSafety.address,
       liquidityPoolRegistry.address,
-      initialSwapRate,
+      fromPercent(2),
+      1,
+      50,
+      1,
+      60 * 60 * 8, // 8 hours
     );
 
     await (protocolSafety as any).initialize(
@@ -178,8 +177,6 @@ contract('MarginFlowProtocolSafety', accounts => {
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
     await liquidityPool.enableToken(usd.address, eur, initialSpread);
     await liquidityPool.enableToken(eur, usd.address, initialSpread);
-    await liquidityPool.enableToken(usd.address, jpy, initialSpread);
-    await liquidityPool.enableToken(jpy, usd.address, initialSpread);
 
     await usd.approve(liquidityPool.address, dollar(20000), {
       from: liquidityProvider,
@@ -198,14 +195,12 @@ contract('MarginFlowProtocolSafety', accounts => {
       from: liquidityProvider,
     });
     await liquidityPoolRegistry.verifyPool(liquidityPool.address);
-    await protocol.addTradingPair(jpy, eur);
     await protocol.addTradingPair(usd.address, eur);
 
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,
     });
     await oracle.feedPrice(eur, initialEurPrice, { from: owner });
-    await oracle.feedPrice(jpy, initialJpyPrice, { from: owner });
   });
 
   describe('when setting new parameters', () => {

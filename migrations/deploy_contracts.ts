@@ -271,6 +271,10 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       marginProtocolSafety.address,
       marginLiquidityPoolRegistry.address,
       initialSwapRate,
+      1,
+      50,
+      2,
+      60 * 60 * 8, // 8 hours
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolSafety as any).initialize(
