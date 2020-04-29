@@ -460,12 +460,8 @@ contract('MarginFlowProtocol', accounts => {
     const quotePrice = await oracle.getPrice.call(quoteToken);
     const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
 
-    const askPrice = expectedPrice.add(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
-    const bidPrice = expectedPrice.sub(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
+    const askPrice = expectedPrice.add(initialSpread);
+    const bidPrice = expectedPrice.sub(initialSpread);
 
     const expectedLeveragedHeld = expectedLeverage.isNeg()
       ? leveragedHeldInQuote.mul(bn(-1))
@@ -975,12 +971,8 @@ contract('MarginFlowProtocol', accounts => {
     const quotePrice = await oracle.getPrice.call(quoteToken);
     const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
 
-    const askPrice = expectedPrice.add(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
-    const bidPrice = expectedPrice.sub(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
+    const askPrice = expectedPrice.add(initialSpread);
+    const bidPrice = expectedPrice.sub(initialSpread);
 
     const traderBalanceAfter = await protocol.balances(expectedPool, alice);
     const traderBalanceDifference = traderBalanceAfter.sub(traderBalanceBefore);
@@ -1087,12 +1079,8 @@ contract('MarginFlowProtocol', accounts => {
       const basePrice = await oracle.getPrice.call(usd.address);
       const quotePrice = await oracle.getPrice.call(eur);
       const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-      initialAskPrice = expectedPrice.add(
-        fromEth(expectedPrice.mul(initialSpread)),
-      );
-      initialBidPrice = expectedPrice.sub(
-        fromEth(expectedPrice.mul(initialSpread)),
-      );
+      initialAskPrice = expectedPrice.add(initialSpread);
+      initialBidPrice = expectedPrice.sub(initialSpread);
     });
 
     describe('when USD is the base pair', () => {
@@ -1174,12 +1162,8 @@ contract('MarginFlowProtocol', accounts => {
         const basePrice = await oracle.getPrice.call(jpy);
         const quotePrice = await oracle.getPrice.call(eur);
         const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-        initialAskPrice = expectedPrice.add(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
-        initialBidPrice = expectedPrice.sub(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
+        initialAskPrice = expectedPrice.add(initialSpread);
+        initialBidPrice = expectedPrice.sub(initialSpread);
 
         await protocol.openPosition(
           liquidityPool.address,
@@ -1297,12 +1281,8 @@ contract('MarginFlowProtocol', accounts => {
         const basePrice = await oracle.getPrice.call(jpy);
         const quotePrice = await oracle.getPrice.call(eur);
         const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-        initialAskPrice = expectedPrice.add(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
-        initialBidPrice = expectedPrice.sub(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
+        initialAskPrice = expectedPrice.add(initialSpread);
+        initialBidPrice = expectedPrice.sub(initialSpread);
 
         poolLiquidityBefore2 = await liquidityPool2.getLiquidity.call();
 
@@ -1609,7 +1589,7 @@ contract('MarginFlowProtocol', accounts => {
           positionId = (await protocol.nextPositionId()).sub(bn(1));
         });
 
-        it('opens new position correctly', async () => {
+        it('closes new position correctly', async () => {
           receipt = await protocol.closePosition(positionId, price, {
             from: alice,
           });
@@ -2301,18 +2281,14 @@ contract('MarginFlowProtocol', accounts => {
         0,
       );
 
-      // askPrice = price + (price * spread)
-      const expectedAskPrice = initialEurPrice.add(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
+      // askPrice = price + spread
+      const expectedAskPrice = initialEurPrice.add(initialSpread);
 
       expect(askPrice).to.be.bignumber.equal(expectedAskPrice);
     });
 
     it('reverts when passed max price is too low', async () => {
-      const expectedAskPrice = initialEurPrice.add(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
+      const expectedAskPrice = initialEurPrice.add(initialSpread);
 
       const maxPrice = expectedAskPrice.sub(bn(1));
 
@@ -2337,19 +2313,14 @@ contract('MarginFlowProtocol', accounts => {
         0,
       );
 
-      // bidPrice = price - (price * spread)
-      const expectedBidPrice = initialEurPrice.sub(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
+      // bidPrice = price - spread
+      const expectedBidPrice = initialEurPrice.sub(initialSpread);
 
       expect(bidPrice).to.be.bignumber.equal(expectedBidPrice);
     });
 
     it('reverts when passed min price is too high', async () => {
-      const expectedBidPrice = initialEurPrice.sub(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
-
+      const expectedBidPrice = initialEurPrice.sub(initialSpread);
       const minPrice = expectedBidPrice.add(bn(1));
 
       await expectRevert(
