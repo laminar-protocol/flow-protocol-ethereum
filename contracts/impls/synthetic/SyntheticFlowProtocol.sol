@@ -174,12 +174,12 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
 
     function getAskPrice(SyntheticLiquidityPoolInterface _pool, address _flowToken, uint256 _price) internal view returns (uint256) {
         uint256 spread = getAskSpread(_pool, _flowToken);
-        return _price.add(_price.mul(spread).div(1 ether));
+        return _price.add(spread);
     }
 
     function getBidPrice(SyntheticLiquidityPoolInterface _pool, address _flowToken, uint256 _price) internal view returns (uint256) {
         uint256 spread = getBidSpread(_pool, _flowToken);
-        return _price.sub(_price.mul(spread).div(1 ether));
+        return _price.sub(spread);
     }
 
     function _mint(

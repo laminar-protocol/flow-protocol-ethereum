@@ -483,12 +483,12 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return _getSpread(spread);
     }
 
-    // askPrice = price * (1 + ask_spread)
+    // askPrice = price + askSpread
     function _getAskPrice(MarginLiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = getPrice(_pair.base, _pair.quote);
 
         uint256 spread = getAskSpread(_pool, address(_pair.base), address(_pair.quote));
-        Percentage.Percent memory askPrice = Percentage.Percent(price.value.add(price.value.mul(spread).div(1e18)));
+        Percentage.Percent memory askPrice = Percentage.Percent(price.value.add(spread));
 
         if (_max > 0) {
             require(askPrice.value <= _max, "AP1");
@@ -497,11 +497,11 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return askPrice;
     }
 
-	// bidPrice = price * (1 - bid_spread)
+    // bidPrice = price - askSpread
     function _getBidPrice(MarginLiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = getPrice(_pair.base, _pair.quote);
         uint256 spread = getBidSpread(_pool, address(_pair.base), address(_pair.quote));
-        Percentage.Percent memory bidPrice = Percentage.Percent(price.value.sub(price.value.mul(spread).div(1e18)));
+        Percentage.Percent memory bidPrice = Percentage.Percent(price.value.sub(spread));
 
         if (_min > 0) {
             require(bidPrice.value >= _min, "BP1");
