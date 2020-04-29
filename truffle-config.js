@@ -71,13 +71,18 @@ module.exports = {
         'MarginFlowProtocolNewVersion',
         'SyntheticFlowProtocolNewVersion',
         'SyntheticFlowTokenNewVersion',
+        'MarginFlowProtocolSafetyNewVersion',
         'MarginLiquidityPoolNewVersion',
+        'MarginLiquidityPoolRegistryNewVersion',
         'SyntheticLiquidityPoolNewVersion',
+        'MockPoolIsSafeMarginProtocol',
+        'MockPoolIsNotSafeMarginProtocol',
         'MoneyMarketNewVersion',
         'QuickImpl',
         'SimplePriceOracleNewVersion',
         'TestCToken',
         'TestToken',
+        'TestMarginFlowProtocol'
       ]
     }
   }
