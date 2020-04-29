@@ -248,9 +248,9 @@ contract('SyntheticFlowProtocol', accounts => {
 
       sell(alice, dollar(1000)),
       balance(fToken, alice, 0),
-      balance(usd, alice, '10047950000000000000000'),
+      balance(usd, alice, '10048000000000000000000'),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, '99520500000000000000000'),
+      balance(iUsd, liquidityPool.address, '99520000000000000000000'),
     );
   });
 
@@ -265,9 +265,9 @@ contract('SyntheticFlowProtocol', accounts => {
 
       sell(alice, dollar(1000)),
       balance(fToken, alice, 0),
-      balance(usd, alice, '9948050000000000000000'),
+      balance(usd, alice, '9948000000000000000000'),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, '100519500000000000000000'),
+      balance(iUsd, liquidityPool.address, '100520000000000000000000'),
     );
   });
 
@@ -286,34 +286,34 @@ contract('SyntheticFlowProtocol', accounts => {
 
       buy(alice, dollar(980)),
       sell(bob, dollar(500)),
-      balance(fToken, alice, '1999000999000999000999'),
+      balance(fToken, alice, '1998980632008154943934'),
       balance(fToken, bob, dollar(500)),
       balance(usd, alice, dollar(8019)),
-      balance(usd, bob, '9488510000000000000000'),
-      balance(iUsd, fToken.address, '26939230769230769230760'),
-      balance(iUsd, liquidityPool.address, '97985669230769230769240'),
+      balance(usd, bob, '9488500000000000000000'),
+      balance(iUsd, fToken.address, '26939011213047910295600'),
+      balance(iUsd, liquidityPool.address, '97985988786952089704400'),
 
       setPrice(100),
 
       sell(alice, dollar(998)),
       buy(bob, dollar(1020)),
-      balance(fToken, alice, '1001000999000999000999'),
+      balance(fToken, alice, '1000980632008154943934'),
       balance(fToken, bob, '1518981018981018981018'),
       balance(usd, alice, '9016002000000000000000'),
-      balance(usd, bob, '8468510000000000000000'),
-      balance(iUsd, fToken.address, '27719802197802197802170'),
-      balance(iUsd, liquidityPool.address, '97435077802197802197830'),
+      balance(usd, bob, '8468500000000000000000'),
+      balance(iUsd, fToken.address, '27719578160880913174460'),
+      balance(iUsd, liquidityPool.address, '97435401839119086825540'),
 
       setPrice(101),
 
-      sell(alice, '1001000999000999000999'),
+      sell(alice, '1000980632008154943934'),
       sell(bob, '1518981018981018981018'),
       balance(fToken, alice, 0),
       balance(fToken, bob, 0),
-      balance(usd, alice, '10026001997982017982017'),
-      balance(usd, bob, '10001146658341658341657'),
+      balance(usd, alice, '10025991457696228338429'),
+      balance(usd, bob, '10001151848151848151847'),
       balance(iUsd, fToken.address, 0),
-      balance(iUsd, liquidityPool.address, '99728513436763236763260'),
+      balance(iUsd, liquidityPool.address, '99728566941519235097240'),
     );
   });
 
@@ -325,9 +325,9 @@ contract('SyntheticFlowProtocol', accounts => {
         liquidate(alice, dollar(1000)),
 
         balance(fToken, alice, 0),
-        balance(usd, alice, '10084989462616822430262'),
+        balance(usd, alice, '10085021028037383177925'),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, '99150105373831775697380'),
+        balance(iUsd, liquidityPool.address, '99149789719626168220750'),
       );
     });
 
@@ -359,15 +359,15 @@ contract('SyntheticFlowProtocol', accounts => {
         liquidate(alice, dollar(500)),
 
         balance(fToken, alice, dollar(500)),
-        balance(usd, alice, '9541994731308411215265'),
+        balance(usd, alice, '9542010514018691589097'),
         balance(iUsd, fToken.address, '5499999999999999997550'),
-        balance(iUsd, liquidityPool.address, '99080052686915887849800'),
+        balance(iUsd, liquidityPool.address, '99079894859813084111480'),
 
         liquidate(alice, dollar(500)),
         balance(fToken, alice, 0),
-        balance(usd, alice, '10084989462616822430261'),
+        balance(usd, alice, '10085021028037383177924'),
         balance(iUsd, fToken.address, 0),
-        balance(iUsd, liquidityPool.address, '99150105373831775697390'),
+        balance(iUsd, liquidityPool.address, '99149789719626168220760'),
       );
     });
 

@@ -114,83 +114,24 @@ contract MarginFlowProtocol is FlowProtocolBase {
      */
     event NewTradingPair(address indexed base, address indexed quote);
 
-    /**
-     * @dev Return the next position id, meaning the last one is this one minus one.
-     */
     uint256 public nextPositionId;
-
-    /**
-     * @dev Return the MarginFlowProtocolSafety address.
-     */
     MarginFlowProtocolSafety public safetyProtocol;
-
-    /**
-     * @dev Return the MarginLiquidityPoolRegistry address.
-     */
     MarginLiquidityPoolRegistry public liquidityPoolRegistry;
 
-    /**
-     * @dev Return the position with given id.
-     * @param id The id of the position
-     */
     mapping (uint256 => Position) public positionsById;
-
-    /**
-     * @dev Return the position at index for given pool and trader.
-     * @param pool The MarginLiquidityPool
-     * @param trader The trader
-     * @param index The index inside the positions list.
-     */
     mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
-
-    /**
-     * @dev Return the position at index for given pool.
-     * @param pool The MarginLiquidityPool
-     * @param index The index inside the positions list.
-     */
     mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
-
-    /**
-     * @dev Return the current balance of a trader. This does not include unrealized PL..
-     * @param pool The MarginLiquidityPool
-     * @param trader The trader.
-     */
     mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
-
-    /**
-     * @dev Return if the trader has paid fees for given pool.
-     * @param pool The MarginLiquidityPool
-     * @param trader The trader.
-     */
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
-
-    /**
-     * @dev Return if the trader is margin called for given pool.
-     * @param pool The MarginLiquidityPool
-     * @param trader The trader.
-     */
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
-
-    /**
-     * @dev Return if the trading pair is whitelisted..
-     * @param base The base token
-     * @param quote The quote token
-     */
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
 
-    /**
-     * @dev Return the current swap rate.
-     */
     Percentage.Percent public currentSwapRate;
-
-    /**
-     * @dev Return the trader margin call fee..
-     */
+    uint256 public minLeverage;
+    uint256 public maxLeverage;
+    uint256 public minLeverageAmount;
+    uint256 public rateUnit;
     uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
-
-    /**
-     * @dev Return trader liquidation fee.
-     */
     uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
 
     modifier poolIsVerified(MarginLiquidityPoolInterface _pool) {
@@ -217,12 +158,20 @@ contract MarginFlowProtocol is FlowProtocolBase {
         MoneyMarketInterface _moneyMarket,
         MarginFlowProtocolSafety _safetyProtocol,
         MarginLiquidityPoolRegistry _liquidityPoolRegistry,
-        uint256 _initialSwapRate
+        uint256 _initialSwapRate,
+        uint256 _initialMinLeverage,
+        uint256 _initialMaxLeverage,
+        uint256 _initialMinLeverageAmount,
+        uint256 _rateUnit
     ) external initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
         safetyProtocol = _safetyProtocol;
         liquidityPoolRegistry = _liquidityPoolRegistry;
         currentSwapRate = Percentage.Percent(_initialSwapRate);
+        minLeverage = _initialMinLeverage;
+        maxLeverage = _initialMaxLeverage;
+        minLeverageAmount = _initialMinLeverageAmount;
+        rateUnit = _rateUnit;
     }
 
     /**
@@ -246,6 +195,33 @@ contract MarginFlowProtocol is FlowProtocolBase {
     function setCurrentSwapRate(uint256 _newSwapRate) external onlyOwner {
         require(_newSwapRate > 0, "0");
         currentSwapRate = Percentage.Percent(_newSwapRate);
+    }
+
+    /**
+     * @dev Set new minimum leverage, only for the owner.
+     * @param _newMinLeverage The new minimum leverage.
+     */
+    function setMinLeverage(uint256 _newMinLeverage) external onlyOwner {
+        require(_newMinLeverage > 0, "0");
+        minLeverage = _newMinLeverage;
+    }
+
+    /**
+     * @dev Set new maximum leverage, only for the owner.
+     * @param _newMaxLeverage The new maximum leverage.
+     */
+    function setMaxLeverage(uint256 _newMaxLeverage) external onlyOwner {
+        require(_newMaxLeverage > 0, "0");
+        maxLeverage = _newMaxLeverage;
+    }
+
+    /**
+     * @dev Set new minimum leverage amount, only for the owner.
+     * @param _newMinLeverageAmount The new minimum leverage amount.
+     */
+    function setMinLeverageAmount(uint256 _newMinLeverageAmount) external onlyOwner {
+        require(_newMinLeverageAmount > 0, "0");
+        minLeverageAmount = _newMinLeverageAmount;
     }
 
     /**
@@ -298,7 +274,12 @@ contract MarginFlowProtocol is FlowProtocolBase {
     ) external nonReentrant poolIsVerified(_pool) tradingPairWhitelisted(_base, _quote) {
         require(!traderIsMarginCalled[_pool][msg.sender], "OP2");
         require(!liquidityPoolRegistry.isMarginCalled(_pool), "OP3");
-        require(_leverage != 0 && _leveragedHeld > 0, "0");
+
+        uint256 leverageAbs = _leverage >= 0 ? uint256(_leverage) : uint256(-_leverage);
+
+        require(leverageAbs >= minLeverage, "OP4");
+        require(leverageAbs <= maxLeverage, "OP5");
+        require(_leveragedHeld >= minLeverageAmount, "OP6");
 
         if (!traderHasPaidFees[_pool][msg.sender]) {
             uint256 lockedFeesAmount = TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
@@ -446,7 +427,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         Position memory position = positionsById[_positionId];
 
         uint256 timeDeltaInSeconds = now.sub(position.timeWhenOpened);
-        uint256 daysSinceOpen = timeDeltaInSeconds.div(1 days);
+        uint256 daysSinceOpen = timeDeltaInSeconds.div(rateUnit);
         uint256 leveragedDebitsAbs = position.leveragedDebitsInUsd >= 0
             ? uint256(position.leveragedDebitsInUsd)
             : uint256(-position.leveragedDebitsInUsd);
@@ -502,12 +483,12 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return _getSpread(spread);
     }
 
-    // askPrice = price * (1 + ask_spread)
+    // askPrice = price + askSpread
     function _getAskPrice(MarginLiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _max) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = getPrice(_pair.base, _pair.quote);
 
         uint256 spread = getAskSpread(_pool, address(_pair.base), address(_pair.quote));
-        Percentage.Percent memory askPrice = Percentage.Percent(price.value.add(price.value.mul(spread).div(1e18)));
+        Percentage.Percent memory askPrice = Percentage.Percent(price.value.add(spread));
 
         if (_max > 0) {
             require(askPrice.value <= _max, "AP1");
@@ -516,11 +497,11 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return askPrice;
     }
 
-	// bidPrice = price * (1 - bid_spread)
+    // bidPrice = price - askSpread
     function _getBidPrice(MarginLiquidityPoolInterface _pool, TradingPair memory _pair, uint256 _min) internal returns (Percentage.Percent memory) {
         Percentage.Percent memory price = getPrice(_pair.base, _pair.quote);
         uint256 spread = getBidSpread(_pool, address(_pair.base), address(_pair.quote));
-        Percentage.Percent memory bidPrice = Percentage.Percent(price.value.sub(price.value.mul(spread).div(1e18)));
+        Percentage.Percent memory bidPrice = Percentage.Percent(price.value.sub(spread));
 
         if (_min > 0) {
             require(bidPrice.value >= _min, "BP1");

@@ -8,8 +8,9 @@ before_script:
   - echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
 
 script:
-  - yarn lint
   - yarn test
+  - yarn deploy:development
+  - yarn lint
   - yarn codechecks
   - cd subgraph
   - yarn build

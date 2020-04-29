@@ -125,6 +125,10 @@ contract('MarginFlowProtocol', accounts => {
       protocolSafety.address,
       liquidityPoolRegistry.address,
       initialSwapRate,
+      1,
+      50,
+      2,
+      60 * 60 * 8, // 8 hours
     );
 
     await (protocolSafety as any).initialize(
@@ -456,12 +460,8 @@ contract('MarginFlowProtocol', accounts => {
     const quotePrice = await oracle.getPrice.call(quoteToken);
     const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
 
-    const askPrice = expectedPrice.add(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
-    const bidPrice = expectedPrice.sub(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
+    const askPrice = expectedPrice.add(initialSpread);
+    const bidPrice = expectedPrice.sub(initialSpread);
 
     const expectedLeveragedHeld = expectedLeverage.isNeg()
       ? leveragedHeldInQuote.mul(bn(-1))
@@ -769,6 +769,125 @@ contract('MarginFlowProtocol', accounts => {
       });
     });
 
+    describe('when the leverage is too small', () => {
+      beforeEach(async () => {
+        leveragedHeldInEuro = bn(100);
+        await protocol.setMinLeverage(5);
+      });
+
+      describe('when given a short', () => {
+        beforeEach(() => {
+          leverage = bn(-3);
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              leverage,
+              leveragedHeldInEuro,
+              price,
+              { from: alice },
+            ),
+            messages.leverageTooSmall,
+          );
+        });
+      });
+
+      describe('when given a long', () => {
+        beforeEach(() => {
+          leverage = bn(3);
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              leverage,
+              leveragedHeldInEuro,
+              price,
+              { from: alice },
+            ),
+            messages.leverageTooSmall,
+          );
+        });
+      });
+    });
+
+    describe('when the leverage is too big', () => {
+      beforeEach(async () => {
+        leveragedHeldInEuro = bn(100);
+        await protocol.setMaxLeverage(10);
+      });
+
+      describe('when given a short', () => {
+        beforeEach(() => {
+          leverage = bn(-11);
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              leverage,
+              leveragedHeldInEuro,
+              price,
+              { from: alice },
+            ),
+            messages.leverageTooBig,
+          );
+        });
+      });
+
+      describe('when given a long', () => {
+        beforeEach(() => {
+          leverage = bn(11);
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              leverage,
+              leveragedHeldInEuro,
+              price,
+              { from: alice },
+            ),
+            messages.leverageTooBig,
+          );
+        });
+      });
+    });
+
+    describe('when the leverage amount is too small', () => {
+      beforeEach(() => {
+        leveragedHeldInEuro = bn(1);
+      });
+
+      it('reverts the transaction', async () => {
+        await expectRevert(
+          protocol.openPosition(
+            liquidityPool.address,
+            usd.address,
+            eur,
+            leverage,
+            leveragedHeldInEuro,
+            price,
+            { from: alice },
+          ),
+          messages.leverageAmountTooSmall,
+        );
+      });
+    });
+
     describe('when passing a max price that is too high', () => {
       beforeEach(() => {
         price = initialEurPrice;
@@ -852,12 +971,8 @@ contract('MarginFlowProtocol', accounts => {
     const quotePrice = await oracle.getPrice.call(quoteToken);
     const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
 
-    const askPrice = expectedPrice.add(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
-    const bidPrice = expectedPrice.sub(
-      fromEth(expectedPrice.mul(initialSpread)),
-    );
+    const askPrice = expectedPrice.add(initialSpread);
+    const bidPrice = expectedPrice.sub(initialSpread);
 
     const traderBalanceAfter = await protocol.balances(expectedPool, alice);
     const traderBalanceDifference = traderBalanceAfter.sub(traderBalanceBefore);
@@ -964,12 +1079,8 @@ contract('MarginFlowProtocol', accounts => {
       const basePrice = await oracle.getPrice.call(usd.address);
       const quotePrice = await oracle.getPrice.call(eur);
       const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-      initialAskPrice = expectedPrice.add(
-        fromEth(expectedPrice.mul(initialSpread)),
-      );
-      initialBidPrice = expectedPrice.sub(
-        fromEth(expectedPrice.mul(initialSpread)),
-      );
+      initialAskPrice = expectedPrice.add(initialSpread);
+      initialBidPrice = expectedPrice.sub(initialSpread);
     });
 
     describe('when USD is the base pair', () => {
@@ -1051,12 +1162,8 @@ contract('MarginFlowProtocol', accounts => {
         const basePrice = await oracle.getPrice.call(jpy);
         const quotePrice = await oracle.getPrice.call(eur);
         const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-        initialAskPrice = expectedPrice.add(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
-        initialBidPrice = expectedPrice.sub(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
+        initialAskPrice = expectedPrice.add(initialSpread);
+        initialBidPrice = expectedPrice.sub(initialSpread);
 
         await protocol.openPosition(
           liquidityPool.address,
@@ -1174,12 +1281,8 @@ contract('MarginFlowProtocol', accounts => {
         const basePrice = await oracle.getPrice.call(jpy);
         const quotePrice = await oracle.getPrice.call(eur);
         const expectedPrice = quotePrice.mul(bn(1e18)).div(basePrice);
-        initialAskPrice = expectedPrice.add(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
-        initialBidPrice = expectedPrice.sub(
-          fromEth(expectedPrice.mul(initialSpread)),
-        );
+        initialAskPrice = expectedPrice.add(initialSpread);
+        initialBidPrice = expectedPrice.sub(initialSpread);
 
         poolLiquidityBefore2 = await liquidityPool2.getLiquidity.call();
 
@@ -1317,6 +1420,7 @@ contract('MarginFlowProtocol', accounts => {
 
       describe('when the loss covered by another position', () => {
         beforeEach(async () => {
+          await protocol.setMaxLeverage(leverage.mul(bn(4)));
           await protocol.openPosition(
             liquidityPool.address,
             usd.address,
@@ -1485,7 +1589,7 @@ contract('MarginFlowProtocol', accounts => {
           positionId = (await protocol.nextPositionId()).sub(bn(1));
         });
 
-        it('opens new position correctly', async () => {
+        it('closes new position correctly', async () => {
           receipt = await protocol.closePosition(positionId, price, {
             from: alice,
           });
@@ -1895,13 +1999,16 @@ contract('MarginFlowProtocol', accounts => {
       );
 
       const expectedAccSwapRate = fromEth(
-        swapRate.mul(bn(daysOfPosition)).mul(leveragedDebitsInUsd),
+        swapRate
+          .mul(bn(daysOfPosition))
+          .mul(bn(3)) // 3x 8 hours per day
+          .mul(leveragedDebitsInUsd),
       );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
     });
 
-    it('counts only full days', async () => {
+    it('counts only full rate units', async () => {
       const leveragedDebitsInUsd = dollar(5000);
       const daysOfPosition = 20;
       const ageOfPosition = time.duration
@@ -1916,7 +2023,9 @@ contract('MarginFlowProtocol', accounts => {
       );
 
       const expectedAccSwapRate = swapRate
-        .mul(bn(daysOfPosition - 1))
+        .mul(bn(daysOfPosition))
+        .mul(bn(3)) // 3x 8 hours per day
+        .sub(bn(5))
         .mul(leveragedDebitsInUsd)
         .div(bn(1e18));
       expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
@@ -2172,18 +2281,14 @@ contract('MarginFlowProtocol', accounts => {
         0,
       );
 
-      // askPrice = price + (price * spread)
-      const expectedAskPrice = initialEurPrice.add(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
+      // askPrice = price + spread
+      const expectedAskPrice = initialEurPrice.add(initialSpread);
 
       expect(askPrice).to.be.bignumber.equal(expectedAskPrice);
     });
 
     it('reverts when passed max price is too low', async () => {
-      const expectedAskPrice = initialEurPrice.add(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
+      const expectedAskPrice = initialEurPrice.add(initialSpread);
 
       const maxPrice = expectedAskPrice.sub(bn(1));
 
@@ -2208,19 +2313,14 @@ contract('MarginFlowProtocol', accounts => {
         0,
       );
 
-      // bidPrice = price - (price * spread)
-      const expectedBidPrice = initialEurPrice.sub(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
+      // bidPrice = price - spread
+      const expectedBidPrice = initialEurPrice.sub(initialSpread);
 
       expect(bidPrice).to.be.bignumber.equal(expectedBidPrice);
     });
 
     it('reverts when passed min price is too high', async () => {
-      const expectedBidPrice = initialEurPrice.sub(
-        fromEth(initialEurPrice.mul(initialSpread)),
-      );
-
+      const expectedBidPrice = initialEurPrice.sub(initialSpread);
       const minPrice = expectedBidPrice.add(bn(1));
 
       await expectRevert(

@@ -40,7 +40,6 @@
     * margin
       * [MockIsPoolSafeMarginProtocol](docs/mocks/margin/MockIsPoolSafeMarginProtocol.md)
       * [TestMarginFlowProtocol](docs/mocks/margin/TestMarginFlowProtocol.md)
-      * [TestMarginFlowProtocolSafety](docs/mocks/margin/TestMarginFlowProtocolSafety.md)
     * [TestCToken](docs/mocks/TestCToken.md)
     * [TestToken](docs/mocks/TestToken.md)
     * upgrades
