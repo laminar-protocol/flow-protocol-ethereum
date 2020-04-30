@@ -126,7 +126,6 @@ contract('MarginFlowProtocolSafety', accounts => {
       moneyMarket.address,
       protocolSafety.address,
       liquidityPoolRegistry.address,
-      fromPercent(2),
       1,
       50,
       1,
@@ -195,7 +194,12 @@ contract('MarginFlowProtocolSafety', accounts => {
       from: liquidityProvider,
     });
     await liquidityPoolRegistry.verifyPool(liquidityPool.address);
-    await protocol.addTradingPair(usd.address, eur);
+    await protocol.addTradingPair(
+      usd.address,
+      eur,
+      fromPercent(2),
+      fromPercent(2),
+    );
 
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,

@@ -66,7 +66,8 @@ contract('MarginFlowProtocol', accounts => {
   let initialEurPrice: BN;
   let initialJpyPrice: BN;
 
-  let initialSwapRate: BN;
+  let initialSwapRateLong: BN;
+  let initialSwapRateShort: BN;
 
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
@@ -84,7 +85,8 @@ contract('MarginFlowProtocol', accounts => {
     initialUsdPrice = fromPercent(100);
     initialEurPrice = fromPercent(120);
     initialJpyPrice = fromPercent(200);
-    initialSwapRate = fromPercent(2);
+    initialSwapRateLong = fromPercent(2);
+    initialSwapRateShort = fromPercent(2);
 
     usd = await createTestToken(
       [liquidityProvider, dollar(50000)],
@@ -124,7 +126,6 @@ contract('MarginFlowProtocol', accounts => {
       moneyMarket.address,
       protocolSafety.address,
       liquidityPoolRegistry.address,
-      initialSwapRate,
       1,
       50,
       2,
@@ -189,8 +190,18 @@ contract('MarginFlowProtocol', accounts => {
       from: liquidityProvider,
     });
     await liquidityPoolRegistry.verifyPool(liquidityPool.address);
-    await protocol.addTradingPair(jpy, eur);
-    await protocol.addTradingPair(usd.address, eur);
+    await protocol.addTradingPair(
+      jpy,
+      eur,
+      initialSwapRateLong,
+      initialSwapRateShort,
+    );
+    await protocol.addTradingPair(
+      usd.address,
+      eur,
+      initialSwapRateLong,
+      initialSwapRateShort,
+    );
 
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,
@@ -236,62 +247,128 @@ contract('MarginFlowProtocol', accounts => {
 
   describe('when adding a trading pair', () => {
     it('sets new parameter', async () => {
-      await protocol.addTradingPair(eur, jpy);
+      await protocol.addTradingPair(
+        eur,
+        jpy,
+        initialSwapRateLong,
+        initialSwapRateShort,
+      );
 
       expect(await protocol.tradingPairWhitelist(eur, jpy)).to.be.true;
     });
 
     it('reverts when trading pair already whitelisted', async () => {
-      await protocol.addTradingPair(eur, jpy);
+      await protocol.addTradingPair(
+        eur,
+        jpy,
+        initialSwapRateLong,
+        initialSwapRateShort,
+      );
 
       await expectRevert(
-        protocol.addTradingPair(eur, jpy),
+        protocol.addTradingPair(
+          eur,
+          jpy,
+          initialSwapRateLong,
+          initialSwapRateShort,
+        ),
         messages.tradingPairAlreadyWhitelisted,
       );
     });
 
     it('reverts when trading pair tokens are identical', async () => {
       await expectRevert(
-        protocol.addTradingPair(eur, eur),
+        protocol.addTradingPair(
+          eur,
+          eur,
+          initialSwapRateLong,
+          initialSwapRateShort,
+        ),
         messages.tradingPairTokensMustBeDifferent,
       );
     });
 
     it('allows only owner to add a trading pair', async () => {
       await expectRevert(
-        protocol.addTradingPair(eur, jpy, { from: alice }),
+        protocol.addTradingPair(
+          eur,
+          jpy,
+          initialSwapRateLong,
+          initialSwapRateShort,
+          {
+            from: alice,
+          },
+        ),
         messages.onlyOwner,
       );
     });
   });
 
-  describe('when setting new parameters', () => {
-    describe(`when using setCurrentSwapRate`, () => {
-      let newSwapRate: BN;
+  describe('when using setCurrentSwapRate', () => {
+    const LONG = true;
+    const SHORT = false;
+    let newSwapRateLong: BN;
+    let newSwapRateShort: BN;
 
-      beforeEach(() => {
-        newSwapRate = bn(123);
-      });
+    beforeEach(() => {
+      newSwapRateLong = bn(123);
+      newSwapRateShort = bn(456);
+    });
 
-      it('sets new currentSwapRate', async () => {
-        await protocol.setCurrentSwapRate(newSwapRate);
-        const newStoredSwapRate = await protocol.currentSwapRate();
-        expect(newStoredSwapRate).to.be.bignumber.equals(newSwapRate);
-      });
+    it('sets new currentSwapRate', async () => {
+      await protocol.setCurrentSwapRateForPair(
+        usd.address,
+        eur,
+        newSwapRateLong,
+        newSwapRateShort,
+      );
+      const newStoredSwapRateLong = await protocol.currentSwapRates(
+        usd.address,
+        eur,
+        LONG,
+      );
+      const newStoredSwapRateShort = await protocol.currentSwapRates(
+        usd.address,
+        eur,
+        SHORT,
+      );
+      expect(newStoredSwapRateLong).to.be.bignumber.equals(newSwapRateLong);
+      expect(newStoredSwapRateShort).to.be.bignumber.equals(newSwapRateShort);
+    });
 
-      it('allows only owner to set parameters', async () => {
-        await expectRevert(
-          protocol.setCurrentSwapRate(newSwapRate, { from: alice }),
-          messages.onlyOwner,
-        );
-      });
+    it('allows only owner to set parameters', async () => {
+      await expectRevert(
+        protocol.setCurrentSwapRateForPair(
+          usd.address,
+          eur,
+          newSwapRateLong,
+          newSwapRateShort,
+          { from: alice },
+        ),
+        messages.onlyOwner,
+      );
+    });
 
-      it('does not allow zero values', async () => {
-        await expectRevert(
-          protocol.setCurrentSwapRate(0),
-          messages.settingZeroValueNotAllowed,
-        );
-      });
+    it('does not allow zero values', async () => {
+      await expectRevert(
+        protocol.setCurrentSwapRateForPair(
+          usd.address,
+          eur,
+          0,
+          newSwapRateShort,
+        ),
+        messages.settingZeroValueNotAllowed,
+      );
+
+      await expectRevert(
+        protocol.setCurrentSwapRateForPair(
+          usd.address,
+          eur,
+          newSwapRateLong,
+          0,
+        ),
+        messages.settingZeroValueNotAllowed,
+      );
     });
   });
 
@@ -557,7 +634,9 @@ contract('MarginFlowProtocol', accounts => {
         expectedPool: liquidityPool.address,
         expectedLeverage: leverage,
         leveragedHeldInQuote: leveragedHeldInEuro,
-        expectedSwapRate: initialSwapRate,
+        expectedSwapRate: leverage.isNeg()
+          ? initialSwapRateShort
+          : initialSwapRateLong,
         expectedTimeWhenOpened,
         receipt,
       });
@@ -616,7 +695,9 @@ contract('MarginFlowProtocol', accounts => {
             expectedPool: liquidityPool.address,
             expectedLeverage: leverage,
             leveragedHeldInQuote: leveragedHeldInEuro,
-            expectedSwapRate: initialSwapRate,
+            expectedSwapRate: leverage.isNeg()
+              ? initialSwapRateShort
+              : initialSwapRateLong,
             expectedTimeWhenOpened,
             receipt,
           });
@@ -649,7 +730,9 @@ contract('MarginFlowProtocol', accounts => {
           expectedPool: liquidityPool.address,
           expectedLeverage: leverage,
           leveragedHeldInQuote: leveragedHeldInEuro,
-          expectedSwapRate: initialSwapRate,
+          expectedSwapRate: leverage.isNeg()
+            ? initialSwapRateShort
+            : initialSwapRateLong,
           expectedTimeWhenOpened,
           receipt,
           baseToken: jpy,
@@ -720,7 +803,9 @@ contract('MarginFlowProtocol', accounts => {
           expectedPool: liquidityPool.address,
           expectedLeverage: leverage,
           leveragedHeldInQuote: leveragedHeldInEuro,
-          expectedSwapRate: initialSwapRate,
+          expectedSwapRate: leverage.isNeg()
+            ? initialSwapRateShort
+            : initialSwapRateLong,
           expectedTimeWhenOpened: expectedTimeWhenOpened1,
           receipt: receipt1,
           baseToken: jpy,
@@ -733,7 +818,9 @@ contract('MarginFlowProtocol', accounts => {
           expectedPool: liquidityPool2.address,
           expectedLeverage: leverage,
           leveragedHeldInQuote: leveragedHeldInEuro,
-          expectedSwapRate: initialSwapRate,
+          expectedSwapRate: leverage.isNeg()
+            ? initialSwapRateShort
+            : initialSwapRateLong,
           expectedTimeWhenOpened: expectedTimeWhenOpened2,
           receipt: receipt2,
           baseToken: jpy,
