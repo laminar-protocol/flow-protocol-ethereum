@@ -270,7 +270,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       moneyMarket.address,
       marginProtocolSafety.address,
       marginLiquidityPoolRegistry.address,
-      initialSwapRate,
       1,
       50,
       2,
@@ -298,14 +297,54 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     const usd = await moneyMarket.baseToken();
 
-    await marginProtocol.addTradingPair(fEUR.address, usd);
-    await marginProtocol.addTradingPair(usd, fEUR.address);
-    await marginProtocol.addTradingPair(fJPY.address, usd);
-    await marginProtocol.addTradingPair(usd, fJPY.address);
-    await marginProtocol.addTradingPair(fXAU.address, usd);
-    await marginProtocol.addTradingPair(usd, fXAU.address);
-    await marginProtocol.addTradingPair(fAAPL.address, usd);
-    await marginProtocol.addTradingPair(usd, fAAPL.address);
+    await marginProtocol.addTradingPair(
+      fEUR.address,
+      usd,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      usd,
+      fEUR.address,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      fJPY.address,
+      usd,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      usd,
+      fJPY.address,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      fXAU.address,
+      usd,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      usd,
+      fXAU.address,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      fAAPL.address,
+      usd,
+      initialSwapRate,
+      initialSwapRate,
+    );
+    await marginProtocol.addTradingPair(
+      usd,
+      fAAPL.address,
+      initialSwapRate,
+      initialSwapRate,
+    );
 
     // approve default account
 

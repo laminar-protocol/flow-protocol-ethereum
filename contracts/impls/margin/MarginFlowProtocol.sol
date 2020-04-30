@@ -125,12 +125,14 @@ contract MarginFlowProtocol is FlowProtocolBase {
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
+    mapping (address => mapping(address => mapping (bool => Percentage.Percent))) public currentSwapRates;
 
-    Percentage.Percent public currentSwapRate;
     uint256 public minLeverage;
     uint256 public maxLeverage;
     uint256 public minLeverageAmount;
-    uint256 public rateUnit;
+    uint256 public swapRateUnit;
+    bool constant public LONG = true;
+    bool constant public SHORT = false;
     uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
     uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
 
@@ -150,51 +152,62 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @dev Initialize the MarginFlowProtocol.
      * @param _oracle The price oracle
      * @param _moneyMarket The money market.
+     * @param _safetyProtocol The _safetyProtocol.
      * @param _liquidityPoolRegistry The liquidity pool registry.
-     * @param _initialSwapRate The initial swap rate as percentage.
+     * @param _initialMinLeverage The _initialMinLeverage.
+     * @param _initialMaxLeverage The _initialMaxLeverage.
+     * @param _initialMinLeverageAmount The _initialMinLeverageAmount.
+     * @param _swapRateUnit The _swapRateUnit.
      */
     function initialize(
         PriceOracleInterface _oracle,
         MoneyMarketInterface _moneyMarket,
         MarginFlowProtocolSafety _safetyProtocol,
         MarginLiquidityPoolRegistry _liquidityPoolRegistry,
-        uint256 _initialSwapRate,
         uint256 _initialMinLeverage,
         uint256 _initialMaxLeverage,
         uint256 _initialMinLeverageAmount,
-        uint256 _rateUnit
+        uint256 _swapRateUnit
     ) external initializer {
         FlowProtocolBase.initialize(_oracle, _moneyMarket);
         safetyProtocol = _safetyProtocol;
         liquidityPoolRegistry = _liquidityPoolRegistry;
-        currentSwapRate = Percentage.Percent(_initialSwapRate);
         minLeverage = _initialMinLeverage;
         maxLeverage = _initialMaxLeverage;
         minLeverageAmount = _initialMinLeverageAmount;
-        rateUnit = _rateUnit;
+        swapRateUnit = _swapRateUnit;
     }
 
     /**
      * @dev Add new trading pair, only for the owner.
      * @param _base The base token.
      * @param _quote The quote token.
+     * @param _swapRateLong The swap rate as percentage for longs.
+     * @param _swapRateShort The swap rate as percentage for shorts.
      */
-    function addTradingPair(address _base, address _quote) external onlyOwner {
+    function addTradingPair(address _base, address _quote, uint256 _swapRateLong, uint256 _swapRateShort) external onlyOwner {
         require(_base != address(0) && _quote != address(0), "0");
         require(_base != _quote, "TP3");
         require(!tradingPairWhitelist[_base][_quote], "TP2");
+
+        currentSwapRates[_base][_quote][LONG] = Percentage.Percent(_swapRateLong);
+        currentSwapRates[_base][_quote][SHORT] = Percentage.Percent(_swapRateShort);
         tradingPairWhitelist[_base][_quote] = true;
 
         emit NewTradingPair(_base, _quote);
     }
 
     /**
-     * @dev Set new swap rate, only for the owner.
-     * @param _newSwapRate The new swap rate as percentage.
+     * @dev Set new swap rate for token pair, only for the owner.
+     * @param _base The base token.
+     * @param _quote The quote token.
+     * @param _newSwapRateLong The new swap rate as percentage for longs.
+     * @param _newSwapRateShort The new swap rate as percentage for shorts.
      */
-    function setCurrentSwapRate(uint256 _newSwapRate) external onlyOwner {
-        require(_newSwapRate > 0, "0");
-        currentSwapRate = Percentage.Percent(_newSwapRate);
+    function setCurrentSwapRateForPair(address _base, address _quote, uint256 _newSwapRateLong, uint256 _newSwapRateShort) external onlyOwner {
+        require(_newSwapRateLong > 0 && _newSwapRateShort > 0, "0");
+        currentSwapRates[_base][_quote][LONG] = Percentage.Percent(_newSwapRateLong);
+        currentSwapRates[_base][_quote][SHORT] = Percentage.Percent(_newSwapRateShort);
     }
 
     /**
@@ -427,7 +440,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         Position memory position = positionsById[_positionId];
 
         uint256 timeDeltaInSeconds = now.sub(position.timeWhenOpened);
-        uint256 daysSinceOpen = timeDeltaInSeconds.div(rateUnit);
+        uint256 daysSinceOpen = timeDeltaInSeconds.div(swapRateUnit);
         uint256 leveragedDebitsAbs = position.leveragedDebitsInUsd >= 0
             ? uint256(position.leveragedDebitsInUsd)
             : uint256(-position.leveragedDebitsInUsd);
@@ -578,7 +591,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
             int256(leveragedDebits).mul(debitSignum),
             int256(leveragedHeldInUsd).mul(debitSignum),
             marginHeld,
-            currentSwapRate,
+            currentSwapRates[_pair.base][_pair.quote][_leverage > 0 ? LONG : SHORT],
             now
         );
 

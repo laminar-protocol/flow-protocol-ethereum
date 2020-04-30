@@ -96,8 +96,9 @@ const parseAmount = (amount: string): BN => {
 };
 
 const parseSwapRate = (amount: string): BN => {
-  const parsed = amount.replace('%', '');
+  const parsed = amount.replace(/%|-/g, '');
   const onePercentSpread = new BN(web3.utils.toWei('1')).div(new BN(100));
+
   return onePercentSpread.mul(new BN(parsed));
 };
 
@@ -257,7 +258,7 @@ Given('oracle price', async (table: TableDefinition) => {
 
 Given('margin spread', async (table: TableDefinition) => {
   for (const [pair, value] of table.rows()) {
-    const spreadValue = parseAmount(value); // TODO? .div(new BN(10000));
+    const spreadValue = parseAmount(value);
     const { baseAddress, quoteAddress } = parseTradingPair(pair);
 
     await sendTx({
@@ -297,13 +298,16 @@ Given(
 
 Given('margin set swap rate', async (table: TableDefinition) => {
   for (const [pair, long, short] of table.rows()) {
-    const { baseAddress, quoteAddress } = parseTradingPair(pair); // TODO
+    const { baseAddress, quoteAddress } = parseTradingPair(pair);
     const longSwapRate = parseSwapRate(long);
-    const shortSpread = parseSwapRate(short); // TODO
+    const shortSpread = parseSwapRate(short);
 
     await sendTx({
-      contractMethod: flowMarginProtocolContract.methods.setCurrentSwapRate(
+      contractMethod: flowMarginProtocolContract.methods.setCurrentSwapRateForPair(
+        baseAddress,
+        quoteAddress,
         longSwapRate,
+        shortSpread,
       ),
       to: flowMarginProtocolAddress,
     });
@@ -322,6 +326,8 @@ Given(/margin enable trading pair (\D*)/, async (tradingPair: string) => {
       contractMethod: flowMarginProtocolContract.methods.addTradingPair(
         baseAddress,
         quoteAddress,
+        1,
+        1,
       ),
       to: flowMarginProtocolAddress,
     });
