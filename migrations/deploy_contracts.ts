@@ -373,10 +373,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       const syntheticPool = await SyntheticLiquidityPool.at(
         syntheticliquidityPoolProxy.address,
       );
-      await syntheticPool.initialize(
-        moneyMarket.address,
-        marginProtocol.address,
-      );
+      await syntheticPool.initialize(moneyMarket.address, protocol.address);
       await syntheticPool.approveToProtocol(web3.utils.toWei('100000000000'));
 
       for (const token of [
