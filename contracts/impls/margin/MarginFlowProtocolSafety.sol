@@ -544,7 +544,10 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         marginProtocol.closePosition(_id, 0);
 
         uint256 realized = Math.min(_pool.getLiquidity(), subAmount);
-        _pool.withdrawLiquidity(realized);
+
+        // approve might fail if MAX UINT is already approved
+        try _pool.approveLiquidityToProtocol(realized) {} catch (bytes memory) {}
+        marginProtocol.moneyMarket().iToken().safeTransferFrom(address(_pool), address(this), realized);
 
         return realized;
     }

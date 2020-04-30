@@ -332,7 +332,9 @@ contract MarginFlowProtocol is FlowProtocolBase {
             uint256 realizedIToken = moneyMarket.convertAmountFromBase(uint256(balanceDelta));
             uint256 realized = Math.min(poolLiquidityIToken, realizedIToken);
 
-            MarginLiquidityPoolInterface(position.pool).withdrawLiquidity(realized);
+            // approve might fail if MAX UINT is already approved
+            try MarginLiquidityPoolInterface(position.pool).approveLiquidityToProtocol(realized) {} catch (bytes memory) {}
+            moneyMarket.iToken().safeTransferFrom(address(position.pool), address(this), realized);
             balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(realized));
         } else {
             // trader has loss, max realizable is the trader's equity without the given position
