@@ -72,3 +72,91 @@ Feature: Margin Protocol
       | Name  | Free  | Margin |
       | Alice | $9800 | $0     |
       | Bob   | $9900 | $0     |
+
+  Scenario: margin trader take profit
+    Given accounts
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+      | Alice | $10 000 |
+    And margin create liquidity pool
+    And margin deposit liquidity
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+    And margin deposit
+      | Name  | Amount  |
+      | Alice | $5 000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $3     |
+    And margin spread
+      | Pair    | Value |
+      | EURUSD  | $0.03 |
+    And margin set accumulate
+      | Pair   | Frequency | Offset |
+      | EURUSD | 10        | 1      |
+    And margin set min leveraged amount to $100
+    And margin set default min leveraged amount to $100
+    And margin set swap rate
+      | Pair    | Long | Short |
+      | EURUSD  | -1%  | 1%    |
+    And margin enable trading pair EURUSD
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Long 10  | $5000  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $5000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $4     |
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 0  | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $9700  |
+    And margin liquidity is $5300
+
+  Scenario: margin trader stop lost
+    Given accounts
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+      | Alice | $10 000 |
+    And margin create liquidity pool
+    And margin deposit liquidity
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+    And margin deposit
+      | Name  | Amount  |
+      | Alice | $5 000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $3     |
+    And margin spread
+      | Pair    | Value |
+      | EURUSD  | $0.03 |
+    And margin set accumulate
+      | Pair   | Frequency | Offset |
+      | EURUSD | 10        | 1      |
+    And margin set min leveraged amount to $100
+    And margin set default min leveraged amount to $100
+    And margin set swap rate
+      | Pair    | Long | Short |
+      | EURUSD  | -1%  | 1%    |
+    And margin enable trading pair EURUSD
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Long 10  | $5000  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $5000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $2.8   |
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 0  | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $3700  |
+    And margin liquidity is $11300

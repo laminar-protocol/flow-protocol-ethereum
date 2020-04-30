@@ -13,6 +13,7 @@ import deployment from '../../artifacts/development/deployment.json';
 const web3 = new Web3('http://localhost:8545');
 
 let lastCheckedPoolLiquidity = web3.utils.toWei(new BN(20000)); // 20000 ETH initial liquidity
+let firstPositionId = 0;
 
 const baseTokenAddress = deployment.baseToken;
 const baseTokenContract = new web3.eth.Contract(
@@ -131,8 +132,49 @@ const sendTx = async ({
   return web3.eth.sendSignedTransaction(rawTransaction as string);
 };
 
-const emptyAccount = async (name: string): Promise<any> => {
+const closeAllPositions = async (name: string): Promise<any> => {
   const from = accountOf(name);
+
+  const openPositions = parseInt(
+    await flowMarginProtocolContract.methods
+      .getPositionsByPoolAndTraderLength(poolAddress, from.address)
+      .call(),
+    10,
+  );
+
+  for (let i = 0; i < openPositions; i += 1) {
+    const positionId = await flowMarginProtocolContract.methods
+      .getPositionIdByPoolAndTraderAndIndex(poolAddress, from.address, i)
+      .call();
+    await sendTx({
+      contractMethod: flowMarginProtocolContract.methods.closePosition(
+        positionId,
+        0,
+      ),
+      from,
+      to: flowMarginProtocolAddress,
+    });
+  }
+};
+
+const emptyAccount = async (name: string): Promise<any> => {
+  await closeAllPositions(name);
+
+  const from = accountOf(name);
+  const balance = await flowMarginProtocolContract.methods
+    .balances(poolAddress, from.address)
+    .call();
+
+  if (balance !== '0')
+    await sendTx({
+      from,
+      contractMethod: flowMarginProtocolContract.methods.withdraw(
+        poolAddress,
+        new BN(balance).div(new BN(10)),
+      ),
+      to: flowMarginProtocolAddress,
+    });
+
   const currentBalance = await baseTokenContract.methods
     .balanceOf(from.address)
     .call();
@@ -186,6 +228,10 @@ const getTraderFeeSum = async () => {
 };
 
 Given(/accounts/, async (table: TableDefinition) => {
+  firstPositionId = await flowMarginProtocolContract.methods
+    .nextPositionId()
+    .call();
+
   await Promise.all(
     table.rows().map(row => transfer(row[0], parseAmount('0.1'))),
   );
@@ -245,8 +291,40 @@ Given('margin deposit', async (table: TableDefinition) => {
 });
 
 Given('oracle price', async (table: TableDefinition) => {
+  await sendTx({
+    contractMethod: oracleContract.methods.setOracleDeltaSnapshotLimit(
+      web3.utils.toWei('10000'),
+    ),
+    to: oracleAddress,
+  });
+  await sendTx({
+    contractMethod: oracleContract.methods.setOracleDeltaLastLimit(
+      web3.utils.toWei('10000'),
+    ),
+    to: oracleAddress,
+  });
+
+  await new Promise((resolve, reject) => {
+    (web3 as any).currentProvider.send(
+      {
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [172800],
+        id: new Date().getTime(),
+      },
+      (err: string, result: string) => (err ? reject(err) : resolve(result)),
+    );
+  });
+  await sendTx({
+    contractMethod: oracleContract.methods.feedPrice(
+      baseTokenAddress,
+      web3.utils.toWei('1'),
+    ),
+    to: oracleAddress,
+  });
+
   for (const [currency, price] of table.rows()) {
-    const oraclePrice = parseAmount(price); // .div(new BN(100));
+    const oraclePrice = parseAmount(price);
     const key = parseCurrency(currency);
 
     await sendTx({
@@ -373,9 +451,12 @@ Then('margin balances are', async (table: TableDefinition) => {
   ] of table.rows()) {
     const from = accountOf(name);
     const feeSum = new BN(await getTraderFeeSum());
-    const expectedTokenBalance = parseAmount(expectedTokenBalanceString)
+    const expectedTokenBalanceWithFees = parseAmount(expectedTokenBalanceString)
       .sub(feeSum)
       .toString();
+    const expectedTokenBalance = parseAmount(
+      expectedTokenBalanceString,
+    ).toString();
     const expectedBalance = parseAmount(expectedBalanceString)
       .mul(new BN(10)) // to iToken
       .toString();
@@ -387,7 +468,9 @@ Then('margin balances are', async (table: TableDefinition) => {
       .balances(poolAddress, from.address)
       .call();
 
-    assert.equal(tokenBalance, expectedTokenBalance);
+    expect([expectedTokenBalanceWithFees, expectedTokenBalance]).to.include(
+      tokenBalance,
+    );
     assert.equal(balance, expectedBalance);
   }
 });
@@ -425,10 +508,11 @@ Given('close positions', async (table: TableDefinition) => {
   for (const [name, id, price] of table.rows()) {
     const from = accountOf(name);
     const closePrice = parseAmount(price);
+    const positionId = new BN(firstPositionId.toString()).add(new BN(id));
 
     await sendTx({
       contractMethod: flowMarginProtocolContract.methods.closePosition(
-        id,
+        positionId,
         closePrice,
       ),
       from,
@@ -453,8 +537,18 @@ Given('margin withdraw', async (table: TableDefinition) => {
   }
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+Given('margin set accumulate', (table: TableDefinition) => {
+  /* for (const [pair, frequency, offset] of table.rows()) {
+    const { baseAddress, quoteAddress } = parseTradingPair(pair);
+    const swapUnit = parseAmount(frequency);
+    const swapOffset = parseAmount(offset);
+  } */
+  // not applicable in ETH
+});
+
 Given('margin create liquidity pool', () => {
-  // empty
+  // use existing pool
 });
 
 Given('margin deposit liquidity', async (table: TableDefinition) => {
