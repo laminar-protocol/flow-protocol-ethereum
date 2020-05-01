@@ -1223,23 +1223,46 @@ contract('MarginFlowProtocol', accounts => {
         });
       });
 
-      it('computes new balance correctly after a price increase', async () => {
-        await oracle.feedPrice(eur, fromPercent(200), { from: owner });
-        receipt = await protocol.closePosition(positionId, price, {
-          from: alice,
+      describe('when the price increases', () => {
+        beforeEach(async () => {
+          await oracle.feedPrice(eur, fromPercent(200), { from: owner });
+          receipt = await protocol.closePosition(positionId, price, {
+            from: alice,
+          });
         });
 
-        await expectCorrectlyClosedPosition({
-          id: positionId,
-          expectedOwner: alice,
-          expectedPool: liquidityPool.address,
-          expectedLeverage: leverage,
-          leveragedHeldInQuote: leveragedHeldInEuro,
-          traderBalanceBefore,
-          poolLiquidityBefore,
-          initialAskPrice,
-          initialBidPrice,
-          receipt,
+        it('computes new balance correctly', async () => {
+          await expectCorrectlyClosedPosition({
+            id: positionId,
+            expectedOwner: alice,
+            expectedPool: liquidityPool.address,
+            expectedLeverage: leverage,
+            leveragedHeldInQuote: leveragedHeldInEuro,
+            traderBalanceBefore,
+            poolLiquidityBefore,
+            initialAskPrice,
+            initialBidPrice,
+            receipt,
+          });
+        });
+
+        it('allows to withdraw all profits', async () => {
+          const usdBalanceAliceBefore = await usd.balanceOf(alice);
+          const baseTokenBalanceAlice = convertToBaseToken(
+            await protocol.balances(liquidityPool.address, alice),
+          );
+
+          await protocol.withdraw(
+            liquidityPool.address,
+            baseTokenBalanceAlice,
+            { from: alice },
+          );
+
+          const usdBalanceAliceAfter = await usd.balanceOf(alice);
+
+          expect(usdBalanceAliceAfter).to.be.bignumber.equal(
+            usdBalanceAliceBefore.add(baseTokenBalanceAlice),
+          );
         });
       });
     });

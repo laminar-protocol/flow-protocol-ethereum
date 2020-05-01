@@ -200,7 +200,6 @@ export function handleOpenPosition(event: PositionOpened): void {
   entity.liquidityPool = event.params.liquidityPool;
   entity.amount = event.params.leveragedDebitsInUsd.toBigDecimal().div(one);
   entity.openPrice = event.params.price.toBigDecimal().div(one);
-  // entity.closeSpread = event.params.closeSpread.toBigDecimal().div(one);
   entity.openTime = event.block.timestamp.toI32();
   entity.openTxhash = event.transaction.hash;
   entity.openBlock = event.block.number.toI32();

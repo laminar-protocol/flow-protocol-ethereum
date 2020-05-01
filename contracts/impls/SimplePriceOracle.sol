@@ -79,7 +79,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         if (hasUpdate[key]) {
             uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {
-                setPrice(key, price);
+                _setPrice(key, price);
             }
             hasUpdate[key] = false;
         }
@@ -90,23 +90,25 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         if (hasUpdate[key]) {
             uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {
-                return calculateCapPrice(key, price);
+                return _calculateCapPrice(key, price);
             }
         }
         return cachedPrices[key];
     }
 
-    function calculateCapPrice(address addr, uint price) private view returns (uint) {
+    function _calculateCapPrice(address addr, uint price) private view returns (uint) {
         require(price != 0, "Invalid price");
-        uint lastPrice = cachedPrices[addr];
+
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
-        uint price2 = capPrice(price, lastPrice, oracleDeltaLastLimit);
-        uint price3 = capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
+        uint lastPrice = cachedPrices[addr];
+        uint price2 = _capPrice(price, lastPrice, oracleDeltaLastLimit);
+        uint price3 = _capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
+
         return price3;
     }
 
-    function setPrice(address addr, uint price) private {
-        uint finalPrice = calculateCapPrice(addr, price);
+    function _setPrice(address addr, uint price) private {
+        uint finalPrice = _calculateCapPrice(addr, price);
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
         if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < block.timestamp) {
             snapshotPrice.price = finalPrice;
@@ -118,7 +120,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         emit PriceUpdated(addr, finalPrice);
     }
 
-    function capPrice(uint current, uint last, Percentage.Percent storage limit) private pure returns (uint) {
+    function _capPrice(uint current, uint last, Percentage.Percent storage limit) private pure returns (uint) {
         if (last == 0) {
             return current;
         }

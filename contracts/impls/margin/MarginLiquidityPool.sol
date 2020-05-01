@@ -33,8 +33,8 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         return moneyMarket.mint(_baseTokenAmount);
     }
 
-    function withdrawLiquidity(uint _iTokenAmount) external override onlyProtocol returns (uint256) {
-        return moneyMarket.redeemTo(msg.sender, _iTokenAmount);
+    function approveLiquidityToProtocol(uint _iTokenAmount) external override onlyProtocol returns (uint256) {
+        moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);        
     }
 
     function withdrawLiquidityOwner(uint _iTokenAmount) external override onlyOwner returns (uint256) {

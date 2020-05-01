@@ -6,3 +6,7 @@ contracts/libs/upgrades/UpgradeAccessControl.sol
 contracts/impls/LiquidityPool.sol
 contracts/impls/synthetic/SyntheticLiquidityPool.sol
 contracts/impls/margin/MarginLiquidityPool.sol
+contracts/impls/margin/MarginFlowProtocol.sol
+contracts/impls/margin/MarginFlowProtocolSafety.sol
+contracts/interfaces/MarginLiquidityPoolInterface.sol
+contracts/interfaces/SyntheticLiquidityPoolInterface.sol

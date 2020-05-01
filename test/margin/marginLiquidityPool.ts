@@ -205,14 +205,16 @@ contract('MarginLiquidityPool', accounts => {
       });
     });
 
-    it('should be able to withdraw by protocol', async () => {
-      await liquidityPool.withdrawLiquidity(5000, {
+    it('should be able to approve liquidity to protocol', async () => {
+      await liquidityPool.approveToProtocol(0, {
+        from: liquidityProvider,
+      });
+      await liquidityPool.approveLiquidityToProtocol(5000, {
         from: protocol,
       });
-      expect(await usd.balanceOf(protocol)).bignumber.equal(helper.bn(10500));
-      expect(await iToken.balanceOf(liquidityPool.address)).bignumber.equal(
-        helper.bn(5000),
-      );
+      expect(
+        await iToken.allowance(liquidityPool.address, protocol),
+      ).bignumber.equal(helper.bn(5000));
     });
 
     describe('when pool is safe', () => {

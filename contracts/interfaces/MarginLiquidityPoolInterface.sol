@@ -1,11 +1,11 @@
 pragma solidity ^0.6.4;
 
 import "../impls/margin/MarginFlowProtocol.sol";
-import "./MoneyMarketInterface.sol";
+import "./LiquidityPoolInterface.sol";
 
-interface MarginLiquidityPoolInterface {
+interface MarginLiquidityPoolInterface is LiquidityPoolInterface {
     function depositLiquidity(uint256 _realized) external returns (uint256);
-    function withdrawLiquidity(uint256 _realized) external returns (uint256);
+    function approveLiquidityToProtocol(uint256 _realized) external returns (uint256);
     function withdrawLiquidityOwner(uint256 _realized) external returns (uint256);
     function getLiquidity() external returns (uint256);
 

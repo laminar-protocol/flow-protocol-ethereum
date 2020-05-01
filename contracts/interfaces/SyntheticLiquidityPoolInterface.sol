@@ -3,7 +3,9 @@ pragma solidity ^0.6.4;
 import "../impls/synthetic/SyntheticFlowProtocol.sol";
 import "../impls/synthetic/SyntheticFlowToken.sol";
 
-interface SyntheticLiquidityPoolInterface {
+import "./LiquidityPoolInterface.sol";
+
+interface SyntheticLiquidityPoolInterface is LiquidityPoolInterface {
     function addCollateral(SyntheticFlowProtocol protocol, SyntheticFlowToken token, uint256 baseTokenAmount) external;
     function withdrawCollateral(SyntheticFlowProtocol protocol, SyntheticFlowToken token) external;
 

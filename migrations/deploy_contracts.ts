@@ -273,7 +273,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       1,
       50,
       2,
-      60 * 60 * 8, // 8 hours
+      network === 'development' ? 60 * 60 * 24 * 3650 : 60 * 60 * 8, // 8 hours
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolSafety as any).initialize(
@@ -373,10 +373,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       const syntheticPool = await SyntheticLiquidityPool.at(
         syntheticliquidityPoolProxy.address,
       );
-      await syntheticPool.initialize(
-        moneyMarket.address,
-        marginProtocol.address,
-      );
+      await syntheticPool.initialize(moneyMarket.address, protocol.address);
       await syntheticPool.approveToProtocol(web3.utils.toWei('100000000000'));
 
       for (const token of [
