@@ -1,6 +1,6 @@
 {
   "name": "flow-protocol-ethereum",
-  "version": "0.0.2",
+  "version": "0.0.7",
   "author": "Bryan Chen <bryan@laminar.one>",
   "private": true,
   "scripts": {
