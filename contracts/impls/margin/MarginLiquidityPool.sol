@@ -3,6 +3,7 @@ pragma solidity ^0.6.4;
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
 import "../../libs/upgrades/UpgradeOwnable.sol";
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
@@ -12,6 +13,8 @@ import "./MarginFlowProtocol.sol";
 import "./MarginFlowProtocolSafety.sol";
 
 contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, MarginLiquidityPoolInterface {
+    using SignedSafeMath for int256;
+
     mapping (address => mapping (address => bool)) public override allowedTokens;
     mapping (address => mapping (address => uint256)) public override spreadsPerTokenPair;
 
@@ -26,7 +29,7 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         emit SpreadUpdated(_baseToken, _quoteToken, _value);
     }
 
-    function depositLiquidity(uint _baseTokenAmount) external override returns (uint256) {
+    function depositLiquidity(uint256 _baseTokenAmount) external override returns (uint256) {
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         moneyMarket.baseToken().approve(address(moneyMarket), _baseTokenAmount);
 
@@ -37,7 +40,12 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);        
     }
 
-    function withdrawLiquidityOwner(uint _iTokenAmount) external override onlyOwner returns (uint256) {
+    function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
+        int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
+        if (protocolBalance > 0) {
+            MarginFlowProtocol(protocol).withdraw(this, uint256(protocolBalance));
+        }
+
         uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
         require(
             MarginFlowProtocol(protocol).safetyProtocol().isPoolSafe(MarginLiquidityPoolInterface(this)),

@@ -122,7 +122,6 @@ contract MarginFlowProtocol is FlowProtocolBase {
     mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
     mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
     mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
-    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidFees;
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
     mapping (address => mapping(address => mapping (bool => Percentage.Percent))) public currentSwapRates;
@@ -133,8 +132,6 @@ contract MarginFlowProtocol is FlowProtocolBase {
     uint256 public swapRateUnit;
     bool constant public LONG = true;
     bool constant public SHORT = false;
-    uint256 constant public TRADER_MARGIN_CALL_FEE = 20 ether; // TODO
-    uint256 constant public TRADER_LIQUIDATION_FEE = 60 ether; // TODO
 
     modifier poolIsVerified(MarginLiquidityPoolInterface _pool) {
         require(liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
@@ -255,16 +252,17 @@ contract MarginFlowProtocol is FlowProtocolBase {
     /**
      * @dev Withdraw amount from pool balance.
      * @param _pool The MarginLiquidityPool.
-     * @param _baseTokenAmount The base token amount to withdraw.
+     * @param _iTokenAmount The iToken amount to withdraw.
      */
-    function withdraw(MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount) external nonReentrant poolIsVerified(_pool) {
-        require(getFreeMargin(_pool, msg.sender) >= _baseTokenAmount, "W1");
-        require(_baseTokenAmount > 0, "0");
+    function withdraw(MarginLiquidityPoolInterface _pool, uint256 _iTokenAmount) external nonReentrant poolIsVerified(_pool) {
+        uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
 
-        uint256 iTokenAmount = moneyMarket.redeemBaseTokenTo(msg.sender, _baseTokenAmount);
-        balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(iTokenAmount));
+        require(getFreeMargin(_pool, msg.sender) >= baseTokenAmount, "W1");
+        require(baseTokenAmount > 0, "0");
 
-        emit Withdrew(msg.sender, _baseTokenAmount);
+        balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
+
+        emit Withdrew(msg.sender, baseTokenAmount);
     }
 
     /**
@@ -293,12 +291,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         require(leverageAbs >= minLeverage, "OP4");
         require(leverageAbs <= maxLeverage, "OP5");
         require(_leveragedHeld >= minLeverageAmount, "OP6");
-
-        if (!traderHasPaidFees[_pool][msg.sender]) {
-            uint256 lockedFeesAmount = TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
-            moneyMarket.baseToken().safeTransferFrom(msg.sender, address(safetyProtocol), lockedFeesAmount);
-            traderHasPaidFees[_pool][msg.sender] = true;
-        }
+        require(safetyProtocol.traderHasPaidDeposits(_pool, msg.sender), "OP7");
 
         Percentage.Percent memory debitsPrice = (_leverage > 0)
             ? _getAskPrice(_pool, TradingPair(_base, _quote), _price)
@@ -320,7 +313,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
      */
     function closePosition(uint256 _positionId, uint256 _price) public nonReentrant {
         Position memory position = positionsById[_positionId];
-        require(msg.sender == position.owner, "CP1");
+        require(msg.sender == position.owner || msg.sender == address(safetyProtocol), "CP1");
 
         (int256 unrealizedPl, Percentage.Percent memory marketPrice) = _getUnrealizedPlAndMarketPriceOfPosition(position, _price);
         uint256 accumulatedSwapRate = getAccumulatedSwapRateOfPosition(_positionId);
@@ -328,27 +321,23 @@ contract MarginFlowProtocol is FlowProtocolBase {
 
         if (balanceDelta >= 0) {
             // trader has profit, max realizable is the pool's liquidity
-            uint256 poolLiquidityIToken = MarginLiquidityPoolInterface(position.pool).getLiquidity();
+            uint256 poolLiquidityIToken = position.pool.getLiquidity();
             uint256 realizedIToken = moneyMarket.convertAmountFromBase(uint256(balanceDelta));
-            uint256 realized = Math.min(poolLiquidityIToken, realizedIToken);
+            int256 realized = int256(Math.min(poolLiquidityIToken, realizedIToken));
 
-            // approve might fail if MAX UINT is already approved
-            try MarginLiquidityPoolInterface(position.pool).approveLiquidityToProtocol(realized) {} catch (bytes memory) {}
-            moneyMarket.iToken().safeTransferFrom(address(position.pool), address(this), realized);
-            balances[position.pool][msg.sender] = balances[position.pool][msg.sender].add(int256(realized));
+            _transferItokenBalanceFromPool(position.pool, position.owner, realized);
         } else {
             // trader has loss, max realizable is the trader's equity without the given position
-            int256 equity = getEquityOfTrader(position.pool, msg.sender);
+            int256 equity = getEquityOfTrader(position.pool, position.owner);
             uint256 balanceDeltaAbs = uint256(-balanceDelta);
             int256 maxRealizable = equity.add(int256(balanceDeltaAbs));
 
             // pool gets nothing if no realizable from traders
             if (maxRealizable > 0) {
                 uint256 realized = Math.min(uint256(maxRealizable), balanceDeltaAbs);
-                moneyMarket.baseToken().approve(address(position.pool), realized);
+                int256 realizedIToken = int256(moneyMarket.convertAmountFromBase(realized));
 
-                uint256 iTokenAmount = MarginLiquidityPoolInterface(position.pool).depositLiquidity(realized);
-                balances[position.pool][msg.sender] = balances[position.pool][msg.sender].sub(int256(iTokenAmount));
+                _transferItokenBalanceToPool(position.pool, position.owner, realizedIToken);
             }
         }
 
@@ -358,7 +347,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
 
         emit PositionClosed(
             _positionId,
-            msg.sender,
+            position.owner,
             address(position.pool),
             address(position.pair.base),
             address(position.pair.quote),
@@ -481,11 +470,6 @@ contract MarginFlowProtocol is FlowProtocolBase {
     function setTraderIsMarginCalled(MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled) public {
         require(msg.sender == address(safetyProtocol), "SP1");
         traderIsMarginCalled[_pool][_trader] = _isMarginCalled;
-    }
-
-    function setTraderHasPaidFees(MarginLiquidityPoolInterface _pool, address _trader, bool _hasPaidFees) public {
-        require(msg.sender == address(safetyProtocol), "SP1");
-        traderHasPaidFees[_pool][_trader] = _hasPaidFees;
     }
 
     function getAskSpread(MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken) public view returns (uint) {
@@ -629,5 +613,35 @@ contract MarginFlowProtocol is FlowProtocolBase {
                 return;
             }
         }
+    }
+
+    function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address owner, int256 amount) private {
+        console.log("PoolBalanceTo Before 1", uint256(balances[_pool][address(_pool)]));
+        _transferItokenBalance(_pool, owner, address(_pool), amount);
+
+        console.log("PoolBalanceTo After 1", uint256(balances[_pool][address(_pool)]));
+    }
+
+    function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address owner, int256 amount) private {
+        console.log("PoolBalanceFrom Before 2", uint256(balances[_pool][address(_pool)]));
+        _transferItokenBalance(_pool, address(_pool), owner, amount);
+
+        int256 poolBalance = balances[_pool][address(_pool)];
+
+        console.log("PoolBalanceFrom After 2", uint256(poolBalance));
+
+        if (poolBalance < 0) {
+            uint256 transferITokenAmount = uint256(-poolBalance);
+
+            // approve might fail if MAX UINT is already approved
+            try _pool.approveLiquidityToProtocol(transferITokenAmount) {} catch (bytes memory) {}
+            moneyMarket.iToken().safeTransferFrom(address(_pool), address(this), transferITokenAmount);
+            balances[_pool][address(_pool)] = 0;
+        }
+    }
+
+    function _transferItokenBalance(MarginLiquidityPoolInterface _pool, address from, address to, int256 amount) private {
+        balances[_pool][from] = balances[_pool][from].sub(amount);
+        balances[_pool][to] = balances[_pool][to].add(amount);
     }
 }

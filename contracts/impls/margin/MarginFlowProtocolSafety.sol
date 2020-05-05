@@ -54,6 +54,13 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
     uint256 public liquidityPoolENPLiquidateThreshold;
     uint256 public liquidityPoolELLLiquidateThreshold;
 
+    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidDeposits;
+    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderLiquidationITokens;
+    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderMarginCallITokens;
+
+    uint256 constant public TRADER_MARGIN_CALL_FEE = 4; // TODO
+    uint256 constant public TRADER_LIQUIDATION_FEE = 5; // TODO
+
     modifier poolIsVerified(MarginLiquidityPoolInterface _pool) {
         require(
             marginProtocol.liquidityPoolRegistry().isVerifiedPool(_pool),
@@ -188,6 +195,45 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
     }
 
     /**
+     * @dev Pay the trader deposits
+     * @param _pool The MarginLiquidityPool.
+     */
+    function payTraderDeposits(MarginLiquidityPoolInterface _pool)
+        public
+        virtual
+        returns (bool)
+    {
+        MoneyMarketInterface moneyMarket = marginProtocol.moneyMarket();
+        uint256 lockedFeesAmount = TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
+
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), lockedFeesAmount);
+        moneyMarket.baseToken().approve(address(moneyMarket), lockedFeesAmount);
+
+        traderMarginCallITokens[_pool][msg.sender] = moneyMarket.mint(TRADER_MARGIN_CALL_FEE);
+        traderLiquidationITokens[_pool][msg.sender] = moneyMarket.mint(TRADER_LIQUIDATION_FEE);        
+        traderHasPaidDeposits[_pool][msg.sender] = true;
+    }
+
+    /**
+     * @dev Withdraw the trader deposits, only possible when no positions are open.
+     * @param _pool The MarginLiquidityPool.
+     */
+    function withdrawTraderDeposits(MarginLiquidityPoolInterface _pool)
+        public
+        virtual
+        returns (bool)
+    {
+        require(marginProtocol.getPositionsByPoolAndTraderLength(_pool, msg.sender) == 0, 'WD1');
+
+        uint256 iTokenDeposits = traderMarginCallITokens[_pool][msg.sender].add(traderLiquidationITokens[_pool][msg.sender]);
+        marginProtocol.moneyMarket().redeemTo(msg.sender, iTokenDeposits);
+
+        traderMarginCallITokens[_pool][msg.sender] = 0;
+        traderLiquidationITokens[_pool][msg.sender] = 0;       
+        traderHasPaidDeposits[_pool][msg.sender] = false;
+    }
+
+    /**
      * @dev Margin call a trader, reducing his allowed trading functionality given a MarginLiquidityPool send `TRADER_MARGIN_CALL_FEE` to caller..
      * @param _pool The MarginLiquidityPool.
      * @param _trader The Trader.
@@ -199,11 +245,14 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         require(!marginProtocol.traderIsMarginCalled(_pool, _trader), "TM1");
         require(!isTraderSafe(_pool, _trader), "TM2");
 
-        marginProtocol.setTraderIsMarginCalled(_pool, _trader, true);
-        marginProtocol.moneyMarket().baseToken().safeTransfer(
+        uint256 marginCallFeeTraderITokens = traderMarginCallITokens[_pool][ _trader];
+        marginProtocol.moneyMarket().redeemTo(
             msg.sender,
-            marginProtocol.TRADER_MARGIN_CALL_FEE()
+            marginCallFeeTraderITokens
         );
+
+        marginProtocol.setTraderIsMarginCalled(_pool, _trader, true);
+        traderMarginCallITokens[_pool][ _trader] = 0;
 
         emit TraderMarginCalled(address(_pool), _trader);
     }
@@ -221,12 +270,12 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         require(marginProtocol.traderIsMarginCalled(_pool, _trader), "TS1");
         require(isTraderSafe(_pool, _trader), "TS2");
 
+        MoneyMarketInterface moneyMarket = marginProtocol.moneyMarket();
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), TRADER_MARGIN_CALL_FEE);
+        moneyMarket.baseToken().approve(address(moneyMarket), TRADER_MARGIN_CALL_FEE);
+        traderMarginCallITokens[_pool][_trader] = moneyMarket.mint(TRADER_MARGIN_CALL_FEE);
+
         marginProtocol.setTraderIsMarginCalled(_pool, _trader, false);
-        marginProtocol.moneyMarket().baseToken().safeTransferFrom(
-            msg.sender,
-            address(this),
-            marginProtocol.TRADER_MARGIN_CALL_FEE()
-        );
 
         emit TraderBecameSafe(address(_pool), _trader);
     }
@@ -285,33 +334,23 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         MarginLiquidityPoolInterface _pool,
         address _trader
     ) external nonReentrant poolIsVerified(_pool) {
-        Percentage.SignedPercent memory marginLevel = getMarginLevel(
-            _pool,
-            _trader
-        );
+        Percentage.SignedPercent memory marginLevel = getMarginLevel(_pool, _trader);
 
-        require(
-            marginLevel.value <= int256(traderRiskLiquidateThreshold.value),
-            "TL1"
-        );
+        require(marginLevel.value <= int256(traderRiskLiquidateThreshold.value), "TL1");
 
         uint256 positionsLength = marginProtocol
             .getPositionsByPoolAndTraderLength(_pool, _trader);
 
         for (uint256 i = 0; i < positionsLength; i++) {
-            uint256 positionId = marginProtocol
-                .getPositionIdByPoolAndTraderAndIndex(_pool, _trader, i);
+            uint256 positionId = marginProtocol.getPositionIdByPoolAndTraderAndIndex(_pool, _trader, i);
             marginProtocol.closePosition(positionId, 0);
         }
 
-        marginProtocol.setTraderIsMarginCalled(_pool, _trader, false);
-        marginProtocol.setTraderHasPaidFees(_pool, _trader, false);
+        marginProtocol.moneyMarket().redeemTo(msg.sender, traderLiquidationITokens[_pool][ _trader]);
 
-        marginProtocol.moneyMarket().baseToken().safeTransferFrom(
-            address(this),
-            msg.sender,
-            marginProtocol.TRADER_LIQUIDATION_FEE()
-        );
+        marginProtocol.setTraderIsMarginCalled(_pool, _trader, false);
+        traderHasPaidDeposits[_pool][_trader] = false;
+        traderLiquidationITokens[_pool][ _trader] = 0;
 
         emit TraderLiquidated(_trader);
     }
@@ -342,19 +381,8 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         );
 
         for (uint256 i = 0; i < positionsLength; i++) {
-            (
-                uint256 id,
-                ,
-                ,
-                MarginFlowProtocol.TradingPair memory pair,
-                int256 leverage,
-                int256 leveragedHeld,
-                ,
-                ,
-                ,
-                ,
-
-            ) = marginProtocol.positionsByPool(_pool, i);
+            (uint256 id,,,MarginFlowProtocol.TradingPair memory pair,int256 leverage,int256 leveragedHeld,,,,,)
+                = marginProtocol.positionsByPool(_pool, i);
             _liquidityPoolClosePosition(
                 _pool,
                 id,
