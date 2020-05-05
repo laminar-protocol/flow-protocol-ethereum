@@ -489,14 +489,6 @@ Then('margin balances are', async (table: TableDefinition) => {
       .balances(poolAddress, from.address)
       .call();
 
-    console.log({
-      expectedTokenBalanceWithFees: expectedTokenBalanceWithFees.toString(),
-      expectedTokenBalance: expectedTokenBalance.toString(),
-      tokenBalance: tokenBalance.toString(),
-      balance: balance.toString(),
-      expectedBalance: expectedBalance.toString(),
-    });
-
     expect([expectedTokenBalanceWithFees, expectedTokenBalance]).to.include(
       tokenBalance,
     );

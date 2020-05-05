@@ -616,19 +616,13 @@ contract MarginFlowProtocol is FlowProtocolBase {
     }
 
     function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address owner, int256 amount) private {
-        console.log("PoolBalanceTo Before 1", uint256(balances[_pool][address(_pool)]));
         _transferItokenBalance(_pool, owner, address(_pool), amount);
-
-        console.log("PoolBalanceTo After 1", uint256(balances[_pool][address(_pool)]));
     }
 
     function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address owner, int256 amount) private {
-        console.log("PoolBalanceFrom Before 2", uint256(balances[_pool][address(_pool)]));
         _transferItokenBalance(_pool, address(_pool), owner, amount);
 
         int256 poolBalance = balances[_pool][address(_pool)];
-
-        console.log("PoolBalanceFrom After 2", uint256(poolBalance));
 
         if (poolBalance < 0) {
             uint256 transferITokenAmount = uint256(-poolBalance);
