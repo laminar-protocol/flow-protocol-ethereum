@@ -43,7 +43,8 @@ contract('MarginFlowProtocolSafety', accounts => {
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
   const bob = accounts[3];
-  const eur = accounts[4];
+  const charlie = accounts[4];
+  const eur = accounts[5];
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
@@ -92,6 +93,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       [liquidityProvider, dollar(50000)],
       [alice, dollar(10000)],
       [bob, dollar(10000)],
+      [charlie, dollar(10000)],
     );
     ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(
       usd.address,
@@ -201,6 +203,13 @@ contract('MarginFlowProtocolSafety', accounts => {
       fromPercent(2),
     );
 
+    await protocolSafety.payTraderDeposits(liquidityPool.address, {
+      from: alice,
+    });
+    await protocolSafety.payTraderDeposits(liquidityPool.address, {
+      from: bob,
+    });
+
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,
     });
@@ -253,6 +262,61 @@ contract('MarginFlowProtocolSafety', accounts => {
     }
   });
 
+  describe('when trader pays the fees', () => {
+    it('transfers fees to the protocol', async () => {
+      const marginCallFee = await protocolSafety.TRADER_MARGIN_CALL_FEE();
+      const liquidationFee = await protocolSafety.TRADER_LIQUIDATION_FEE();
+
+      const traderBalanceBefore = await usd.balanceOf(charlie);
+
+      await usd.approve(
+        protocolSafety.address,
+        marginCallFee.add(liquidationFee),
+        { from: charlie },
+      );
+      await protocolSafety.payTraderDeposits(liquidityPool.address, {
+        from: charlie,
+      });
+
+      const traderBalanceAfter = await usd.balanceOf(charlie);
+
+      expect(
+        await protocolSafety.traderHasPaidDeposits(
+          liquidityPool.address,
+          charlie,
+        ),
+      ).to.be.true;
+      expect(traderBalanceAfter).to.be.bignumber.equal(
+        traderBalanceBefore.sub(marginCallFee).sub(liquidationFee),
+      );
+    });
+  });
+
+  describe('when trader withdraws the fees', () => {
+    it('transfers fees back to trader', async () => {
+      const marginCallFee = await protocolSafety.TRADER_MARGIN_CALL_FEE();
+      const liquidationFee = await protocolSafety.TRADER_LIQUIDATION_FEE();
+
+      const traderBalanceBefore = await usd.balanceOf(alice);
+
+      await protocolSafety.withdrawTraderDeposits(liquidityPool.address, {
+        from: alice,
+      });
+
+      const traderBalanceAfter = await usd.balanceOf(alice);
+
+      expect(
+        await protocolSafety.traderHasPaidDeposits(
+          liquidityPool.address,
+          alice,
+        ),
+      ).to.be.false;
+      expect(traderBalanceAfter).to.be.bignumber.equal(
+        traderBalanceBefore.add(marginCallFee).add(liquidationFee),
+      );
+    });
+  });
+
   describe('when margin calling a trader', () => {
     let leverage: BN;
     let depositInUsd: BN;
@@ -265,7 +329,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      TRADER_MARGIN_CALL_FEE = await protocol.TRADER_MARGIN_CALL_FEE();
+      TRADER_MARGIN_CALL_FEE = await protocolSafety.TRADER_MARGIN_CALL_FEE();
 
       await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
@@ -414,6 +478,90 @@ contract('MarginFlowProtocolSafety', accounts => {
             from: bob,
           }),
           messages.traderCannotBeMarginCalled,
+        );
+      });
+    });
+  });
+
+  describe('when liquidating a trader', () => {
+    let leverage: BN;
+    let depositInUsd: BN;
+    let leveragedHeldInEuro: BN;
+    let price: BN;
+    let TRADER_LIQUIDATION_FEE: BN;
+
+    beforeEach(async () => {
+      leverage = bn(20);
+      depositInUsd = dollar(80);
+      leveragedHeldInEuro = euro(100);
+      price = bn(0); // accept all
+      TRADER_LIQUIDATION_FEE = await protocolSafety.TRADER_LIQUIDATION_FEE();
+
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
+        from: alice,
+      });
+
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage,
+        leveragedHeldInEuro,
+        price,
+        { from: alice },
+      );
+    });
+
+    describe('when trader is below liquidation threshold', () => {
+      beforeEach(async () => {
+        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
+      });
+
+      it('allows liquidating of trader', async () => {
+        try {
+          await protocolSafety.liquidateTrader(liquidityPool.address, alice, {
+            from: bob,
+          });
+        } catch (error) {
+          expect.fail(
+            `Margin call transaction should not have been reverted: ${error}`,
+          );
+        }
+      });
+
+      it('sends fee back to caller', async () => {
+        const balanceBefore = await usd.balanceOf(bob);
+        await protocolSafety.liquidateTrader(liquidityPool.address, alice, {
+          from: bob,
+        });
+        const balanceAfter = await usd.balanceOf(bob);
+
+        expect(balanceAfter).to.be.bignumber.equal(
+          balanceBefore.add(TRADER_LIQUIDATION_FEE),
+        );
+      });
+
+      it('does not allow liquidating twice', async () => {
+        await protocolSafety.liquidateTrader(liquidityPool.address, alice, {
+          from: bob,
+        });
+
+        await expectRevert(
+          protocolSafety.liquidateTrader(liquidityPool.address, alice, {
+            from: bob,
+          }),
+          messages.traderCannotBeLiquidated,
+        );
+      });
+    });
+
+    describe('when trader is above liquidation threshold', () => {
+      it('does not allow liquidating of trader', async () => {
+        await expectRevert(
+          protocolSafety.liquidateTrader(liquidityPool.address, alice, {
+            from: bob,
+          }),
+          messages.traderCannotBeLiquidated,
         );
       });
     });
