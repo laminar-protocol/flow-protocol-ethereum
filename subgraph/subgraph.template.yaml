@@ -10,6 +10,7 @@ dataSources:
     source:
       address: '${ deployment.oracle }'
       abi: PriceOracleInterface
+      startBlock: 18264484
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -29,6 +30,7 @@ dataSources:
     source:
       address: '${ deployment.syntheticProtocol }'
       abi: SyntheticFlowProtocol
+      startBlock: 18264484
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
@@ -64,6 +66,7 @@ dataSources:
     source:
       address: '${ deployment.marginProtocol }'
       abi: MarginFlowProtocol
+      startBlock: 18264484
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.3
