@@ -256,13 +256,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       flowMarginProtocolSafetyProxy.address,
     );
 
-    const initialSwapRate = web3.utils.toWei('1'); // 1 USD per day TODO: per ? amount
-    const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.05');
-    const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.02');
-    const initialLiquidityPoolENPMarginThreshold = web3.utils.toWei('0.5');
+    const initialSwapRate = web3.utils.toWei('1'); // TODO
+    const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.03');
+    const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.01');
+    const initialLiquidityPoolENPMarginThreshold = web3.utils.toWei('0.3');
     const initialLiquidityPoolELLMarginThreshold = web3.utils.toWei('0.1');
-    const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.2');
-    const initialLiquidityPoolELLLiquidateThreshold = web3.utils.toWei('0.02');
+    const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.3');
+    const initialLiquidityPoolELLLiquidateThreshold = web3.utils.toWei('0.1');
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocol as any).initialize(
@@ -297,51 +297,35 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     const usd = await moneyMarket.baseToken();
 
+    for (const token of [
+      fEUR.address,
+      fJPY.address,
+      fXAU.address,
+      fAAPL.address,
+    ]) {
+      await marginProtocol.addTradingPair(
+        token,
+        usd,
+        initialSwapRate,
+        initialSwapRate,
+      );
+      await marginProtocol.addTradingPair(
+        usd,
+        token,
+        initialSwapRate,
+        initialSwapRate,
+      );
+    }
+
     await marginProtocol.addTradingPair(
       fEUR.address,
-      usd,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      usd,
-      fEUR.address,
+      fJPY.address,
       initialSwapRate,
       initialSwapRate,
     );
     await marginProtocol.addTradingPair(
       fJPY.address,
-      usd,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      usd,
-      fJPY.address,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      fXAU.address,
-      usd,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      usd,
-      fXAU.address,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      fAAPL.address,
-      usd,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      usd,
-      fAAPL.address,
+      fEUR.address,
       initialSwapRate,
       initialSwapRate,
     );
@@ -385,6 +369,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       ]) {
         await syntheticPool.enableToken(token, web3.utils.toWei('0.003'));
       }
+
+      await moneyMarket.mintTo(
+        syntheticPool.address,
+        web3.utils.toWei('20000'),
+      );
 
       syntheticPools.push(syntheticPool);
     }
