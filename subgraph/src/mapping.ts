@@ -1,9 +1,4 @@
-import {
-  Address,
-  BigDecimal,
-  BigInt,
-  EthereumEvent,
-} from '@graphprotocol/graph-ts';
+import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts';
 import {
   NewFlowToken,
   Minted,
@@ -48,7 +43,7 @@ function getSyntheticFlowProtocol(): SyntheticFlowProtocolEntity {
 
 function createNewEventEntity(
   flow: SyntheticFlowProtocolEntity,
-  event: EthereumEvent,
+  event: ethereum.Event,
 ): EventEntity {
   flow.totalEvents = flow.totalEvents.plus(BigInt.fromI32(1));
   let evt = new EventEntity(flow.totalEvents.toHex());
@@ -199,6 +194,7 @@ export function handleOpenPosition(event: PositionOpened): void {
   entity.owner = event.params.sender;
   entity.liquidityPool = event.params.liquidityPool;
   entity.amount = event.params.leveragedDebitsInUsd.toBigDecimal().div(one);
+  entity.leverage = event.params.leverage.toI32();
   entity.openPrice = event.params.price.toBigDecimal().div(one);
   entity.openTime = event.block.timestamp.toI32();
   entity.openTxhash = event.transaction.hash;
