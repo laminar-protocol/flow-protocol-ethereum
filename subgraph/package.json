@@ -14,8 +14,8 @@
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 laminar-protocol/flow-protocol-subgraph"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.15.3",
-    "@graphprotocol/graph-ts": "0.15.0"
+    "@graphprotocol/graph-cli": "0.18.0",
+    "@graphprotocol/graph-ts": "0.18.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.2",
