@@ -6,6 +6,7 @@ import BN from 'bn.js';
 
 import baseTokenAbi from '../../artifacts/development/abi/ERC20Detailed.json';
 import flowMarginProtocolAbi from '../../artifacts/development/abi/MarginFlowProtocol.json';
+import flowMarginProtocolSafetyAbi from '../../artifacts/development/abi/MarginFlowProtocolSafety.json';
 import poolAbi from '../../artifacts/development/abi/MarginLiquidityPoolInterface.json';
 import priceOracleAbi from '../../artifacts/development/abi/SimplePriceOracle.json';
 import deployment from '../../artifacts/development/deployment.json';
@@ -25,6 +26,11 @@ const flowMarginProtocolAddress = deployment.marginProtocol;
 const flowMarginProtocolContract = new web3.eth.Contract(
   flowMarginProtocolAbi as any,
   flowMarginProtocolAddress,
+);
+const flowMarginProtocolSafetyAddress = deployment.marginProtocolSafety;
+const flowMarginProtocolSafetyContract = new web3.eth.Contract(
+  flowMarginProtocolSafetyAbi as any,
+  flowMarginProtocolSafetyAddress,
 );
 
 const poolAddress = deployment.marginPool;
@@ -170,7 +176,7 @@ const emptyAccount = async (name: string): Promise<any> => {
       from,
       contractMethod: flowMarginProtocolContract.methods.withdraw(
         poolAddress,
-        new BN(balance).div(new BN(10)),
+        balance,
       ),
       to: flowMarginProtocolAddress,
     });
@@ -217,12 +223,16 @@ const parseTradingPair = (
   };
 };
 
-const getTraderFeeSum = async () => {
+const getTraderDepositsSum = async () => {
   const TRADER_MARGIN_CALL_FEE = new BN(
-    await flowMarginProtocolContract.methods.TRADER_MARGIN_CALL_FEE().call(),
+    await flowMarginProtocolSafetyContract.methods
+      .TRADER_MARGIN_CALL_FEE()
+      .call(),
   );
   const TRADER_LIQUIDATION_FEE = new BN(
-    await flowMarginProtocolContract.methods.TRADER_LIQUIDATION_FEE().call(),
+    await flowMarginProtocolSafetyContract.methods
+      .TRADER_LIQUIDATION_FEE()
+      .call(),
   );
   return TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
 };
@@ -419,13 +429,24 @@ Given('open positions', async (table: TableDefinition) => {
     const openPrice = parseAmount(price);
     const openLeverage = parseLeverage(leverage);
 
-    const traderHasPaidFees = await flowMarginProtocolContract.methods
-      .traderHasPaidFees(poolAddress, from.address)
+    const traderHasPaidDeposits = await flowMarginProtocolSafetyContract.methods
+      .traderHasPaidDeposits(poolAddress, from.address)
       .call();
 
-    if (!traderHasPaidFees) {
-      const feeSum = await getTraderFeeSum();
-      await approveUsd({ from, to: flowMarginProtocolAddress, amount: feeSum });
+    if (!traderHasPaidDeposits) {
+      const depositsSum = await getTraderDepositsSum();
+      await approveUsd({
+        from,
+        to: flowMarginProtocolSafetyAddress,
+        amount: depositsSum,
+      });
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.payTraderDeposits(
+          poolAddress,
+        ),
+        from,
+        to: flowMarginProtocolSafetyAddress,
+      });
     }
 
     await sendTx({
@@ -450,9 +471,9 @@ Then('margin balances are', async (table: TableDefinition) => {
     expectedBalanceString,
   ] of table.rows()) {
     const from = accountOf(name);
-    const feeSum = new BN(await getTraderFeeSum());
+    const depositsSum = new BN(await getTraderDepositsSum());
     const expectedTokenBalanceWithFees = parseAmount(expectedTokenBalanceString)
-      .sub(feeSum)
+      .sub(depositsSum)
       .toString();
     const expectedTokenBalance = parseAmount(
       expectedTokenBalanceString,
@@ -524,7 +545,7 @@ Given('close positions', async (table: TableDefinition) => {
 Given('margin withdraw', async (table: TableDefinition) => {
   for (const [name, amount] of table.rows()) {
     const from = accountOf(name);
-    const withdrawAmount = parseAmount(amount);
+    const withdrawAmount = parseAmount(amount).mul(new BN(10));
 
     await sendTx({
       from,
@@ -534,6 +555,51 @@ Given('margin withdraw', async (table: TableDefinition) => {
       ),
       to: flowMarginProtocolAddress,
     });
+  }
+});
+
+Given('margin trader margin call', async (table: TableDefinition) => {
+  for (const [name, result] of table.rows()) {
+    const trader = accountOf(name);
+
+    try {
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.marginCallTrader(
+          poolAddress,
+          trader.address,
+        ),
+        to: flowMarginProtocolSafetyAddress,
+      });
+      if (result !== 'Ok')
+        expect.fail(`Trader margin call should have reverted, but didnt!`);
+    } catch (error) {
+      if (result === 'Ok')
+        expect.fail(`Trader margin call should not have reverted: ${error}`);
+      else if (result === 'SafeTrader') expect(error.message).to.contain('TM2');
+    }
+  }
+});
+
+Given('margin trader liquidate', async (table: TableDefinition) => {
+  for (const [name, result] of table.rows()) {
+    const trader = accountOf(name);
+
+    try {
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.liquidateTrader(
+          poolAddress,
+          trader.address,
+        ),
+        to: flowMarginProtocolSafetyAddress,
+      });
+      if (result !== 'Ok')
+        expect.fail(`Trader liquidation should have reverted, but didnt!`);
+    } catch (error) {
+      if (result === 'Ok')
+        expect.fail(`Trader liquidation should not have reverted: ${error}`);
+      else if (result === 'NotReachedRiskThreshold')
+        expect(error.message).to.contain('TL1');
+    }
   }
 });
 
@@ -568,8 +634,10 @@ Given('margin deposit liquidity', async (table: TableDefinition) => {
         contractMethod: poolContract.methods.depositLiquidity(depositAmount),
         to: poolAddress,
       });
+      if (result !== 'Ok')
+        expect.fail(`Deposit should have reverted, but didnt!`);
     } catch (error) {
-      if (result === 'OK')
+      if (result === 'Ok')
         expect.fail(`Deposit should not have reverted: ${error}`);
       else if (result === 'BalanceTooLow')
         expect(error.message).to.contain('SafeERC20: low-level call failed');
@@ -578,7 +646,13 @@ Given('margin deposit liquidity', async (table: TableDefinition) => {
 });
 
 Then(/margin liquidity is \$(\d*)/, async (amount: string) => {
+  const balanceInPool = new BN(
+    await flowMarginProtocolContract.methods
+      .balances(poolAddress, poolAddress)
+      .call(),
+  );
   const liquidity = new BN(await poolContract.methods.getLiquidity().call())
+    .add(balanceInPool)
     .div(new BN(10))
     .toString();
 

@@ -99,6 +99,7 @@ export const messages = {
   leverageTooSmall: 'OP4',
   leverageTooBig: 'OP5',
   leverageAmountTooSmall: 'OP6',
+  traderNotPaidDeposits: 'OP7',
   incorrectOwnerClosePosition: 'CP1',
   poolHasNotPaidFees: 'PF1',
   poolAlreadyVerified: 'PF2',
@@ -107,4 +108,6 @@ export const messages = {
   tradingPairNotWhitelisted: 'TP1',
   tradingPairAlreadyWhitelisted: 'TP2',
   tradingPairTokensMustBeDifferent: 'TP3',
+  canOnlyBeUsedBySafetyProtocol: 'SP1',
+  withdrawDepositRequireZeroPositions: 'WD1',
 };

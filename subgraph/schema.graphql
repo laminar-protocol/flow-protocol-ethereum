@@ -58,9 +58,9 @@ type MarginPositionEntity @entity {
 
     owner: Bytes!                           # Address of the position owner, who opens this position
     liquidityPool: Bytes!                   # Address of the liquidity pool
-    amount: BigDecimal!                     # Amount in DAI for opening the position, including liquidity fee
+    leverage: Int!                          # Leverage number e.g. 50x
+    amount: BigDecimal!                     # Amount in DAI for opening the position
     openPrice: BigDecimal!                  # Price when opening this position, accounted for spread
-    liquidationFee: BigDecimal!             # The reward both trader and liquidity pool chip in for liquidators
 
     openTime: Int!                          # Position open timestamp in seconds
     openTxhash: Bytes!                      # Position open transaction hash
