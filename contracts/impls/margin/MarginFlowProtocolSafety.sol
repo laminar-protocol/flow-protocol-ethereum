@@ -181,7 +181,6 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
      */
     function isPoolSafe(MarginLiquidityPoolInterface _pool)
         public
-        virtual
         returns (bool)
     {
         (

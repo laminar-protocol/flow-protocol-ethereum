@@ -443,6 +443,7 @@ contract('MarginFlowProtocol', accounts => {
 
       it('emits Deposited event', async () => {
         await expectEvent(receipt, 'Deposited', {
+          pool: liquidityPool.address,
           sender: alice,
           amount: depositInUsd,
         });

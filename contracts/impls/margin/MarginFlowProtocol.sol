@@ -98,14 +98,14 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @param sender The sender
      * @param amount The amount
      */
-    event Deposited(address indexed sender, uint256 amount);
+    event Deposited(MarginLiquidityPoolInterface pool, address indexed sender, uint256 amount);
 
     /**
      * @dev Event for withdrawals..
      * @param sender The sender
      * @param amount The amount
      */
-    event Withdrew(address indexed sender, uint256 amount);
+    event Withdrew(MarginLiquidityPoolInterface pool, address indexed sender, uint256 amount);
 
     /**
      * @dev Event for new trading pair being added.
@@ -246,7 +246,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 iTokenAmount = moneyMarket.mint(_baseTokenAmount);
         balances[_pool][msg.sender] = balances[_pool][msg.sender].add(int256(iTokenAmount));
 
-        emit Deposited(msg.sender, _baseTokenAmount);
+        emit Deposited(_pool, msg.sender, _baseTokenAmount);
     }
 
     /**
@@ -262,7 +262,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
 
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
 
-        emit Withdrew(msg.sender, baseTokenAmount);
+        emit Withdrew(_pool, msg.sender, baseTokenAmount);
     }
 
     /**
