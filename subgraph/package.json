@@ -7,15 +7,15 @@
     "codegen:development": "cross-env NETWORK=development yarn codegen",
     "codegen:kovan": "cross-env NETWORK=kovan yarn codegen",
     "codegen:mainnet": "cross-env NETWORK=mainnet yarn codegen",
-    "build": "graph build",
-    "deploy": "graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ laminar-protocol/flow-protocol-kovan",
-    "create-local": "graph create --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
-    "remove-local": "graph remove --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 laminar-protocol/flow-protocol-subgraph"
+    "build": "yarn graph build",
+    "deploy": "yarn graph deploy --node https://api.thegraph.com/deploy/ --ipfs https://api.thegraph.com/ipfs/ laminar-protocol/flow-protocol-kovan",
+    "create-local": "yarn graph create --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
+    "remove-local": "yarn graph remove --node http://localhost:8020/ laminar-protocol/flow-protocol-subgraph",
+    "deploy-local": "yarn graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 laminar-protocol/flow-protocol-subgraph"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.18.0",
-    "@graphprotocol/graph-ts": "0.18.1"
+    "@graphprotocol/graph-cli": "^0.18.0",
+    "@graphprotocol/graph-ts": "^0.18.1"
   },
   "devDependencies": {
     "cross-env": "^7.0.2",

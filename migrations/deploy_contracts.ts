@@ -367,7 +367,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         fXAU.address,
         fAAPL.address,
       ]) {
-        await syntheticPool.enableToken(token, web3.utils.toWei('0.003'));
+        await syntheticPool.enableToken(token, '28152000000000');
       }
 
       await moneyMarket.mintTo(
@@ -403,7 +403,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         [usd, fAAPL.address],
         [fAAPL.address, usd],
       ]) {
-        await marginPool.enableToken(base, quote, web3.utils.toWei('0.003'));
+        await marginPool.enableToken(base, quote, '28152000000000');
       }
 
       await marginLiquidityPoolRegistry.registerPool(marginPool.address);
