@@ -1,8 +1,11 @@
 {
-  "name": "flow-protocol-ethereum",
+  "name": "@laminar/flow-protocol-ethereum",
+  "files": [
+    "artifacts"
+  ],
   "version": "0.0.7",
   "author": "Bryan Chen <bryan@laminar.one>",
-  "private": true,
+  "private": false,
   "scripts": {
     "generate": "yarn truffle compile && yarn typechain --target truffle-v5 \"./build/**/!(Proxy).json\" && yarn typechain --target web3-v1 \"./build/**/!(Proxy).json\"",
     "prepare": "yarn generate && cd subgraph && yarn && cross-env NETWORK=kovan yarn codegen",
