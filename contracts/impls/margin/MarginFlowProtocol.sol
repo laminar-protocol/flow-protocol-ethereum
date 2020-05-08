@@ -335,9 +335,10 @@ contract MarginFlowProtocol is FlowProtocolBase {
 
         if (balanceDelta >= 0) {
             // trader has profit, max realizable is the pool's liquidity
-            uint256 poolLiquidityIToken = position.pool.getLiquidity();
+            int256 storedITokenBalance = balances[position.pool][address(position.pool)];
+            int256 poolLiquidityIToken = int256(position.pool.getLiquidity()).add(storedITokenBalance);
             uint256 realizedIToken = moneyMarket.convertAmountFromBase(uint256(balanceDelta));
-            int256 realized = int256(Math.min(poolLiquidityIToken, realizedIToken));
+            uint256 realized = poolLiquidityIToken > 0 ? Math.min(uint256(poolLiquidityIToken), realizedIToken) : 0;
 
             _transferItokenBalanceFromPool(position.pool, position.owner, realized);
         } else {
@@ -349,7 +350,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
             // pool gets nothing if no realizable from traders
             if (maxRealizable > 0) {
                 uint256 realized = Math.min(uint256(maxRealizable), balanceDeltaAbs);
-                int256 realizedIToken = int256(moneyMarket.convertAmountFromBase(realized));
+                uint256 realizedIToken = moneyMarket.convertAmountFromBase(realized);
 
                 _transferItokenBalanceToPool(position.pool, position.owner, realizedIToken);
             }
@@ -629,11 +630,11 @@ contract MarginFlowProtocol is FlowProtocolBase {
         }
     }
 
-    function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address owner, int256 amount) private {
+    function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address owner, uint256 amount) private {
         _transferItokenBalance(_pool, owner, address(_pool), amount);
     }
 
-    function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address owner, int256 amount) private {
+    function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address owner, uint256 amount) private {
         _transferItokenBalance(_pool, address(_pool), owner, amount);
 
         int256 poolBalance = balances[_pool][address(_pool)];
@@ -648,8 +649,8 @@ contract MarginFlowProtocol is FlowProtocolBase {
         }
     }
 
-    function _transferItokenBalance(MarginLiquidityPoolInterface _pool, address from, address to, int256 amount) private {
-        balances[_pool][from] = balances[_pool][from].sub(amount);
-        balances[_pool][to] = balances[_pool][to].add(amount);
+    function _transferItokenBalance(MarginLiquidityPoolInterface _pool, address from, address to, uint256 amount) private {
+        balances[_pool][from] = balances[_pool][from].sub(int256(amount));
+        balances[_pool][to] = balances[_pool][to].add(int256(amount));
     }
 }
