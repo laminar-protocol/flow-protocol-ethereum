@@ -45,6 +45,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
     event LiquidityPoolBecameSafe(address indexed liquidityPool);
     event LiquidityPoolLiquidated(address indexed liquidityPool);
 
+    address public laminarTreasury;
     MarginFlowProtocol private marginProtocol;
 
     Percentage.Percent public traderRiskMarginCallThreshold;
@@ -72,6 +73,8 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
 
     /**
      * @dev Initialize the MarginFlowProtocolSafety.
+     * @param _marginProtocol The _marginProtocol.
+     * @param _laminarTreasury The _laminarTreasury.
      * @param _initialTraderRiskMarginCallThreshold The initial trader risk margin call threshold as percentage.
      * @param _initialTraderRiskLiquidateThreshold The initial trader risk liquidate threshold as percentage.
      * @param _initialLiquidityPoolENPMarginThreshold The initial pool ENP margin threshold.
@@ -81,6 +84,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
      */
     function initialize(
         MarginFlowProtocol _marginProtocol,
+        address _laminarTreasury,
         uint256 _initialTraderRiskMarginCallThreshold,
         uint256 _initialTraderRiskLiquidateThreshold,
         uint256 _initialLiquidityPoolENPMarginThreshold,
@@ -92,6 +96,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         UpgradeReentrancyGuard.initialize();
 
         marginProtocol = _marginProtocol;
+        laminarTreasury = _laminarTreasury;
         traderRiskMarginCallThreshold = Percentage.Percent(
             _initialTraderRiskMarginCallThreshold
         );
@@ -359,11 +364,11 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         poolIsVerified(_pool)
     {
         // close positions as much as possible, send fee back to caller
-
         (
             Percentage.Percent memory enp,
             Percentage.Percent memory ell
         ) = getEnpAndEll(_pool);
+
         require(
             enp.value <= liquidityPoolENPLiquidateThreshold ||
                 ell.value <= liquidityPoolELLLiquidateThreshold,
@@ -376,24 +381,23 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
 
         for (uint256 i = 0; i < positionsLength; i++) {
             (uint256 id,,,MarginFlowProtocol.TradingPair memory pair,int256 leverage,int256 leveragedHeld,,,,,)
-                = marginProtocol.positionsByPool(_pool, i);
-            _liquidityPoolClosePosition(
+                = marginProtocol.positionsByPool(_pool, 0);
+            bool hasLiquidityLeft = _liquidityPoolClosePosition(
                 _pool,
                 id,
                 pair,
                 leverage,
                 leveragedHeld
             );
+
+            if (!hasLiquidityLeft) {
+                break;
+            }
         }
 
-        // marginProtocol.liquidityPoolRegistry().makePoolSafe(_pool); TODO ?
-        marginProtocol.moneyMarket().baseToken().safeTransferFrom(
-            address(this),
-            msg.sender,
-            marginProtocol
-                .liquidityPoolRegistry()
-                .LIQUIDITY_POOL_LIQUIDATION_FEE()
-        );
+
+        uint256 depositedITokens = marginProtocol.liquidityPoolRegistry().liquidatePool(_pool);
+        marginProtocol.moneyMarket().redeemTo(msg.sender, depositedITokens);
 
         emit LiquidityPoolLiquidated(address(_pool));
     }
@@ -538,11 +542,8 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         MarginFlowProtocol.TradingPair memory _pair,
         int256 _leverage,
         int256 _leveragedHeld
-    ) internal returns (uint256) {
-        Percentage.Percent memory price = marginProtocol.getPrice(
-            _pair.base,
-            _pair.quote
-        );
+    ) internal returns (bool) {
+        MoneyMarketInterface moneyMarket = marginProtocol.moneyMarket();
         uint256 spread = _leverage > 0
             ? marginProtocol.getBidSpread(
                 _pool,
@@ -558,22 +559,29 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         uint256 leveragedHeldAbs = _leveragedHeld >= 0
             ? uint256(_leveragedHeld)
             : uint256(-_leveragedHeld);
-        uint256 spreadProfit = leveragedHeldAbs.mul(spread.mulPercent(price));
+        uint256 spreadProfit = leveragedHeldAbs.mul(spread).div(1e18);
         uint256 spreadProfitInUsd = uint256(
             marginProtocol.getUsdValue(_pair.base, int256(spreadProfit))
         );
 
         uint256 penalty = spreadProfitInUsd;
         uint256 subAmount = spreadProfitInUsd.add(penalty);
+        uint256 subAmountITokens = moneyMarket.convertAmountFromBase(subAmount);
 
-        marginProtocol.closePosition(_id, 0);
+        try marginProtocol.closePosition(_id, 0) {
+            uint256 realized = Math.min(_pool.getLiquidity(), subAmountITokens);
 
-        uint256 realized = Math.min(_pool.getLiquidity(), subAmount);
+            if (realized == 0) {
+                return false;
+            }
 
-        // approve might fail if MAX UINT is already approved
-        try _pool.approveLiquidityToProtocol(realized) {} catch (bytes memory) {}
-        marginProtocol.moneyMarket().iToken().safeTransferFrom(address(_pool), address(this), realized);
+            // approve might fail if MAX UINT is already approved
+            try _pool.increaseAllowanceForProtocolSafety(realized) {} catch (bytes memory) {}
+            moneyMarket.iToken().safeTransferFrom(address(_pool), laminarTreasury, realized);
 
-        return realized;
+            return true;
+        } catch (bytes memory) {
+            return false;
+        }
     }
 }
