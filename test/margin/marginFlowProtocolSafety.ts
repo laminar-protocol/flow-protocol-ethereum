@@ -45,6 +45,7 @@ contract('MarginFlowProtocolSafety', accounts => {
   const bob = accounts[3];
   const charlie = accounts[4];
   const eur = accounts[5];
+  const laminarTreasury = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
@@ -78,16 +79,16 @@ contract('MarginFlowProtocolSafety', accounts => {
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
 
-    initialSpread = fromPip(10);
+    initialSpread = bn(28152000000000);
     initialUsdPrice = fromPercent(100);
     initialEurPrice = fromPercent(120);
 
-    initialTraderRiskMarginCallThreshold = fromPercent(5);
-    initialTraderRiskLiquidateThreshold = fromPercent(2);
-    initialLiquidityPoolENPMarginThreshold = fromPercent(50);
+    initialTraderRiskMarginCallThreshold = fromPercent(3);
+    initialTraderRiskLiquidateThreshold = fromPercent(1);
+    initialLiquidityPoolENPMarginThreshold = fromPercent(30);
     initialLiquidityPoolELLMarginThreshold = fromPercent(10);
-    initialLiquidityPoolENPLiquidateThreshold = fromPercent(20);
-    initialLiquidityPoolELLLiquidateThreshold = fromPercent(2);
+    initialLiquidityPoolENPLiquidateThreshold = fromPercent(30);
+    initialLiquidityPoolELLLiquidateThreshold = fromPercent(1);
 
     usd = await createTestToken(
       [liquidityProvider, dollar(50000)],
@@ -136,6 +137,7 @@ contract('MarginFlowProtocolSafety', accounts => {
 
     await (protocolSafety as any).initialize(
       protocol.address,
+      laminarTreasury,
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -524,7 +526,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           });
         } catch (error) {
           expect.fail(
-            `Margin call transaction should not have been reverted: ${error}`,
+            `Liquidation transaction should not have been reverted: ${error}`,
           );
         }
       });
@@ -599,7 +601,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     describe('when pool is below margin call threshold', () => {
       beforeEach(async () => {
         await liquidityPool.withdrawLiquidityOwner(dollar(199400));
-        await oracle.feedPrice(eur, fromPercent(130), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(170), { from: owner });
       });
 
       it('allows margin calling of pool', async () => {
@@ -742,6 +744,207 @@ contract('MarginFlowProtocolSafety', accounts => {
             from: bob,
           }),
           messages.poolCannotBeMarginCalled,
+        );
+      });
+    });
+  });
+
+  describe('when liquidating a pool', () => {
+    let leverage: BN;
+    let depositInUsd: BN;
+    let leveragedHeldInEuro: BN;
+    let price: BN;
+    let LIQUIDITY_POOL_LIQUIDATION_FEE: BN;
+
+    beforeEach(async () => {
+      leverage = bn(20);
+      depositInUsd = dollar(80);
+      leveragedHeldInEuro = euro(100);
+      price = bn(0); // accept all
+      LIQUIDITY_POOL_LIQUIDATION_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE();
+
+      await protocol.deposit(liquidityPool.address, depositInUsd, {
+        from: alice,
+      });
+
+      await protocol.openPosition(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leverage,
+        leveragedHeldInEuro,
+        price,
+        { from: alice },
+      );
+    });
+
+    describe('when pool is below liquidation threshold', () => {
+      beforeEach(async () => {
+        await liquidityPool.withdrawLiquidityOwner(dollar(199400));
+        await oracle.feedPrice(eur, fromPercent(230), { from: owner });
+        await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+      });
+
+      it('allows liquidating of pool', async () => {
+        try {
+          await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+        } catch (error) {
+          console.log({ error });
+          expect.fail(
+            `Pool liquidation transaction should not have been reverted: ${error}`,
+          );
+        }
+      });
+
+      it('sends fee back to caller', async () => {
+        const balanceBefore = await usd.balanceOf(bob);
+        await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+        const balanceAfter = await usd.balanceOf(bob);
+
+        expect(balanceAfter).to.be.bignumber.equal(
+          balanceBefore.add(LIQUIDITY_POOL_LIQUIDATION_FEE),
+        );
+      });
+
+      it('does not allow liquidating twice', async () => {
+        await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+
+        await expectRevert(
+          protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+            from: bob,
+          }),
+          messages.poolCannotBeLiquidated,
+        );
+      });
+
+      it('uses up all liquidity for the position', async () => {
+        const aliceBalanceBefore = await protocol.balances(
+          liquidityPool.address,
+          alice,
+        );
+        const poolLiquidity = await liquidityPool.getLiquidity.call();
+
+        await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+
+        const aliceBalanceDiff = (
+          await protocol.balances(liquidityPool.address, alice)
+        ).sub(aliceBalanceBefore);
+
+        expect(aliceBalanceDiff).to.be.bignumber.equal(poolLiquidity);
+      });
+    });
+
+    describe('when pool is below liquidation threshold with multiple positions', () => {
+      beforeEach(async () => {
+        await protocol.deposit(liquidityPool.address, depositInUsd, {
+          from: bob,
+        });
+
+        await protocol.openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage.mul(bn(2)),
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        await protocol.openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: bob },
+        );
+        await liquidityPool.withdrawLiquidityOwner(dollar(198000));
+        await oracle.feedPrice(eur, fromPercent(180), { from: owner });
+        await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+      });
+
+      it('force closes all positions', async () => {
+        const aliceBalanceBefore = await protocol.balances(
+          liquidityPool.address,
+          alice,
+        );
+        const bobBalanceBefore = await protocol.balances(
+          liquidityPool.address,
+          bob,
+        );
+        const poolLiquidityBefore = await liquidityPool.getLiquidity.call();
+
+        await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+          from: bob,
+        });
+        const aliceBalanceDiff = (
+          await protocol.balances(liquidityPool.address, alice)
+        ).sub(aliceBalanceBefore);
+        const bobBalanceDiff = (
+          await protocol.balances(liquidityPool.address, bob)
+        ).sub(bobBalanceBefore);
+        const poolLiquidityDiff = (await liquidityPool.getLiquidity.call()).sub(
+          poolLiquidityBefore,
+        );
+        const treasuryBalance = await iUsd.balanceOf(laminarTreasury);
+
+        const positionsByPoolLength = await protocol.getPositionsByPoolLength(
+          liquidityPool.address,
+        );
+
+        expect(positionsByPoolLength).to.be.bignumber.equals(bn(0));
+        expect(aliceBalanceDiff).to.be.bignumber.above(bn(0));
+        expect(bobBalanceDiff).to.be.bignumber.above(bn(0));
+        expect(treasuryBalance).to.be.bignumber.above(bn(0));
+
+        expect(poolLiquidityDiff).to.be.bignumber.equal(
+          aliceBalanceDiff
+            .add(bobBalanceDiff)
+            .add(treasuryBalance)
+            .mul(bn(-1)),
+        );
+      });
+
+      describe('when pool liquidity is not sufficient for all positions', () => {
+        beforeEach(async () => {
+          await oracle.feedPrice(eur, fromPercent(260), { from: owner });
+        });
+
+        it('force closes only the first positions', async () => {
+          await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+          const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
+
+          const positionsByPoolLength = await protocol.getPositionsByPoolLength(
+            liquidityPool.address,
+          );
+
+          expect(positionsByPoolLength).to.be.bignumber.above(bn(0));
+          expect(poolLiquidityAfter).to.be.bignumber.equals(bn(0));
+        });
+      });
+    });
+
+    describe('when pool is above liquidation threshold', () => {
+      it('does not allow liquidating of pool', async () => {
+        await expectRevert(
+          protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+            from: bob,
+          }),
+          messages.poolCannotBeLiquidated,
         );
       });
     });

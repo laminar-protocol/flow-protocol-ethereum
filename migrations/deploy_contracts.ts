@@ -260,8 +260,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.03');
     const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.01');
     const initialLiquidityPoolENPMarginThreshold = web3.utils.toWei('0.3');
-    const initialLiquidityPoolELLMarginThreshold = web3.utils.toWei('0.1');
-    const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.3');
+    const initialLiquidityPoolELLMarginThreshold = web3.utils.toWei('0.3');
+    const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.1');
     const initialLiquidityPoolELLLiquidateThreshold = web3.utils.toWei('0.1');
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
@@ -278,6 +278,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolSafety as any).initialize(
       marginProtocol.address,
+      kovanDeployerAddr, // TODO laminar treasury
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -288,7 +289,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     await marginLiquidityPoolRegistry.initialize(
       moneyMarket.address,
-      marginProtocol.address,
+      marginProtocolSafety.address,
     );
     await baseToken.approve(
       marginLiquidityPoolRegistry.address,

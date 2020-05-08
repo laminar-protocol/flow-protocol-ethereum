@@ -263,3 +263,64 @@ Feature: Margin Protocol
       | Name  | Free  | Margin |
       | Alice | $5000 | $0  |
     Then margin liquidity is $15000
+
+  Scenario: margin liquidity pool liquidate
+    Given accounts
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+      | Alice | $10 000 |
+    And margin create liquidity pool
+    And margin deposit liquidity
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+    And margin deposit
+      | Name  | Amount  |
+      | Alice | $5 000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $3     |
+    And margin spread
+      | Pair    | Value |
+      | EURUSD  | $0.04 |
+    And margin set accumulate
+      | Pair   | Frequency | Offset |
+      | EURUSD | 10        | 1      |
+    And margin set min leveraged amount to $100
+    And margin set default min leveraged amount to $100
+    And margin set swap rate
+      | Pair    | Long | Short |
+      | EURUSD  | -1%  | 1%    |
+    And margin enable trading pair EURUSD
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Long 10  | $5000  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $5000  |
+    And treasury balance is $0
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $4.1   |
+    And margin liquidity pool margin call
+      | Result   |
+      | SafePool |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $4.2   |
+    And margin liquidity pool margin call
+      | Result |
+      | Ok     |
+    And margin liquidity pool liquidate
+      | Result                  |
+      | NotReachedRiskThreshold |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $5.0   |
+    And margin liquidity pool liquidate
+      | Result |
+      | Ok     |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $14600 |
+    Then margin liquidity is $0
+    And treasury balance is $400

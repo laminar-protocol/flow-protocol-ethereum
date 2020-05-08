@@ -77,6 +77,7 @@ export const messages = {
   bidPriceTooLow: 'Bid price too low',
   poolNotSafeAfterWithdrawal: 'Pool not safe after withdrawal',
   onlyProtocol: 'Only protocol can call this function',
+  onlyProtocolSafety: 'Only safety protocol can call this function',
   traderAlreadyMarginCalled: 'TM1',
   traderCannotBeMarginCalled: 'TM2',
   traderNotMarginCalled: 'TS1',

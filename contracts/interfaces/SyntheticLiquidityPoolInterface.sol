@@ -6,8 +6,8 @@ import "../impls/synthetic/SyntheticFlowToken.sol";
 import "./LiquidityPoolInterface.sol";
 
 interface SyntheticLiquidityPoolInterface is LiquidityPoolInterface {
-    function addCollateral(SyntheticFlowProtocol protocol, SyntheticFlowToken token, uint256 baseTokenAmount) external;
-    function withdrawCollateral(SyntheticFlowProtocol protocol, SyntheticFlowToken token) external;
+    function addCollateral(SyntheticFlowToken token, uint256 baseTokenAmount) external;
+    function withdrawCollateral(SyntheticFlowToken token) external;
 
     function getBidSpread(address fToken) external view returns (uint256);
     function getAskSpread(address fToken) external view returns (uint256);

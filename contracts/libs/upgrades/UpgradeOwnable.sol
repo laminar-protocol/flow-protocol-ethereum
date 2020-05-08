@@ -29,7 +29,7 @@ contract UpgradeOwnable is Initializable, UpgradeContext {
     /**
      * @dev Returns the address of the current owner.
      */
-    function owner() public view returns (address) {
+    function owner() public view virtual returns (address) {
         return _owner;
     }
 

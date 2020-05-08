@@ -23,10 +23,22 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         _;
     }
 
+    modifier onlyProtocolSafety() {
+        require(
+            msg.sender == address(MarginFlowProtocol(protocol).safetyProtocol()),
+            "Ownable: caller is not the protocol safety"
+        );
+        _;
+    }
+
     function setSpreadForPair(address _baseToken, address _quoteToken, uint256 _value) external override onlyOwner {
         spreadsPerTokenPair[_baseToken][_quoteToken] = _value;
 
         emit SpreadUpdated(_baseToken, _quoteToken, _value);
+    }
+
+    function owner() public view override(UpgradeOwnable,LiquidityPool,LiquidityPoolInterface) returns (address) {
+        return UpgradeOwnable.owner();
     }
 
     function depositLiquidity(uint256 _baseTokenAmount) external override returns (uint256) {
@@ -36,14 +48,18 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         return moneyMarket.mint(_baseTokenAmount);
     }
 
-    function approveLiquidityToProtocol(uint _iTokenAmount) external override onlyProtocol returns (uint256) {
+    function increaseAllowanceForProtocol(uint _iTokenAmount) external override onlyProtocol {
         moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);        
+    }
+
+    function increaseAllowanceForProtocolSafety(uint _iTokenAmount) external override onlyProtocolSafety {
+        moneyMarket.iToken().safeIncreaseAllowance(address(MarginFlowProtocol(protocol).safetyProtocol()), _iTokenAmount);        
     }
 
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
         int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
         if (protocolBalance > 0) {
-            MarginFlowProtocol(protocol).withdraw(this, uint256(protocolBalance));
+            MarginFlowProtocol(protocol).withdrawForPool(uint256(protocolBalance));
         }
 
         uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);

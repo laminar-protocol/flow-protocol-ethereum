@@ -4,7 +4,7 @@ pragma experimental ABIEncoderV2;
 import "../../impls/margin/MarginFlowProtocolSafety.sol";
 
 contract MockPoolIsSafeMarginProtocol {
-    event Withdrew(MarginLiquidityPoolInterface pool, address indexed sender, uint256 amount);
+    event FakeWithdrew(address sender, uint256 amount);
 
     function safetyProtocol() public view returns (MarginFlowProtocolSafety) {
         return MarginFlowProtocolSafety(address(this));
@@ -14,8 +14,8 @@ contract MockPoolIsSafeMarginProtocol {
         return address(_pool) != address(0);
     }
 
-    function withdraw(MarginLiquidityPoolInterface _pool, uint256 _iTokenAmount) public {
-        emit Withdrew(_pool, msg.sender, _iTokenAmount);
+    function withdrawForPool(uint256 _iTokenAmount) public {
+        emit FakeWithdrew(msg.sender, _iTokenAmount);
     }
 
     function balances(MarginLiquidityPoolInterface _pool, address _trader) public pure returns (uint256) {
@@ -26,7 +26,7 @@ contract MockPoolIsSafeMarginProtocol {
 }
 
 contract MockPoolIsNotSafeMarginProtocol {
-    event Withdrew(MarginLiquidityPoolInterface pool, address indexed sender, uint256 amount);
+    event FakeWithdrew(address sender, uint256 amount);
 
     function safetyProtocol() public view returns (MarginFlowProtocolSafety) {
         return MarginFlowProtocolSafety(address(this));
@@ -36,8 +36,8 @@ contract MockPoolIsNotSafeMarginProtocol {
         return address(_pool) == address(0);
     }
 
-    function withdraw(MarginLiquidityPoolInterface _pool, uint256 _iTokenAmount) public {
-        emit Withdrew(_pool, msg.sender, _iTokenAmount);
+    function withdrawForPool(uint256 _iTokenAmount) public {
+        emit FakeWithdrew(msg.sender, _iTokenAmount);
     }
 
     function balances(MarginLiquidityPoolInterface _pool, address _trader) public pure returns (uint256) {

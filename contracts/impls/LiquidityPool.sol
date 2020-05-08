@@ -24,4 +24,8 @@ abstract contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolI
     function approveToProtocol(uint256 _amount) external override onlyOwner {
         moneyMarket.iToken().safeApprove(protocol, _amount);
     }
+
+    function owner() public view virtual override(UpgradeOwnable,LiquidityPoolInterface) returns (address) {
+        return UpgradeOwnable.owner();
+    }
 }
