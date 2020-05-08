@@ -209,7 +209,7 @@ contract('MarginLiquidityPool', accounts => {
       await liquidityPool.approveToProtocol(0, {
         from: liquidityProvider,
       });
-      await liquidityPool.approveLiquidityToProtocol(5000, {
+      await liquidityPool.increaseAllowanceForProtocol(5000, {
         from: protocol,
       });
       expect(

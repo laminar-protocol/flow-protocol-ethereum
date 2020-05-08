@@ -60,10 +60,10 @@ contract('MarginLiquidityPoolRegistry', accounts => {
         expect(await liquidityPoolRegistry.isMarginCalled(newPool)).to.be.true;
       });
 
-      it('reverts for non-protocol caller', async () => {
+      it('reverts for non-protocol safety caller', async () => {
         await expectRevert(
           liquidityPoolRegistry.marginCallPool(newPool, { from: alice }),
-          messages.onlyProtocol,
+          messages.onlyProtocolSafety,
         );
       });
 
@@ -84,11 +84,11 @@ contract('MarginLiquidityPoolRegistry', accounts => {
         expect(await liquidityPoolRegistry.isMarginCalled(newPool)).to.be.false;
       });
 
-      it('reverts for non-protocol caller', async () => {
+      it('reverts for non-protocol safety caller', async () => {
         await liquidityPoolRegistry.marginCallPool(newPool, { from: protocol });
         await expectRevert(
           liquidityPoolRegistry.makePoolSafe(newPool, { from: alice }),
-          messages.onlyProtocol,
+          messages.onlyProtocolSafety,
         );
       });
 
@@ -118,7 +118,8 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       });
 
       it('sets pool as registered', async () => {
-        expect(await liquidityPoolRegistry.poolHasPaidFees(newPool)).to.be.true;
+        expect(await liquidityPoolRegistry.poolHasPaidDeposits(newPool)).to.be
+          .true;
       });
 
       it('transfers the feeSum', async () => {

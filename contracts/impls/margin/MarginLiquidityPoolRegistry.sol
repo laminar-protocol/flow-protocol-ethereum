@@ -79,7 +79,7 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
      * @param _pool The MarginLiquidityPool.
      */
     function marginCallPool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
-        require(msg.sender == protocolSafety, "Only protocol can call this function");
+        require(msg.sender == protocolSafety, "Only safety protocol can call this function");
         require(!isMarginCalled[_pool], "PM1");
 
         uint256 marginCallITokens = poolMarginCallITokens[_pool];
