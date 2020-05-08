@@ -266,6 +266,20 @@ contract MarginFlowProtocol is FlowProtocolBase {
     }
 
     /**
+     * @dev Withdraw amount from pool balance for pool.
+     * @param _iTokenAmount The iToken amount to withdraw.
+     */
+    function withdrawForPool(uint256 _iTokenAmount) external nonReentrant poolIsVerified(MarginLiquidityPoolInterface(msg.sender)) {
+        require(_iTokenAmount > 0, "0");
+        MarginLiquidityPoolInterface pool = MarginLiquidityPoolInterface(msg.sender);
+
+        require(int256(_iTokenAmount) <= balances[pool][msg.sender], "WP1");
+
+        balances[pool][msg.sender] = balances[pool][msg.sender].sub(int256(_iTokenAmount));
+        moneyMarket.iToken().safeTransfer(msg.sender, _iTokenAmount);
+    }
+
+    /**
      * @dev Open a new position with a min/max price. Trader must pay fees for first position.
      * Set price to 0 if you want to use the current market price.
      * @param _pool The MarginLiquidityPool.

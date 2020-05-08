@@ -47,7 +47,7 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
         int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
         if (protocolBalance > 0) {
-            MarginFlowProtocol(protocol).withdraw(this, uint256(protocolBalance));
+            MarginFlowProtocol(protocol).withdrawForPool(uint256(protocolBalance));
         }
 
         uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
