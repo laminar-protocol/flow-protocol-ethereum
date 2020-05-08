@@ -51,6 +51,7 @@ contract('MarginFlowProtocol', accounts => {
   const bob = accounts[3];
   const eur = accounts[4];
   const jpy = accounts[5];
+  const laminarTreasury = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
@@ -81,7 +82,7 @@ contract('MarginFlowProtocol', accounts => {
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
 
-    initialSpread = fromPip(10);
+    initialSpread = bn(28152000000000);
     initialUsdPrice = fromPercent(100);
     initialEurPrice = fromPercent(120);
     initialJpyPrice = fromPercent(200);
@@ -134,6 +135,7 @@ contract('MarginFlowProtocol', accounts => {
 
     await (protocolSafety as any).initialize(
       protocol.address,
+      laminarTreasury,
       fromPercent(5),
       fromPercent(2),
       fromPercent(50),

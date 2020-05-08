@@ -45,6 +45,7 @@ contract('MarginFlowProtocolSafety', accounts => {
   const bob = accounts[3];
   const charlie = accounts[4];
   const eur = accounts[5];
+  const laminarTreasury = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
@@ -136,6 +137,7 @@ contract('MarginFlowProtocolSafety', accounts => {
 
     await (protocolSafety as any).initialize(
       protocol.address,
+      laminarTreasury,
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
