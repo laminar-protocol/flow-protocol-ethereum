@@ -324,3 +324,87 @@ Feature: Margin Protocol
       | Alice | $5000 | $14600 |
     Then margin liquidity is $0
     And treasury balance is $400
+  Scenario: margin multiple users multiple currencies
+    Given accounts
+      | Name  | Amount  |
+      | Pool  | $20 000 |
+      | Alice | $10 000 |
+      | Bob   | $10 000 |
+    And margin create liquidity pool
+    And margin deposit liquidity
+      | Name  | Amount  |
+      | Pool  | $20 000 |
+    And margin deposit
+      | Name  | Amount  |
+      | Alice | $9 000  |
+      | Bob   | $9 000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $3     |
+      | FJPY      | $5     |
+    And margin spread
+      | Pair    | Value |
+      | EURUSD  | $0.03 |
+      | JPYEUR  | $0.03 |
+    And margin set accumulate
+      | Pair   | Frequency | Offset |
+      | EURUSD | 10        | 1      |
+      | JPYEUR | 10        | 1      |
+    And margin set min leveraged amount to $100
+    And margin set default min leveraged amount to $100
+    And margin set swap rate
+      | Pair    | Long | Short |
+      | EURUSD  | -1%  | 1%    |
+      | JPYEUR  | -1%  | 1%    |
+    And margin enable trading pair EURUSD
+    And margin enable trading pair JPYEUR
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Long 10  | $5000  | $4    |
+      | Bob   | JPYEUR | Short 10 | $6000  | $1    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $1000 | $9000  |
+      | Bob   | $1000 | $9000  |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $3.1   |
+      | FJPY      | $4.9   |
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | JPYEUR | Long 20  | $1000  | $4    |
+    When close positions
+      | Name  | ID | Price |
+      | Bob   | 1  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin                 |
+      | Alice | $1000 | $9000                  |
+      | Bob   | $1000 | 9483999999999999999600 |
+    And margin liquidity is 19516000000000000000400
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $2.9   |
+      | FJPY      | $5.1   |
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 0  | $2    |
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Bob   | EURUSD | Short 20 | $2000  | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin                 |
+      | Alice | $1000 | $8200                  |
+      | Bob   | $1000 | 9483999999999999999600 |
+    And oracle price
+      | Currency  | Price  |
+      | FEUR      | $2.8   |
+      | FJPY      | $5.2   |
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 2  | $1    |
+      | Bob   | 3  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin                  |
+      | Alice | $1000 | 8806193548387096773600 |
+      | Bob   | $1000 | 9563999999999999999600 |
+    And margin liquidity is 19629806451612903226800

@@ -97,11 +97,12 @@ const parseCurrency = (amount: string): string => {
 };
 
 const parseAmount = (amount: string): BN => {
+  const isDollar = amount.includes('$');
   const parsed = amount
     .replace(' ', '')
     .replace('$', '')
     .replace('_', '');
-  return new BN(web3.utils.toWei(parsed));
+  return new BN(isDollar ? web3.utils.toWei(parsed) : parsed);
 };
 
 const parseSwapRate = (amount: string): BN => {
@@ -263,7 +264,7 @@ Given(/accounts/, async (table: TableDefinition) => {
     .call();
 
   await Promise.all(
-    table.rows().map(row => transfer(row[0], parseAmount('0.1'))),
+    table.rows().map(row => transfer(row[0], parseAmount('$0.1'))),
   );
 
   await Promise.all(
@@ -723,7 +724,7 @@ Then(/treasury balance is \$(\d*)/, async (amount: string) => {
   assert.equal(iTokenBalanceTreasury, parseAmount(amount).toString());
 });
 
-Then(/margin liquidity is \$(\d*)/, async (amount: string) => {
+Then(/margin liquidity is (?: \$)?(\d*)/, async (amount: string) => {
   const balanceInProtocol = new BN(
     await flowMarginProtocolContract.methods
       .balances(poolAddress, poolAddress)
