@@ -101,12 +101,12 @@ contract SyntheticFlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
         minted = position.minted;
     }
 
-    function addPosition(address poolAddr, uint additonalCollaterals, uint additionaMinted, uint liquidityPoolShares) external onlyProtocol {
+    function addPosition(address poolAddr, uint additonalCollaterals, uint additionalMinted, uint liquidityPoolShares) external onlyProtocol {
         uint exchangeRate = interestShareExchangeRate();
 
         LiquidityPoolPosition storage position = liquidityPoolPositions[poolAddr];
         position.collaterals = position.collaterals.add(additonalCollaterals);
-        position.minted = position.minted.add(additionaMinted);
+        position.minted = position.minted.add(additionalMinted);
 
         totalPrincipalAmount = totalPrincipalAmount.add(additonalCollaterals);
         _mintInterestShares(exchangeRate, poolAddr, liquidityPoolShares);
