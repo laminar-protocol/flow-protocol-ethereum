@@ -499,9 +499,12 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
 
     // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate)
     function getEquityOfPool(MarginLiquidityPoolInterface _pool) public returns (int256) {
-        uint256 liquidity = marginProtocol.moneyMarket().convertAmountToBase(
-            marginProtocol.moneyMarket().iToken().balanceOf(address(_pool))
-        );
+        int256 iTokensPool = int256(marginProtocol.moneyMarket().iToken().balanceOf(address(_pool)));
+        int256 iTokensProtocol = marginProtocol.balances(_pool, address(_pool));
+        int256 totalItokens = iTokensPool.add(iTokensProtocol);
+        uint256 liquidity = totalItokens > 0 ? marginProtocol.moneyMarket().convertAmountToBase(
+            uint256(totalItokens)
+        ) : 0;
 
         // allUnrealizedPl + allAccumulatedSwapRate
         int256 unrealizedPlAndRate = 0;
