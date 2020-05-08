@@ -4,7 +4,7 @@ import { Account } from 'web3-core';
 import { assert, expect } from 'chai';
 import BN from 'bn.js';
 
-import baseTokenAbi from '../../artifacts/development/abi/ERC20Detailed.json';
+import erc20Abi from '../../artifacts/development/abi/ERC20Detailed.json';
 import flowMarginProtocolAbi from '../../artifacts/development/abi/MarginFlowProtocol.json';
 import flowMarginProtocolSafetyAbi from '../../artifacts/development/abi/MarginFlowProtocolSafety.json';
 import poolAbi from '../../artifacts/development/abi/MarginLiquidityPoolInterface.json';
@@ -13,12 +13,14 @@ import deployment from '../../artifacts/development/deployment.json';
 
 const web3 = new Web3('http://localhost:8545');
 
-let lastCheckedPoolLiquidity = web3.utils.toWei(new BN(20000)); // 20000 ETH initial liquidity
 let firstPositionId = 0;
+
+const iTokenAddress = deployment.iToken;
+const iTokenContract = new web3.eth.Contract(erc20Abi as any, iTokenAddress);
 
 const baseTokenAddress = deployment.baseToken;
 const baseTokenContract = new web3.eth.Contract(
-  baseTokenAbi as any,
+  erc20Abi as any,
   baseTokenAddress,
 );
 
@@ -163,6 +165,24 @@ const closeAllPositions = async (name: string): Promise<any> => {
   }
 };
 
+const emptyPool = async (): Promise<any> => {
+  const protocolPoolBalance = new BN(
+    await flowMarginProtocolContract.methods
+      .balances(poolAddress, poolAddress)
+      .call(),
+  );
+  const poolBalance = new BN(
+    await iTokenContract.methods.balanceOf(poolAddress).call(),
+  );
+  const balance = protocolPoolBalance.add(poolBalance);
+
+  if (!balance.isNeg())
+    await sendTx({
+      contractMethod: poolContract.methods.withdrawLiquidityOwner(balance),
+      to: poolAddress,
+    });
+};
+
 const emptyAccount = async (name: string): Promise<any> => {
   await closeAllPositions(name);
 
@@ -255,6 +275,8 @@ Given(/accounts/, async (table: TableDefinition) => {
         ),
       ),
   );
+
+  await emptyPool();
 });
 
 Given(/transfer ETH to/, async (table: TableDefinition) => {
@@ -580,6 +602,45 @@ Given('margin trader margin call', async (table: TableDefinition) => {
   }
 });
 
+Given('margin liquidity pool margin call', async (table: TableDefinition) => {
+  for (const [result] of table.rows()) {
+    try {
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.marginCallLiquidityPool(
+          poolAddress,
+        ),
+        to: flowMarginProtocolSafetyAddress,
+      });
+      if (result !== 'Ok')
+        expect.fail(`Pool margin call should have reverted, but didnt!`);
+    } catch (error) {
+      if (result === 'Ok')
+        expect.fail(`Pool margin call should not have reverted: ${error}`);
+      else if (result === 'SafePool') expect(error.message).to.contain('PM2');
+    }
+  }
+});
+
+Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
+  for (const [result] of table.rows()) {
+    try {
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.liquidateLiquidityPool(
+          poolAddress,
+        ),
+        to: flowMarginProtocolSafetyAddress,
+      });
+      if (result !== 'Ok')
+        expect.fail(`Pool liquidation call should have reverted, but didnt!`);
+    } catch (error) {
+      if (result === 'Ok')
+        expect.fail(`Pool liquidation call should not have reverted: ${error}`);
+      else if (result === 'NotReachedRiskThreshold')
+        expect(error.message).to.contain('PL1');
+    }
+  }
+});
+
 Given('margin trader liquidate', async (table: TableDefinition) => {
   for (const [name, result] of table.rows()) {
     const trader = accountOf(name);
@@ -640,22 +701,38 @@ Given('margin deposit liquidity', async (table: TableDefinition) => {
       if (result === 'Ok')
         expect.fail(`Deposit should not have reverted: ${error}`);
       else if (result === 'BalanceTooLow')
-        expect(error.message).to.contain('SafeERC20: low-level call failed');
+        expect(error.message).to.satisfy(
+          (m: string) =>
+            m.includes('SafeERC20: low-level call failed') ||
+            m.includes('ERC20: transfer amount exceeds balance'),
+        );
     }
   }
 });
 
+Then(/treasury balance is \$(\d*)/, async (amount: string) => {
+  const treasuryAccount = await flowMarginProtocolSafetyContract.methods
+    .laminarTreasury()
+    .call();
+  const iTokenBalanceTreasury = new BN(
+    await iTokenContract.methods.balanceOf(treasuryAccount).call(),
+  )
+    .div(new BN(10))
+    .toString();
+
+  assert.equal(iTokenBalanceTreasury, parseAmount(amount).toString());
+});
+
 Then(/margin liquidity is \$(\d*)/, async (amount: string) => {
-  const balanceInPool = new BN(
+  const balanceInProtocol = new BN(
     await flowMarginProtocolContract.methods
       .balances(poolAddress, poolAddress)
       .call(),
   );
   const liquidity = new BN(await poolContract.methods.getLiquidity().call())
-    .add(balanceInPool)
+    .add(balanceInProtocol)
     .div(new BN(10))
     .toString();
 
-  lastCheckedPoolLiquidity = lastCheckedPoolLiquidity.add(parseAmount(amount));
-  assert.equal(liquidity, lastCheckedPoolLiquidity.toString());
+  assert.equal(liquidity, parseAmount(amount).toString());
 });
