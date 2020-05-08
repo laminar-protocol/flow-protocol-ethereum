@@ -22,8 +22,10 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     address private protocolSafety;
 
     mapping (MarginLiquidityPoolInterface => bool) public isVerifiedPool;
-    mapping (MarginLiquidityPoolInterface => bool) public poolHasPaidFees;
+    mapping (MarginLiquidityPoolInterface => bool) public poolHasPaidDeposits;
     mapping (MarginLiquidityPoolInterface => bool) public isMarginCalled;
+    mapping (MarginLiquidityPoolInterface => uint256) public poolMarginCallITokens;
+    mapping (MarginLiquidityPoolInterface => uint256) public poolLiquidationITokens;
 
     uint256 constant public LIQUIDITY_POOL_MARGIN_CALL_FEE = 1000 ether; // TODO
     uint256 constant public LIQUIDITY_POOL_LIQUIDATION_FEE = 3000 ether; // TODO
@@ -42,12 +44,15 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
      */
     function registerPool(MarginLiquidityPoolInterface _pool) public nonReentrant {
         require(address(_pool) != address(0), "0");
-        require(!poolHasPaidFees[_pool], "PR1");
+        require(!poolHasPaidDeposits[_pool], "PR1");
 
         uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
-        IERC20(moneyMarket.baseToken()).safeTransferFrom(msg.sender, protocolSafety, feeSum);
+        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), feeSum);
+        moneyMarket.baseToken().safeApprove(address(moneyMarket), feeSum);
 
-        poolHasPaidFees[_pool] = true;
+        poolMarginCallITokens[_pool] = moneyMarket.mintTo(protocolSafety, LIQUIDITY_POOL_MARGIN_CALL_FEE);
+        poolLiquidationITokens[_pool] = moneyMarket.mintTo(protocolSafety, LIQUIDITY_POOL_LIQUIDATION_FEE);
+        poolHasPaidDeposits[_pool] = true;
     }
 
     /**
@@ -55,7 +60,7 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
      * @param _pool The MarginLiquidityPool.
      */
     function verifyPool(MarginLiquidityPoolInterface _pool) public onlyOwner {
-        require(poolHasPaidFees[_pool], "PF1");
+        require(poolHasPaidDeposits[_pool], "PF1");
         require(!isVerifiedPool[_pool], "PF2");
         isVerifiedPool[_pool] = true;
     }
@@ -73,11 +78,32 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
      * @dev Margin call a pool, only used by the protocolSafety.
      * @param _pool The MarginLiquidityPool.
      */
-    function marginCallPool(MarginLiquidityPoolInterface _pool) public {
+    function marginCallPool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
         require(msg.sender == protocolSafety, "Only protocol can call this function");
         require(!isMarginCalled[_pool], "PM1");
 
+        uint256 marginCallITokens = poolMarginCallITokens[_pool];
+
         isMarginCalled[_pool] = true;
+        poolMarginCallITokens[_pool] = 0;
+
+        return marginCallITokens;
+    }
+
+    /**
+     * @dev Margin call a pool, only used by the protocolSafety.
+     * @param _pool The MarginLiquidityPool.
+     */
+    function liquidatePool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
+        require(msg.sender == protocolSafety, "Only safety protocol can call this function");
+        require(isMarginCalled[_pool], "PM1");
+
+        uint256 liquidationCallITokens = poolLiquidationITokens[_pool];
+
+        isMarginCalled[_pool] = false;
+        poolLiquidationITokens[_pool] = 0;
+
+        return liquidationCallITokens;
     }
 
     /**
@@ -85,7 +111,7 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
      * @param _pool The MarginLiquidityPool.
      */
     function makePoolSafe(MarginLiquidityPoolInterface _pool) public {
-        require(msg.sender == protocolSafety, "Only protocol can call this function");
+        require(msg.sender == protocolSafety, "Only safety protocol can call this function");
         require(isMarginCalled[_pool], "PS1");
 
         isMarginCalled[_pool] = false;

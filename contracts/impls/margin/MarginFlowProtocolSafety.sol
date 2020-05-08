@@ -290,13 +290,8 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
     {
         require(!isPoolSafe(_pool), "PM2");
 
-        marginProtocol.liquidityPoolRegistry().marginCallPool(_pool);
-        marginProtocol.moneyMarket().baseToken().safeTransfer(
-            msg.sender,
-            marginProtocol
-                .liquidityPoolRegistry()
-                .LIQUIDITY_POOL_MARGIN_CALL_FEE()
-        );
+        uint256 depositedITokens = marginProtocol.liquidityPoolRegistry().marginCallPool(_pool);
+        marginProtocol.moneyMarket().redeemTo(msg.sender, depositedITokens);
 
         emit LiquidityPoolMarginCalled(address(_pool));
     }
