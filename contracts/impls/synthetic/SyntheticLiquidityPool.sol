@@ -74,11 +74,11 @@ contract SyntheticLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool,
         spreadsPerToken[_token] = 0;
     }
 
-    function addCollateral(SyntheticFlowProtocol _protocol, SyntheticFlowToken _token, uint256 _baseTokenAmount) external override onlyOwner {
-        _protocol.addCollateral(_token, address(this), _baseTokenAmount);
+    function addCollateral(SyntheticFlowToken _token, uint256 _baseTokenAmount) external override onlyOwner {
+        SyntheticFlowProtocol(protocol).addCollateral(_token, address(this), _baseTokenAmount);
     }
 
-    function withdrawCollateral(SyntheticFlowProtocol _protocol, SyntheticFlowToken _token) external override onlyOwner {
-        _protocol.withdrawCollateral(_token);
+    function withdrawCollateral(SyntheticFlowToken _token) external override onlyOwner {
+        SyntheticFlowProtocol(protocol).withdrawCollateral(_token);
     }
 }
