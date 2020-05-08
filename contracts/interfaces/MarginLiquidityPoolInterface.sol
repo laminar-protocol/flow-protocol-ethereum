@@ -5,7 +5,8 @@ import "./LiquidityPoolInterface.sol";
 
 interface MarginLiquidityPoolInterface is LiquidityPoolInterface {
     function depositLiquidity(uint256 _realized) external returns (uint256);
-    function approveLiquidityToProtocol(uint256 _realized) external returns (uint256);
+    function increaseAllowanceForProtocol(uint256 _realized) external;
+    function increaseAllowanceForProtocolSafety(uint256 _realized) external;
     function withdrawLiquidityOwner(uint256 _realized) external returns (uint256);
     function getLiquidity() external returns (uint256);
 

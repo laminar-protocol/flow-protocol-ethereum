@@ -642,7 +642,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
             uint256 transferITokenAmount = uint256(-poolBalance);
 
             // approve might fail if MAX UINT is already approved
-            try _pool.approveLiquidityToProtocol(transferITokenAmount) {} catch (bytes memory) {}
+            try _pool.increaseAllowanceForProtocol(transferITokenAmount) {} catch (bytes memory) {}
             moneyMarket.iToken().safeTransferFrom(address(_pool), address(this), transferITokenAmount);
             balances[_pool][address(_pool)] = 0;
         }

@@ -23,6 +23,14 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         _;
     }
 
+    modifier onlyProtocolSafety() {
+        require(
+            msg.sender == address(MarginFlowProtocol(protocol).safetyProtocol()),
+            "Ownable: caller is not the protocol safety"
+        );
+        _;
+    }
+
     function setSpreadForPair(address _baseToken, address _quoteToken, uint256 _value) external override onlyOwner {
         spreadsPerTokenPair[_baseToken][_quoteToken] = _value;
 
@@ -40,8 +48,12 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         return moneyMarket.mint(_baseTokenAmount);
     }
 
-    function approveLiquidityToProtocol(uint _iTokenAmount) external override onlyProtocol returns (uint256) {
+    function increaseAllowanceForProtocol(uint _iTokenAmount) external override onlyProtocol {
         moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);        
+    }
+
+    function increaseAllowanceForProtocolSafety(uint _iTokenAmount) external override onlyProtocolSafety {
+        moneyMarket.iToken().safeIncreaseAllowance(address(MarginFlowProtocol(protocol).safetyProtocol()), _iTokenAmount);        
     }
 
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
