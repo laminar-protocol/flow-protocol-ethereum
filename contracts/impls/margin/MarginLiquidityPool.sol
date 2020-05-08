@@ -29,6 +29,10 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         emit SpreadUpdated(_baseToken, _quoteToken, _value);
     }
 
+    function owner() public view override(UpgradeOwnable,LiquidityPool,LiquidityPoolInterface) returns (address) {
+        return UpgradeOwnable.owner();
+    }
+
     function depositLiquidity(uint256 _baseTokenAmount) external override returns (uint256) {
         moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         moneyMarket.baseToken().approve(address(moneyMarket), _baseTokenAmount);

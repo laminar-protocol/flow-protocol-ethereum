@@ -22,6 +22,10 @@ contract SyntheticLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool,
         collateralRatio = 0; // use fToken default        
     }
 
+    function owner() public view override(UpgradeOwnable,LiquidityPool,LiquidityPoolInterface) returns (address) {
+        return UpgradeOwnable.owner();
+    }
+
     function getBidSpread(address _fToken) external view override returns (uint256) {
         if (allowedTokens[_fToken] && spreadsPerToken[_fToken] > 0) {
             return spreadsPerToken[_fToken];
