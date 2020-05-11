@@ -441,16 +441,16 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return Percentage.fromFraction(quotePrice, basePrice);
     }
 
-    // accumulated interest rate = rate * days
+    // accumulated interest rate = rate * swap unit
     function getAccumulatedSwapRateOfPosition(uint256 _positionId) public view returns (uint256) {
         Position memory position = positionsById[_positionId];
 
         uint256 timeDeltaInSeconds = now.sub(position.timeWhenOpened);
-        uint256 daysSinceOpen = timeDeltaInSeconds.div(swapRateUnit);
+        uint256 timeUnitsSinceOpen = timeDeltaInSeconds.div(swapRateUnit);
         uint256 leveragedDebitsAbs = position.leveragedDebitsInUsd >= 0
             ? uint256(position.leveragedDebitsInUsd)
             : uint256(-position.leveragedDebitsInUsd);
-        uint256 accumulatedSwapRate = leveragedDebitsAbs.mul(daysSinceOpen).mulPercent(position.swapRate);
+        uint256 accumulatedSwapRate = leveragedDebitsAbs.mul(timeUnitsSinceOpen).mulPercent(position.swapRate);
 
         return accumulatedSwapRate;
     }
