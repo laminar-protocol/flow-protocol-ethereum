@@ -408,3 +408,88 @@ Feature: Margin Protocol
       | Alice | $1000 | 8806193548387096773600 |
       | Bob   | $1000 | 9563999999999999999600 |
     And margin liquidity is 19629806451612903226800
+
+  Scenario: margin accumulate swap
+    Given accounts
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+      | Alice | $10 000 |
+    And margin create liquidity pool
+    And margin deposit liquidity
+      | Name  | Amount  |
+      | Pool  | $10 000 |
+    And margin deposit
+      | Name  | Amount  |
+      | Alice | $5 000  |
+    And oracle price
+      | Currency  | Price |
+      | FEUR      | $3    |
+    And margin spread
+      | Pair    | Value |
+      | EURUSD  | $0.02 |
+    And margin set accumulate
+      | Pair   | Frequency | Offset |
+      | EURUSD | 10        | 1      |
+    And margin set min leveraged amount to $100
+    And margin set default min leveraged amount to $100
+    And margin set swap rate
+      | Pair    | Long | Short |
+      | EURUSD  | -1%  | 1%    |
+    And margin enable trading pair EURUSD
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Long 10  | $5000  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $5000  |
+    And margin execute block 1..9
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 0  | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $4649  |
+    Then margin liquidity is $10351
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Short 10  | $5000 | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $4649  |
+    And margin execute block 9..22
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 1  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $4151  |
+    Then margin liquidity is $10849
+    And margin set additional swap 0.5% for EURUSD
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Long 10  | $5000  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $4151  |
+    And margin execute block 22..32
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 2  | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin                 |
+      | Alice | $5000 | 3724500000000000000000 |
+    Then margin liquidity is 11275500000000000000000
+    When open positions
+      | Name  | Pair   | Leverage | Amount | Price |
+      | Alice | EURUSD | Short 10  | $5000 | $2    |
+    Then margin balances are
+      | Name  | Free  | Margin                 |
+      | Alice | $5000 | 3724500000000000000000 |
+    And margin execute block 32..42
+    When close positions
+      | Name  | ID | Price |
+      | Alice | 3  | $4    |
+    Then margin balances are
+      | Name  | Free  | Margin |
+      | Alice | $5000 | $3301  |
+    Then margin liquidity is $11699
