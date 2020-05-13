@@ -440,33 +440,23 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
     // ENP - Equity to Net Position ratio of a liquidity pool.
     // ELL - Equity to Longest Leg ratio of a liquidity pool.
     function getEnpAndEll(MarginLiquidityPoolInterface _pool) public returns (Percentage.Percent memory, Percentage.Percent memory) {
-        int256 equity = getEquityOfPool(_pool);
+        MarginFlowProtocol.TradingPair[] memory pairs = marginProtocol.getTradingPairs();
+
+        uint256 net = 0;
+        uint256 longestLeg = 0;
+        int256 unrealized = 0;
+
+        for (uint256 i = 0; i < pairs.length; i++) {
+            (uint256 netPair, uint256 longestLegPair, int256 unrealizedPair) = marginProtocol.getPairSafetyInfo(_pool, pairs[i]);
+            net = net.add(netPair);
+            longestLeg = longestLeg.add(longestLegPair);
+            unrealized = unrealized.add(unrealizedPair);
+        }
+
+        int256 equity = int256(_getPoolLiquidity(_pool)).sub(unrealized);
 
         if (equity < 0) {
             return (Percentage.Percent(0), Percentage.Percent(0));
-        }
-
-        (int256 net, int256 positive, int256 nonPositive) = (
-            int256(0),
-            int256(0),
-            int256(0)
-        );
-
-        uint256 positionsLength = marginProtocol.getPositionsByPoolLength(
-            _pool
-        );
-
-        for (uint256 i = 0; i < positionsLength; i++) {
-            int256 leveragedDebitsInUsd = marginProtocol
-                .getLeveragedDebitsByPoolAndIndex(_pool, i);
-
-            net = net.add(leveragedDebitsInUsd);
-
-            if (leveragedDebitsInUsd >= 0) {
-                positive = positive.add(leveragedDebitsInUsd);
-            } else {
-                nonPositive = nonPositive.add(leveragedDebitsInUsd);
-            }
         }
 
         uint256 netAbs = net >= 0 ? uint256(net) : uint256(-net);
@@ -474,12 +464,22 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
             ? Percentage.Percent(MAX_UINT)
             : uint256(equity).fromFraction(netAbs);
 
-        uint256 longestLeg = Math.max(uint256(positive), uint256(-nonPositive));
         Percentage.Percent memory ell = longestLeg == 0
             ? Percentage.Percent(MAX_UINT)
             : uint256(equity).fromFraction(longestLeg);
 
         return (enp, ell);
+    }
+
+    function _getPoolLiquidity(MarginLiquidityPoolInterface _pool) private view returns (uint256) {
+        int256 iTokensPool = int256(marginProtocol.moneyMarket().iToken().balanceOf(address(_pool)));
+        int256 iTokensProtocol = marginProtocol.balances(_pool, address(_pool));
+        int256 totalItokens = iTokensPool.add(iTokensProtocol);
+        uint256 liquidity = totalItokens > 0 ? marginProtocol.moneyMarket().convertAmountToBase(
+            uint256(totalItokens)
+        ) : 0;
+
+        return liquidity;
     }
 
     function getLeveragedDebitsOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
@@ -501,38 +501,17 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         return accumulatedLeveragedDebits;
     }
 
-    // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate)
+    // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate (left out swap rates))
     function getEquityOfPool(MarginLiquidityPoolInterface _pool) public returns (int256) {
-        int256 iTokensPool = int256(marginProtocol.moneyMarket().iToken().balanceOf(address(_pool)));
-        int256 iTokensProtocol = marginProtocol.balances(_pool, address(_pool));
-        int256 totalItokens = iTokensPool.add(iTokensProtocol);
-        uint256 liquidity = totalItokens > 0 ? marginProtocol.moneyMarket().convertAmountToBase(
-            uint256(totalItokens)
-        ) : 0;
+        MarginFlowProtocol.TradingPair[] memory pairs = marginProtocol.getTradingPairs();
+        int256 unrealized = 0;
 
-        // allUnrealizedPl + allAccumulatedSwapRate
-        int256 unrealizedPlAndRate = 0;
-        uint256 positionsLength = marginProtocol.getPositionsByPoolLength(
-            _pool
-        );
-
-        for (uint256 i = 0; i < positionsLength; i++) {
-            uint256 positionId = marginProtocol.getPositionIdByPoolAndIndex(
-                _pool,
-                i
-            );
-            int256 unrealized = marginProtocol.getUnrealizedPlOfPosition(
-                positionId
-            );
-            uint256 accSwapRate = marginProtocol
-                .getAccumulatedSwapRateOfPosition(positionId);
-
-            unrealizedPlAndRate = unrealizedPlAndRate.add(unrealized).add(
-                int256(accSwapRate)
-            );
+        for (uint256 i = 0; i < pairs.length; i++) {
+            (,,int256 unrealizedPair) = marginProtocol.getPairSafetyInfo(_pool, pairs[i]);
+            unrealized = unrealized.add(unrealizedPair);
         }
 
-        return int256(liquidity).sub(unrealizedPlAndRate);
+        return int256(_getPoolLiquidity(_pool)).sub(unrealized);
     }
 
     // Force closure position to liquidate liquidity pool based on opened positions.
