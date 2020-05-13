@@ -13,6 +13,9 @@ import deployment from '../../artifacts/development/deployment.json';
 
 const web3 = new Web3('http://localhost:8545');
 
+const ONE_DAY = 86400;
+const PRICE_EXPIRE_TIME = ONE_DAY * 2;
+
 let firstPositionId = 0;
 
 const iTokenAddress = deployment.iToken;
@@ -97,18 +100,21 @@ const parseCurrency = (amount: string): string => {
 };
 
 const parseAmount = (amount: string): BN => {
+  const isDollar = amount.includes('$');
   const parsed = amount
     .replace(' ', '')
     .replace('$', '')
     .replace('_', '');
-  return new BN(web3.utils.toWei(parsed));
+  return new BN(isDollar ? web3.utils.toWei(parsed) : parsed);
 };
 
 const parseSwapRate = (amount: string): BN => {
   const parsed = amount.replace(/%|-/g, '');
   const onePercentSpread = new BN(web3.utils.toWei('1')).div(new BN(100));
 
-  return onePercentSpread.mul(new BN(parsed));
+  return onePercentSpread
+    .mul(new BN(parseFloat(parsed) * 100))
+    .div(new BN(100));
 };
 
 const parseLeverage = (leverage: string): BN => {
@@ -257,13 +263,26 @@ const getTraderDepositsSum = async () => {
   return TRADER_MARGIN_CALL_FEE.add(TRADER_LIQUIDATION_FEE);
 };
 
+const increaseTimeBy = (time: number) =>
+  new Promise((resolve, reject) => {
+    (web3 as any).currentProvider.send(
+      {
+        jsonrpc: '2.0',
+        method: 'evm_increaseTime',
+        params: [time],
+        id: new Date().getTime(),
+      },
+      (err: string, result: string) => (err ? reject(err) : resolve(result)),
+    );
+  });
+
 Given(/accounts/, async (table: TableDefinition) => {
   firstPositionId = await flowMarginProtocolContract.methods
     .nextPositionId()
     .call();
 
   await Promise.all(
-    table.rows().map(row => transfer(row[0], parseAmount('0.1'))),
+    table.rows().map(row => transfer(row[0], parseAmount('$0.1'))),
   );
 
   await Promise.all(
@@ -335,18 +354,7 @@ Given('oracle price', async (table: TableDefinition) => {
     ),
     to: oracleAddress,
   });
-
-  await new Promise((resolve, reject) => {
-    (web3 as any).currentProvider.send(
-      {
-        jsonrpc: '2.0',
-        method: 'evm_increaseTime',
-        params: [172800],
-        id: new Date().getTime(),
-      },
-      (err: string, result: string) => (err ? reject(err) : resolve(result)),
-    );
-  });
+  await increaseTimeBy(PRICE_EXPIRE_TIME);
   await sendTx({
     contractMethod: oracleContract.methods.feedPrice(
       baseTokenAddress,
@@ -423,6 +431,69 @@ Given('margin set swap rate', async (table: TableDefinition) => {
     });
   }
 });
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+Given('margin set accumulate', (table: TableDefinition) => {
+  /* for (const [pair, frequency, offset] of table.rows()) {
+    const { baseAddress, quoteAddress } = parseTradingPair(pair);
+    const swapUnit = parseAmount(frequency);
+    const swapOffset = parseAmount(offset);
+  } */
+  // not applicable in ETH
+});
+
+Given(/margin execute block (\d*)..(\d*)/, async (from: string, to: string) => {
+  const swapUnit = 60 * 60 * 24 * 3650;
+  await sendTx({
+    contractMethod: oracleContract.methods.setExpireIn(swapUnit * 100),
+    to: oracleAddress,
+  });
+
+  const lastFromDigit = parseInt(from.charAt(from.length - 1), 10);
+  const lastToDigit = parseInt(to.charAt(to.length - 1), 10);
+
+  const diff =
+    (parseInt(to.replace(/.$/, '0'), 10) -
+      parseInt(from.replace(/.$/, '0'), 10)) /
+    10;
+  const swapTimes =
+    diff - (lastFromDigit < 2 ? 0 : 1) + (lastToDigit > 1 ? 1 : 0);
+
+  await increaseTimeBy(swapTimes * swapUnit + 1);
+  await sendTx({
+    contractMethod: flowMarginProtocolContract.methods.setMinLeverageAmount(
+      100,
+    ),
+    to: flowMarginProtocolAddress,
+  });
+});
+
+Then(
+  /margin set additional swap (.*)% for (.*)/,
+  async (additionalSwapRate: string, tradingPair: string) => {
+    const { baseAddress, quoteAddress } = parseTradingPair(tradingPair);
+
+    const swapRate = parseSwapRate(additionalSwapRate);
+    const currentLongSwapRate = await flowMarginProtocolContract.methods
+      .currentSwapRates(baseAddress, quoteAddress, true)
+      .call();
+    const currentShortSwapRate = await flowMarginProtocolContract.methods
+      .currentSwapRates(baseAddress, quoteAddress, false)
+      .call();
+    const newLongSwapRate = new BN(currentLongSwapRate).add(swapRate);
+    const newShortwapRate = new BN(currentShortSwapRate).add(swapRate);
+
+    await sendTx({
+      contractMethod: flowMarginProtocolContract.methods.setCurrentSwapRateForPair(
+        baseAddress,
+        quoteAddress,
+        newLongSwapRate,
+        newShortwapRate,
+      ),
+      to: flowMarginProtocolAddress,
+    });
+  },
+);
 
 Given(/margin enable trading pair (\D*)/, async (tradingPair: string) => {
   const { baseAddress, quoteAddress } = parseTradingPair(tradingPair);
@@ -664,16 +735,6 @@ Given('margin trader liquidate', async (table: TableDefinition) => {
   }
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-Given('margin set accumulate', (table: TableDefinition) => {
-  /* for (const [pair, frequency, offset] of table.rows()) {
-    const { baseAddress, quoteAddress } = parseTradingPair(pair);
-    const swapUnit = parseAmount(frequency);
-    const swapOffset = parseAmount(offset);
-  } */
-  // not applicable in ETH
-});
-
 Given('margin create liquidity pool', () => {
   // use existing pool
 });
@@ -710,7 +771,7 @@ Given('margin deposit liquidity', async (table: TableDefinition) => {
   }
 });
 
-Then(/treasury balance is \$(\d*)/, async (amount: string) => {
+Then(/treasury balance is (.*)/, async (amount: string) => {
   const treasuryAccount = await flowMarginProtocolSafetyContract.methods
     .laminarTreasury()
     .call();
@@ -723,7 +784,7 @@ Then(/treasury balance is \$(\d*)/, async (amount: string) => {
   assert.equal(iTokenBalanceTreasury, parseAmount(amount).toString());
 });
 
-Then(/margin liquidity is \$(\d*)/, async (amount: string) => {
+Then(/margin liquidity is (.*)/, async (amount: string) => {
   const balanceInProtocol = new BN(
     await flowMarginProtocolContract.methods
       .balances(poolAddress, poolAddress)
