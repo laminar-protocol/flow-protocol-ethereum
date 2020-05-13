@@ -118,13 +118,27 @@ contract MarginFlowProtocol is FlowProtocolBase {
     MarginFlowProtocolSafety public safetyProtocol;
     MarginLiquidityPoolRegistry public liquidityPoolRegistry;
 
+    enum CurrencyType {
+        USD,
+        BASE,
+        QUOTE
+    }
+
     mapping (uint256 => Position) public positionsById;
     mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
     mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) public poolLongPositionAccPerPair;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) public poolShortPositionAccPerPair;
     mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
     mapping (address => mapping(address => mapping (bool => Percentage.Percent))) public currentSwapRates;
+
+    TradingPair[] public tradingPairs;
+
+    function getTradingPairs() public view returns (TradingPair[] memory) {
+        return tradingPairs;
+    }
 
     uint256 public minLeverage;
     uint256 public maxLeverage;
@@ -190,6 +204,8 @@ contract MarginFlowProtocol is FlowProtocolBase {
         currentSwapRates[_base][_quote][LONG] = Percentage.Percent(_swapRateLong);
         currentSwapRates[_base][_quote][SHORT] = Percentage.Percent(_swapRateShort);
         tradingPairWhitelist[_base][_quote] = true;
+
+        tradingPairs.push(TradingPair(_base, _quote));
 
         emit NewTradingPair(_base, _quote);
     }
@@ -354,6 +370,22 @@ contract MarginFlowProtocol is FlowProtocolBase {
 
                 _transferItokenBalanceToPool(position.pool, position.owner, realizedIToken);
             }
+        }
+
+        if (position.leverage > 0) {
+            poolLongPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.QUOTE] = poolLongPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.QUOTE]
+                .sub(uint256(position.leveragedHeld));
+            poolLongPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.BASE] = poolLongPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.BASE]
+                .sub(uint256(-position.leveragedDebits));
+            poolLongPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.USD] = poolLongPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.USD]
+                .sub(uint256(-position.leveragedDebitsInUsd));
+        } else {
+            poolShortPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.QUOTE] = poolShortPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.QUOTE]
+                .sub(uint256(-position.leveragedHeld));
+            poolShortPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.BASE] = poolShortPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.BASE]
+                .sub(uint256(position.leveragedDebits));
+            poolShortPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.USD] = poolShortPositionAccPerPair[position.pool][position.pair.base][position.pair.quote][CurrencyType.USD]
+                .sub(uint256(position.leveragedDebitsInUsd));
         }
 
 		// remove position
@@ -554,16 +586,79 @@ contract MarginFlowProtocol is FlowProtocolBase {
         Position memory _position,
         uint256 _price
     ) internal returns (int256, Percentage.Percent memory) {
-        Percentage.SignedPercent memory openPrice = Percentage.signedFromFraction(-_position.leveragedDebits, _position.leveragedHeld);
+        return _getUnrealizedPlForParams(
+            _position.pool,
+            _position.pair,
+            _position.leveragedDebits,
+            _position.leveragedHeld,
+            _position.leverage,
+            _price
+        );
+    }
 
-        Percentage.SignedPercent memory currentPrice = _position.leverage > 0
-            ? Percentage.SignedPercent(int256(_getBidPrice(_position.pool, _position.pair, _price).value))
-            : Percentage.SignedPercent(int256(_getAskPrice(_position.pool, _position.pair, _price).value));
+    function getPairSafetyInfo(MarginLiquidityPoolInterface _pool, TradingPair memory pair) public returns (uint256, uint256, int256) {
+        uint256 pairInfoLongUsdAmount = poolLongPositionAccPerPair[_pool][pair.base][pair.quote][CurrencyType.USD];
+        uint256 pairInfoShortUsdAmount = poolShortPositionAccPerPair[_pool][pair.base][pair.quote][CurrencyType.USD];
+        Percentage.Percent memory basePrice = Percentage.Percent(getPrice(address(moneyMarket.baseToken())));
+
+        int256 netRaw = int256(pairInfoLongUsdAmount).sub(int256(pairInfoShortUsdAmount));
+        uint256 net = (netRaw >= 0 ? uint256(netRaw) : uint256(-netRaw)).mulPercent(basePrice);
+        uint256 longestLeg = Math.max(pairInfoLongUsdAmount, pairInfoShortUsdAmount).mulPercent(basePrice);
+        int256 unrealized = getUnrealizedForPair(
+            _pool,
+            pair
+        );
+
+        return (net, longestLeg, unrealized);
+    }
+
+    function getUnrealizedForPair(
+        MarginLiquidityPoolInterface _pool,
+        MarginFlowProtocol.TradingPair memory _pair
+    ) public returns (int256) {
+        uint256 longBaseAmount = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE];
+        uint256 shortBaseAmount = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE];
+        uint256 longQuoteAmount = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE];
+        uint256 shortQuoteAmount = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE];
+        
+        (int256 longUnrealized,) =  _getUnrealizedPlForParams(
+            _pool,
+            _pair,
+            int256(longBaseAmount).mul(-1),
+            int256(longQuoteAmount),
+            1,
+            0
+        );
+        (int256 shortUnrealized,) = _getUnrealizedPlForParams(
+            _pool,
+            _pair,
+            int256(shortBaseAmount),
+            int256(shortQuoteAmount).mul(-1),
+            -1,
+            0
+        );
+
+        return longUnrealized.add(shortUnrealized);
+    }
+
+    function _getUnrealizedPlForParams(
+        MarginLiquidityPoolInterface _pool,
+        TradingPair memory _pair,
+        int256 _leveragedDebits,
+        int256 _leveragedHeld,
+        int256 _leverage,
+        uint256 _price
+    ) private returns (int256, Percentage.Percent memory) {
+        Percentage.SignedPercent memory openPrice = Percentage.signedFromFraction(-_leveragedDebits, _leveragedHeld);
+
+        Percentage.SignedPercent memory currentPrice = _leverage > 0
+            ? Percentage.SignedPercent(int256(_getBidPrice(_pool, _pair, _price).value))
+            : Percentage.SignedPercent(int256(_getAskPrice(_pool, _pair, _price).value));
 
         Percentage.SignedPercent memory priceDelta = Percentage.signedSubPercent(currentPrice, openPrice);
-        int256 unrealized = _position.leveragedHeld.signedMulPercent(priceDelta);
+        int256 unrealized = _leveragedHeld.signedMulPercent(priceDelta);
 
-        return (getUsdValue(_position.pair.base, unrealized), Percentage.Percent(uint256(currentPrice.value)));
+        return (getUsdValue(_pair.base, unrealized), Percentage.Percent(uint256(currentPrice.value)));
     }
 
     function _insertPosition(
@@ -581,6 +676,22 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 leveragedDebits = _leveragedHeld.mulPercent(_debitsPrice);
         uint256 leveragedHeldInUsd = uint256(getUsdValue(_pair.base, int256(leveragedDebits)));
         uint256 marginHeld = uint256(int256(leveragedHeldInUsd).mul(heldSignum).div(_leverage));
+
+        if (_leverage > 0) {
+            poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
+                .add(_leveragedHeld);
+            poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE]
+                .add(leveragedDebits);
+            poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
+                .add(leveragedHeldInUsd);
+        } else {
+            poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
+                .add(_leveragedHeld);
+            poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE]
+                .add(leveragedDebits);
+            poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
+                .add(leveragedHeldInUsd);
+        }
 
         Position memory position = Position(
             positionId,

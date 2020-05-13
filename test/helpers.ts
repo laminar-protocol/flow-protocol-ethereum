@@ -23,6 +23,7 @@ export const dollar = (val: number | string): any => {
   }
   return web3.utils.toWei(new BN(val));
 };
+export const yen = (val: number | string): any => dollar(val);
 export const euro = (val: number | string): any => dollar(val);
 export const bn = (val: number | string | bigint): any =>
   new BN(val.toString());

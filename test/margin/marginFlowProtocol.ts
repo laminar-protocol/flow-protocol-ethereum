@@ -25,7 +25,6 @@ import {
   createMoneyMarket,
   fromEth,
   fromPercent,
-  fromPip,
   dollar,
   euro,
   bn,
