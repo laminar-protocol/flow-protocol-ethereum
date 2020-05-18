@@ -349,7 +349,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
 
         marginProtocol.setTraderIsMarginCalled(_pool, _trader, false);
         traderHasPaidDeposits[_pool][_trader] = false;
-        traderLiquidationITokens[_pool][ _trader] = 0;
+        traderLiquidationITokens[_pool][_trader] = 0;
 
         emit TraderLiquidated(_trader);
     }
@@ -375,32 +375,33 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
             "PL1"
         );
 
-        uint256 positionsLength = marginProtocol.getPositionsByPoolLength(
-            _pool
-        );
+        marginProtocol.stopPool(_pool);
 
-        for (uint256 i = 0; i < positionsLength; i++) {
-            (uint256 id,,,MarginFlowProtocol.TradingPair memory pair,int256 leverage,int256 leveragedHeld,,,,,)
-                = marginProtocol.positionsByPool(_pool, 0);
-            bool hasLiquidityLeft = _liquidityPoolClosePosition(
-                _pool,
-                id,
-                pair,
-                leverage,
-                leveragedHeld
-            );
-
-            if (!hasLiquidityLeft) {
-                break;
-            }
-        }
-
+        // TODO penalty
 
         uint256 depositedITokens = marginProtocol.liquidityPoolRegistry().liquidatePool(_pool);
         marginProtocol.moneyMarket().redeemTo(msg.sender, depositedITokens);
 
         emit LiquidityPoolLiquidated(address(_pool));
     }
+
+    /* TODO
+    function _transferPenalty(MarginLiquidityPoolInterface _pool, int256 _unrealized) private {
+        uint256 bidSpread = storedLiquidatedPoolBidPrices[_pool][_position.pair.base][_position.pair.quote];
+        uint256 askSpread = storedLiquidatedPoolAskPrices[_pool][_position.pair.base][_position.pair.quote];
+        
+        uint256 leveragedHeldAbs = _position.leveragedHeld >= 0 ? uint256(_position.leveragedHeld) : uint256(-_position.leveragedHeld);
+        uint256 spreadProfit = leveragedHeldAbs.mul(spread).div(1e18);
+        uint256 spreadProfitInUsd = spreadProfit.mulPercent(_usdPairPrice);
+
+        uint256 penaltyITokens = moneyMarket.convertAmountFromBase(spreadProfitInUsd.mul(2));
+        uint256 realizedPenalty = Math.min(_poolLiquidity, penaltyITokens);
+
+        // approve might fail if MAX UINT is already approved
+        try _pool.increaseAllowanceForProtocolSafety(realizedPenalty) {} catch (bytes memory) {}
+        moneyMarket.iToken().safeTransferFrom(address(_pool), laminarTreasury, realizedPenalty);
+    }
+    */
 
     // Ensure a trader is safe, based on equity delta, opened positions or plus a new one to open.
     //
@@ -512,55 +513,5 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         }
 
         return int256(_getPoolLiquidity(_pool)).sub(unrealized);
-    }
-
-    // Force closure position to liquidate liquidity pool based on opened positions.
-    function _liquidityPoolClosePosition(
-        MarginLiquidityPoolInterface _pool,
-        uint256 _id,
-        MarginFlowProtocol.TradingPair memory _pair,
-        int256 _leverage,
-        int256 _leveragedHeld
-    ) internal returns (bool) {
-        MoneyMarketInterface moneyMarket = marginProtocol.moneyMarket();
-        uint256 spread = _leverage > 0
-            ? marginProtocol.getBidSpread(
-                _pool,
-                address(_pair.base),
-                address(_pair.quote)
-            )
-            : marginProtocol.getAskSpread(
-                _pool,
-                address(_pair.base),
-                address(_pair.quote)
-            );
-
-        uint256 leveragedHeldAbs = _leveragedHeld >= 0
-            ? uint256(_leveragedHeld)
-            : uint256(-_leveragedHeld);
-        uint256 spreadProfit = leveragedHeldAbs.mul(spread).div(1e18);
-        uint256 spreadProfitInUsd = uint256(
-            marginProtocol.getUsdValue(_pair.base, int256(spreadProfit))
-        );
-
-        uint256 penalty = spreadProfitInUsd;
-        uint256 subAmount = spreadProfitInUsd.add(penalty);
-        uint256 subAmountITokens = moneyMarket.convertAmountFromBase(subAmount);
-
-        try marginProtocol.closePosition(_id, 0) {
-            uint256 realized = Math.min(_pool.getLiquidity(), subAmountITokens);
-
-            if (realized == 0) {
-                return false;
-            }
-
-            // approve might fail if MAX UINT is already approved
-            try _pool.increaseAllowanceForProtocolSafety(realized) {} catch (bytes memory) {}
-            moneyMarket.iToken().safeTransferFrom(address(_pool), laminarTreasury, realized);
-
-            return true;
-        } catch (bytes memory) {
-            return false;
-        }
     }
 }
