@@ -135,17 +135,17 @@ contract MarginFlowProtocol is FlowProtocolBase {
     mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
 
     mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) private poolLongPositionAccPerPair;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) private poolShortPositionAccPerPair;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) public poolLongPositionAccPerPair;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) public poolShortPositionAccPerPair;
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
 
     // stopped pools
     mapping (MarginLiquidityPoolInterface => bool) public stoppedPools;
     mapping (MarginLiquidityPoolInterface => uint256) private storedLiquidatedPoolClosingTimes;
-    mapping (MarginLiquidityPoolInterface => uint256) private storedLiquidatedPoolBasePrices;
+    mapping (MarginLiquidityPoolInterface => uint256) public storedLiquidatedPoolBasePrices;
     mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) private storedLiquidatedPoolPairPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) private storedLiquidatedPoolBidPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) private storedLiquidatedPoolAskPrices;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolBidPrices;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolAskPrices;
 
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
     mapping (address => mapping(address => mapping (bool => Percentage.Percent))) public currentSwapRates;

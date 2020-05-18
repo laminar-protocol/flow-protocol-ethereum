@@ -52,6 +52,11 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);        
     }
 
+    function increaseAllowanceForProtocolSafety(uint _iTokenAmount) external override onlyProtocolSafety {
+        address safetyProtocol = address(MarginFlowProtocol(protocol).safetyProtocol());
+        moneyMarket.iToken().safeIncreaseAllowance(safetyProtocol, _iTokenAmount);
+    }
+
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
         int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
         if (protocolBalance > 0) {
