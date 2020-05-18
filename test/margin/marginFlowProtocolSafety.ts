@@ -930,6 +930,35 @@ contract('MarginFlowProtocolSafety', accounts => {
         });
       });
 
+      describe('when pool liquidity is not sufficient for penalties', () => {
+        let poolLiquidity: BN;
+
+        beforeEach(async () => {
+          await liquidityPool.withdrawLiquidityOwner(dollar(198990));
+          await oracle.setOracleDeltaLastLimit(dollar(1000000));
+          await oracle.setOracleDeltaSnapshotLimit(dollar(1000000));
+          await oracle.feedPrice(usd.address, fromPercent(1000000), {
+            from: owner,
+          });
+          await oracle.feedPrice(eur, fromPercent(230), { from: owner });
+          await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+          poolLiquidity = await liquidityPool.getLiquidity.call();
+          await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
+            from: bob,
+          });
+        });
+
+        it('moves all leftover liquidity', async () => {
+          const treasuryBalance = await iUsd.balanceOf(laminarTreasury);
+          expect(treasuryBalance).to.be.bignumber.equals(poolLiquidity);
+          expect(
+            await liquidityPool.getLiquidity.call(),
+          ).to.be.bignumber.equals(bn(0));
+        });
+      });
+
       describe('when pool is below liquidation threshold', () => {
         beforeEach(async () => {
           await liquidityPool.withdrawLiquidityOwner(dollar(198400));
@@ -970,11 +999,27 @@ contract('MarginFlowProtocolSafety', accounts => {
           let unrealizedBob: BN;
           let swapRateBob: BN;
 
+          let bidSpreadUsdEur: BN;
+          let askSpreadUsdEur: BN;
+          let bidSpreadEurJpy: BN;
+          let askSpreadEurJpy: BN;
+
           beforeEach(async () => {
             await time.increase(time.duration.days(5));
             await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
               from: bob,
             });
+
+            bidSpreadUsdEur = await liquidityPool.getBidSpread(
+              usd.address,
+              eur,
+            );
+            bidSpreadEurJpy = await liquidityPool.getBidSpread(eur, jpy);
+            askSpreadUsdEur = await liquidityPool.getAskSpread(
+              usd.address,
+              eur,
+            );
+            askSpreadEurJpy = await liquidityPool.getAskSpread(eur, jpy);
 
             unrealizedAlice = Array(8).fill(bn(0));
             swapRatesAlice = Array(8).fill(bn(0));
@@ -1102,6 +1147,80 @@ contract('MarginFlowProtocolSafety', accounts => {
               messages.mustCloseAllPositionsForLiquidatedPools,
             );
           });
+
+          it('moves closing penalties to treasury', async () => {
+            const treasuryBalance = await iUsd.balanceOf(laminarTreasury);
+
+            let totalPenalty = bn(0);
+            let leveragedLongUsdEur = bn(0);
+            let leveragedShortUsdEur = bn(0);
+            let leveragedLongEurJpy = bn(0);
+            let leveragedShortEurJpy = bn(0);
+
+            for (let i = 0; i < 10; i += 1) {
+              const position = await protocol.positionsById(i);
+              const leveragePos = position['4'];
+              const leveragedDebit = position['6'];
+
+              const spreads =
+                i % 2 === 1 || i === 0
+                  ? { ask: askSpreadUsdEur, bid: bidSpreadUsdEur }
+                  : { ask: askSpreadEurJpy, bid: bidSpreadEurJpy };
+
+              if (i % 2 === 1 || i === 0) {
+                if (!leveragePos.isNeg()) {
+                  leveragedLongUsdEur = leveragedLongUsdEur.add(
+                    leveragedDebit.abs(),
+                  );
+                } else {
+                  leveragedShortUsdEur = leveragedShortUsdEur.add(
+                    leveragedDebit.abs(),
+                  );
+                }
+              } else if (!leveragePos.isNeg()) {
+                leveragedLongEurJpy = leveragedLongEurJpy.add(
+                  leveragedDebit.abs(),
+                );
+              } else {
+                leveragedShortEurJpy = leveragedShortEurJpy.add(
+                  leveragedDebit.abs(),
+                );
+              }
+
+              const spread = leveragePos.isNeg() ? spreads.ask : spreads.bid;
+              const penalty = leveragedDebit
+                .abs()
+                .mul(spread)
+                .div(bn(1e18));
+              const penaltyUsd = penalty.mul(initialUsdPrice).div(bn(1e18));
+              totalPenalty = totalPenalty.add(penaltyUsd);
+            }
+
+            const penaltyUsdLong = leveragedLongUsdEur
+              .mul(bidSpreadUsdEur)
+              .div(bn(1e18));
+            const penaltyUsdShort = leveragedShortUsdEur
+              .mul(askSpreadUsdEur)
+              .div(bn(1e18));
+            const penaltyUsd = penaltyUsdLong.add(penaltyUsdShort);
+            const penaltyJpyLong = leveragedLongEurJpy
+              .mul(bidSpreadEurJpy)
+              .div(bn(1e18));
+            const penaltyJpyShort = leveragedShortEurJpy
+              .mul(askSpreadEurJpy)
+              .div(bn(1e18));
+            const penaltyJpy = penaltyJpyLong.add(penaltyJpyShort);
+
+            expect(
+              penaltyUsd.add(penaltyJpy).mul(bn(2)),
+            ).to.be.bignumber.equals(convertToBaseToken(treasuryBalance));
+            expect(
+              parseInt(totalPenalty.mul(bn(2)).toString(), 10),
+            ).to.be.approximately(
+              parseInt(convertToBaseToken(treasuryBalance).toString(), 10),
+              20,
+            );
+          });
         });
       });
     });
@@ -1151,56 +1270,6 @@ contract('MarginFlowProtocolSafety', accounts => {
           }),
           messages.poolAlreadyMarginCalled,
         );
-      });
-    });
-
-    describe('when pool is below liquidation threshold with multiple positions', () => {
-      beforeEach(async () => {
-        await protocol.deposit(liquidityPool.address, depositInUsd, {
-          from: bob,
-        });
-
-        await protocol.openPosition(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage.mul(bn(2)),
-          leveragedHeldInEuro,
-          price,
-          { from: alice },
-        );
-        await protocol.openPosition(
-          liquidityPool.address,
-          usd.address,
-          eur,
-          leverage,
-          leveragedHeldInEuro,
-          price,
-          { from: bob },
-        );
-        await liquidityPool.withdrawLiquidityOwner(dollar(198000));
-        await oracle.feedPrice(eur, fromPercent(180), { from: owner });
-        await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
-          from: bob,
-        });
-      });
-
-      it.only('moves closing penalties to treasury', async () => {
-        await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
-          from: bob,
-        });
-        const treasuryBalance = await iUsd.balanceOf(laminarTreasury);
-        expect(treasuryBalance).to.be.bignumber.above(bn(0));
-      });
-
-      describe('when pool liquidity is not sufficient for penalties', () => {
-        beforeEach(async () => {
-          await oracle.feedPrice(eur, fromPercent(260), { from: owner });
-        });
-
-        it.only('moves all leftover liquidity', async () => {
-          // TODO
-        });
       });
     });
 
