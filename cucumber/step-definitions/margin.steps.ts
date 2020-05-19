@@ -15,8 +15,7 @@ const web3 = new Web3('http://localhost:8545');
 
 const ONE_DAY = 86400;
 const PRICE_EXPIRE_TIME = ONE_DAY * 2;
-
-let firstPositionId = 0;
+let firstPositionId = '0';
 
 const iTokenAddress = deployment.iToken;
 const iTokenContract = new web3.eth.Contract(erc20Abi as any, iTokenAddress);
@@ -247,6 +246,32 @@ const parseTradingPair = (
     baseAddress: tokenStringToAddress[base],
     quoteAddress: tokenStringToAddress[quote],
   };
+};
+
+const forceCloseForPool = async (
+  from: Account,
+  offset: number,
+): Promise<number> => {
+  const positionsCount = parseInt(
+    await flowMarginProtocolContract.methods
+      .getPositionsByPoolAndTraderLength(poolAddress, from.address)
+      .call(),
+    10,
+  );
+
+  const totalOffset = parseInt(firstPositionId, 10) + offset;
+
+  for (let i = 0; i < positionsCount; i += 1) {
+    await sendTx({
+      from,
+      contractMethod: flowMarginProtocolContract.methods.closePositionForLiquidatedPool(
+        i + totalOffset,
+      ),
+      to: flowMarginProtocolAddress,
+    });
+  }
+
+  return positionsCount;
 };
 
 const getTraderDepositsSum = async () => {
@@ -703,6 +728,9 @@ Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
       });
       if (result !== 'Ok')
         expect.fail(`Pool liquidation call should have reverted, but didnt!`);
+
+      const alicePositionCount = await forceCloseForPool(alice, 0);
+      await forceCloseForPool(bob, alicePositionCount);
     } catch (error) {
       if (result === 'Ok')
         expect.fail(`Pool liquidation call should not have reverted: ${error}`);

@@ -91,6 +91,7 @@ export const messages = {
   poolNotPaidFees: 'PF1',
   poolNotVerified: 'PV1',
   notEnoughFreeMarginWithdraw: 'W1',
+  mustCloseAllPositionsForLiquidatedPools: 'W2',
   traderCannotBeLiquidated: 'TL1',
   poolCannotBeLiquidated: 'PL1',
   marginAskPriceTooHigh: 'AP1',
@@ -112,4 +113,6 @@ export const messages = {
   tradingPairTokensMustBeDifferent: 'TP3',
   canOnlyBeUsedBySafetyProtocol: 'SP1',
   withdrawDepositRequireZeroPositions: 'WD1',
+  onlyForLiquidatedPools: 'CPL1',
+  noLiquidityLeftInPool: 'CPL2',
 };
