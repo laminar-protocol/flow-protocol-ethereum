@@ -298,41 +298,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     const usd = await moneyMarket.baseToken();
 
-    for (const token of [
-      fEUR.address,
-      fJPY.address,
-      fXAU.address,
-      fAAPL.address,
-    ]) {
-      await marginProtocol.addTradingPair(
-        token,
-        usd,
-        initialSwapRate,
-        initialSwapRate,
-      );
-      await marginProtocol.addTradingPair(
-        usd,
-        token,
-        initialSwapRate,
-        initialSwapRate,
-      );
-    }
-
-    await marginProtocol.addTradingPair(
-      fEUR.address,
-      fJPY.address,
-      initialSwapRate,
-      initialSwapRate,
-    );
-    await marginProtocol.addTradingPair(
-      fJPY.address,
-      fEUR.address,
-      initialSwapRate,
-      initialSwapRate,
-    );
-
     // approve default account
-
     await baseToken.approve(
       moneyMarket.address,
       web3.utils.toWei('100000000000'),
@@ -405,6 +371,13 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         [fAAPL.address, usd],
       ]) {
         await marginPool.enableToken(base, quote, '28152000000000');
+        if (i === 0)
+          await marginProtocol.addTradingPair(
+            base,
+            quote,
+            initialSwapRate,
+            initialSwapRate,
+          );
       }
 
       await marginLiquidityPoolRegistry.registerPool(marginPool.address);
