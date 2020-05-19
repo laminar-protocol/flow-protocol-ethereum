@@ -390,7 +390,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 accumulatedSwapRate = getAccumulatedSwapRateOfPosition(_positionId);
         int256 totalUnrealized = unrealizedPl.sub(int256(accumulatedSwapRate));
 
-        _transferUnrealized(position.pool, msg.sender, totalUnrealized);
+        _transferUnrealized(position.pool, position.owner, totalUnrealized);
         _removePosition(position, totalUnrealized, marketPrice);
     }
 
@@ -816,7 +816,6 @@ contract MarginFlowProtocol is FlowProtocolBase {
      */
     function closePositionForLiquidatedPool(uint256 _positionId) external nonReentrant {
         Position memory position = positionsById[_positionId];
-
         // allow anyone to close position
 
         require(stoppedPools[position.pool], "CPL1");
