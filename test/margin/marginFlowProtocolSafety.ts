@@ -887,9 +887,6 @@ contract('MarginFlowProtocolSafety', accounts => {
           await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
             from: bob,
           });
-          await protocol.closePositionForLiquidatedPool(0, {
-            from: alice,
-          });
         });
 
         it('sends leftover liquidity to trader', async () => {
@@ -898,7 +895,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             liquidityPool.address,
             alice,
           );
-          await protocol.closePositionForLiquidatedPool(1, {
+          await protocol.closePositionForLiquidatedPool(0, {
             from: alice,
           });
           const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
@@ -914,14 +911,14 @@ contract('MarginFlowProtocolSafety', accounts => {
 
         describe('when there is 0 liquidity left', () => {
           beforeEach(async () => {
-            await protocol.closePositionForLiquidatedPool(1, {
+            await protocol.closePositionForLiquidatedPool(0, {
               from: alice,
             });
           });
 
           it('reverts the close position transaction', async () => {
             await expectRevert(
-              protocol.closePositionForLiquidatedPool(2, {
+              protocol.closePositionForLiquidatedPool(1, {
                 from: alice,
               }),
               messages.noLiquidityLeftInPool,
@@ -1160,7 +1157,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             for (let i = 0; i < 10; i += 1) {
               const position = await protocol.positionsById(i);
               const leveragePos = position['4'];
-              const leveragedDebit = position['6'];
+              const leveragedHeld = position['5'];
 
               const spreads =
                 i % 2 === 1 || i === 0
@@ -1170,25 +1167,25 @@ contract('MarginFlowProtocolSafety', accounts => {
               if (i % 2 === 1 || i === 0) {
                 if (!leveragePos.isNeg()) {
                   leveragedLongUsdEur = leveragedLongUsdEur.add(
-                    leveragedDebit.abs(),
+                    leveragedHeld.abs(),
                   );
                 } else {
                   leveragedShortUsdEur = leveragedShortUsdEur.add(
-                    leveragedDebit.abs(),
+                    leveragedHeld.abs(),
                   );
                 }
               } else if (!leveragePos.isNeg()) {
                 leveragedLongEurJpy = leveragedLongEurJpy.add(
-                  leveragedDebit.abs(),
+                  leveragedHeld.abs(),
                 );
               } else {
                 leveragedShortEurJpy = leveragedShortEurJpy.add(
-                  leveragedDebit.abs(),
+                  leveragedHeld.abs(),
                 );
               }
 
               const spread = leveragePos.isNeg() ? spreads.ask : spreads.bid;
-              const penalty = leveragedDebit
+              const penalty = leveragedHeld
                 .abs()
                 .mul(spread)
                 .div(bn(1e18));
@@ -1210,6 +1207,30 @@ contract('MarginFlowProtocolSafety', accounts => {
               .mul(askSpreadEurJpy)
               .div(bn(1e18));
             const penaltyJpy = penaltyJpyLong.add(penaltyJpyShort);
+
+            console.log('leveragedLongEurJpy', leveragedLongEurJpy.toString());
+            console.log('bidSpreadEurJpy', bidSpreadEurJpy.toString());
+            console.log('spreadProfitLong', penaltyJpyLong.toString());
+            console.log(
+              'spreadProfitLongUsd',
+              penaltyJpyLong
+                .mul(initialUsdPrice)
+                .div(bn(1e18))
+                .toString(),
+            );
+
+            console.log({
+              penaltyJpyLong: penaltyJpyLong.toString(),
+              penaltyPairs: penaltyUsd
+                .add(penaltyJpy)
+                .mul(bn(2))
+                .toString(),
+              penaltySingle: parseInt(
+                totalPenalty.mul(bn(2)).toString(),
+                10,
+              ).toString(),
+              treasuryBalance: treasuryBalance.toString(),
+            });
 
             expect(
               penaltyUsd.add(penaltyJpy).mul(bn(2)),

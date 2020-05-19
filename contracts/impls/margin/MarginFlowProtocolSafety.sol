@@ -384,23 +384,23 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
         Percentage.Percent memory usdBasePrice = Percentage.Percent(marginProtocol.storedLiquidatedPoolBasePrices(_pool));
 
         for (uint256 i = 0; i < pairs.length; i++) {
-            uint256 leveragedDebitsLong = marginProtocol.poolLongPositionAccPerPair(
+            uint256 leveragedHeldsLong = marginProtocol.poolLongPositionAccPerPair(
                     _pool,
                     pairs[i].base,
                     pairs[i].quote,
-                    MarginFlowProtocol.CurrencyType.BASE
+                    MarginFlowProtocol.CurrencyType.QUOTE
             );
-            uint256 leveragedDebitsShort = marginProtocol.poolShortPositionAccPerPair(
+            uint256 leveragedHeldsShort = marginProtocol.poolShortPositionAccPerPair(
                 _pool,
                 pairs[i].base,
                 pairs[i].quote,
-                MarginFlowProtocol.CurrencyType.BASE
+                MarginFlowProtocol.CurrencyType.QUOTE
             );
 
             uint256 bidSpread = marginProtocol.storedLiquidatedPoolBidPrices(_pool, pairs[i].base, pairs[i].quote);
             uint256 askSpread = marginProtocol.storedLiquidatedPoolAskPrices(_pool, pairs[i].base, pairs[i].quote);
-            uint256 spreadProfitLong = leveragedDebitsLong.mul(bidSpread).div(1e18);
-            uint256 spreadProfitShort = leveragedDebitsShort.mul(askSpread).div(1e18);
+            uint256 spreadProfitLong = leveragedHeldsLong.mul(bidSpread).div(1e18);
+            uint256 spreadProfitShort = leveragedHeldsShort.mul(askSpread).div(1e18);
 
             penalty = penalty
                 .add(spreadProfitLong.mulPercent(usdBasePrice))
