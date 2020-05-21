@@ -108,11 +108,12 @@ const parseAmount = (amount: string): BN => {
 };
 
 const parseSwapRate = (amount: string): BN => {
+  const isNegative = amount.includes('-');
   const parsed = amount.replace(/%|-/g, '');
   const onePercentSpread = new BN(web3.utils.toWei('1')).div(new BN(100));
 
   return onePercentSpread
-    .mul(new BN(parseFloat(parsed) * 100))
+    .mul(new BN(parseFloat(parsed) * 100 * (isNegative ? -1 : 1)))
     .div(new BN(100));
 };
 
