@@ -14,7 +14,19 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         uint256 maxPrice
     ) public returns(int256, uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
-        Position memory position = Position(0, msg.sender, _pool, pair, _leverage, _leveragedHeld, _leveragedDebits, 0, 0, Percentage.Percent(0), 0);
+        Position memory position = Position(
+            0,
+            msg.sender,
+            _pool,
+            pair,
+            _leverage,
+            _leveragedHeld,
+            _leveragedDebits,
+            0,
+            0,
+            Percentage.SignedPercent(0),
+            0
+        );
 
         (int256 unrealized, Percentage.Percent memory price) = _getUnrealizedPlAndMarketPriceOfPosition(position, maxPrice);
 
@@ -35,7 +47,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
 
     function removePositionFromPoolList(MarginLiquidityPoolInterface _pool, uint256 _positionId) public {
         TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
-        Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.Percent(0), 0);
+        Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.SignedPercent(0), 0);
 
         _removePositionFromLists(position);
     }
@@ -51,7 +63,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         return positionIds;
     }
 
-    function getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
+    function getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
         return _getSwapRatesOfTrader(_pool, _trader);
     }
 
@@ -60,8 +72,8 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
     }
 
     function getAccumulatedSwapRateFromParameters(
-        MarginLiquidityPoolInterface _pool, address base, address quote, int256 _leveragedHeld, uint256 _swapRate, uint256 _timeWhenOpened
-    ) public returns (uint256) {
+        MarginLiquidityPoolInterface _pool, address base, address quote, int256 _leveragedHeld, int256 _swapRate, uint256 _timeWhenOpened
+    ) public returns (int256) {
         Position memory position = Position(
             12,
             msg.sender,
@@ -72,7 +84,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
             0,
             0,
             0,
-            Percentage.Percent(_swapRate),
+            Percentage.SignedPercent(_swapRate),
             _timeWhenOpened
         );
 

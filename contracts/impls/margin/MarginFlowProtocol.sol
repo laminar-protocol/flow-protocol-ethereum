@@ -47,7 +47,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         int256 leveragedDebitsInUsd;
         uint256 marginHeld;
 
-        Percentage.Percent swapRate;
+        Percentage.SignedPercent swapRate;
         uint256 timeWhenOpened;
     }
 
@@ -148,7 +148,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
     mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolAskSpreads;
 
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
-    mapping (address => mapping(address => mapping (bool => Percentage.Percent))) public currentSwapRates;
+    mapping (address => mapping(address => mapping (bool => Percentage.SignedPercent))) public currentSwapRates;
 
     TradingPair[] private tradingPairs;
 
@@ -232,13 +232,13 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @param _swapRateLong The swap rate as percentage for longs.
      * @param _swapRateShort The swap rate as percentage for shorts.
      */
-    function addTradingPair(address _base, address _quote, uint256 _swapRateLong, uint256 _swapRateShort) external onlyOwner {
-        require(_base != address(0) && _quote != address(0), "0");
+    function addTradingPair(address _base, address _quote, int256 _swapRateLong, int256 _swapRateShort) external onlyOwner {
+        require(_base != address(0) && _quote != address(0) && _swapRateLong != 0 && _swapRateShort != 0, "0");
         require(_base != _quote, "TP3");
         require(!tradingPairWhitelist[_base][_quote], "TP2");
 
-        currentSwapRates[_base][_quote][LONG] = Percentage.Percent(_swapRateLong);
-        currentSwapRates[_base][_quote][SHORT] = Percentage.Percent(_swapRateShort);
+        currentSwapRates[_base][_quote][LONG] = Percentage.SignedPercent(_swapRateLong);
+        currentSwapRates[_base][_quote][SHORT] = Percentage.SignedPercent(_swapRateShort);
         tradingPairWhitelist[_base][_quote] = true;
 
         tradingPairs.push(TradingPair(_base, _quote));
@@ -253,10 +253,10 @@ contract MarginFlowProtocol is FlowProtocolBase {
      * @param _newSwapRateLong The new swap rate as percentage for longs.
      * @param _newSwapRateShort The new swap rate as percentage for shorts.
      */
-    function setCurrentSwapRateForPair(address _base, address _quote, uint256 _newSwapRateLong, uint256 _newSwapRateShort) external onlyOwner {
-        require(_newSwapRateLong > 0 && _newSwapRateShort > 0, "0");
-        currentSwapRates[_base][_quote][LONG] = Percentage.Percent(_newSwapRateLong);
-        currentSwapRates[_base][_quote][SHORT] = Percentage.Percent(_newSwapRateShort);
+    function setCurrentSwapRateForPair(address _base, address _quote, int256 _newSwapRateLong, int256 _newSwapRateShort) external onlyOwner {
+        require(_newSwapRateLong != 0 && _newSwapRateShort != 0, "0");
+        currentSwapRates[_base][_quote][LONG] = Percentage.SignedPercent(_newSwapRateLong);
+        currentSwapRates[_base][_quote][SHORT] = Percentage.SignedPercent(_newSwapRateShort);
     }
 
     /**
@@ -387,8 +387,8 @@ contract MarginFlowProtocol is FlowProtocolBase {
         require(msg.sender == position.owner || msg.sender == address(safetyProtocol), "CP1");
 
         (int256 unrealizedPl, Percentage.Percent memory marketPrice) = _getUnrealizedPlAndMarketPriceOfPosition(position, _price);
-        uint256 accumulatedSwapRate = getAccumulatedSwapRateOfPosition(_positionId);
-        int256 totalUnrealized = unrealizedPl.sub(int256(accumulatedSwapRate));
+        int256 accumulatedSwapRate = getAccumulatedSwapRateOfPosition(_positionId);
+        int256 totalUnrealized = unrealizedPl.add(accumulatedSwapRate);
 
         _transferUnrealized(position.pool, position.owner, totalUnrealized);
         _removePosition(position, totalUnrealized, marketPrice);
@@ -432,14 +432,14 @@ contract MarginFlowProtocol is FlowProtocolBase {
     // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
     function getEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
         int256 unrealized = _getUnrealizedPlOfTrader(_pool, _trader);
-        uint256 accumulatedSwapRates = _getSwapRatesOfTrader(_pool, _trader);
+        int256 accumulatedSwapRates = _getSwapRatesOfTrader(_pool, _trader);
         int256 traderBalance = balances[_pool][_trader];
         uint256 traderBalanceAbs = traderBalance >= 0 ? uint256(traderBalance) : uint256(-traderBalance);
         uint256 traderBalanceBaseTokenAbs = moneyMarket.convertAmountToBase(traderBalanceAbs);
         int256 traderBalanceBaseToken = traderBalance >= 0 ? int256(traderBalanceBaseTokenAbs) : int256(-traderBalanceBaseTokenAbs);
         int256 totalBalance = traderBalanceBaseToken.add(unrealized);
 
-        return totalBalance.sub(int256(accumulatedSwapRates));
+        return totalBalance.add(accumulatedSwapRates);
     }
 
     // Unrealized profit and loss of a position(USD value), based on current market price.
@@ -465,7 +465,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
     }
 
     // accumulated interest rate = rate * swap unit
-    function getAccumulatedSwapRateOfPosition(uint256 _positionId) public returns (uint256) {
+    function getAccumulatedSwapRateOfPosition(uint256 _positionId) public returns (int256) {
         Position memory position = positionsById[_positionId];
         Percentage.Percent memory price = position.leverage > 0
             ? _getAskPrice(position.pool, position.pair, 0)
@@ -480,7 +480,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         uint256 _time,
         Percentage.Percent memory _price,
         Percentage.Percent memory _usdPairPrice
-    ) private view returns (uint256) {
+    ) private view returns (int256) {
         Position memory position = positionsById[_positionId];
 
         uint256 timeDeltaInSeconds = _time.sub(position.timeWhenOpened);
@@ -489,10 +489,19 @@ contract MarginFlowProtocol is FlowProtocolBase {
             ? uint256(position.leveragedHeld)
             : uint256(-position.leveragedHeld);
 
-        uint256 accumulatedSwapRateInBase = leveragedHeldAbs.mul(timeUnitsSinceOpen).mulPercent(_price).mulPercent(position.swapRate);
+        Percentage.Percent memory swapRate = position.swapRate.value >= 0
+            ? Percentage.Percent(uint256(position.swapRate.value))
+            : Percentage.Percent(uint256(-position.swapRate.value));
+        uint256 accumulatedSwapRateInBase = leveragedHeldAbs
+            .mul(timeUnitsSinceOpen)
+            .mulPercent(_price)
+            .mulPercent(swapRate);
         uint256 accumulatedSwapRateInUsd = accumulatedSwapRateInBase.mulPercent(_usdPairPrice);
+        int256 signedSwapRate = position.swapRate.value >= 0
+            ? int256(accumulatedSwapRateInUsd)
+            : int256(-accumulatedSwapRateInUsd);
 
-        return accumulatedSwapRateInUsd;
+        return signedSwapRate;
     }
 
     function getPositionsByPoolLength(MarginLiquidityPoolInterface _pool) external view returns (uint256) {
@@ -565,10 +574,10 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return bidPrice;
     }
 
-    function _getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (uint256) {
+    function _getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (int256) {
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
-        uint256 accumulatedSwapRates = uint256(0);
+        int256 accumulatedSwapRates = int256(0);
 
         for (uint256 i = 0; i < positions.length; i++) {
             accumulatedSwapRates = accumulatedSwapRates.add(getAccumulatedSwapRateOfPosition(positions[i].id));
@@ -851,13 +860,13 @@ contract MarginFlowProtocol is FlowProtocolBase {
             position.leveragedHeld
         );
 
-        uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPositionUntilDate(
+        int256 accumulatedSwapRate = _getAccumulatedSwapRateOfPositionUntilDate(
             position.id,
             storedLiquidatedPoolClosingTimes[position.pool],
             position.leverage > 0 ? marketStopPriceWithAskSpread : marketStopPriceWithBidSpread,
             usdPairPrice
         );
-        int256 totalUnrealized = unrealized.sub(int256(accumulatedSwapRate));
+        int256 totalUnrealized = unrealized.add(accumulatedSwapRate);
 
         _transferUnrealized(position.pool, msg.sender, totalUnrealized);
         _removePosition(position, totalUnrealized, marketStopPrice);
