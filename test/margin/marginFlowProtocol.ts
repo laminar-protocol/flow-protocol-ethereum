@@ -85,8 +85,8 @@ contract('MarginFlowProtocol', accounts => {
     initialUsdPrice = fromPercent(100);
     initialEurPrice = fromPercent(120);
     initialJpyPrice = fromPercent(200);
-    initialSwapRateLong = fromPercent(2);
-    initialSwapRateShort = fromPercent(2);
+    initialSwapRateLong = fromPercent(-2);
+    initialSwapRateShort = fromPercent(-2);
 
     usd = await createTestToken(
       [liquidityProvider, dollar(50000)],
@@ -2193,6 +2193,38 @@ contract('MarginFlowProtocol', accounts => {
         .sub(bn(5))
         .mul(leveragedHeld)
         .div(bn(1e18));
+      const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice));
+
+      expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
+    });
+
+    it('works with negative swap rates', async () => {
+      const leveragedHeld = dollar(5000);
+      const daysOfPosition = 20;
+      const ageOfPosition = time.duration.days(daysOfPosition);
+      const swapRate = bn(-5);
+      const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
+      const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leveragedHeld,
+        swapRate,
+        timeWhenOpened,
+      );
+
+      const bidPrice = await protocol.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
+      const expectedAccSwapRate = fromEth(
+        swapRate
+          .mul(bn(daysOfPosition))
+          .mul(bn(3)) // 3x 8 hours per day
+          .mul(leveragedHeld),
+      );
       const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice));
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);

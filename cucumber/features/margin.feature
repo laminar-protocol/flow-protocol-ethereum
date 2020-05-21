@@ -402,37 +402,37 @@ Feature: Margin Protocol
       | Alice | 1  | $4    |
     Then margin balances are
       | Name  | Free  | Margin |
-      | Alice | $5000 | $4151  |
-    Then margin liquidity is $10849
+      | Alice | $5000 | 4747000000000000000000   |
+    Then margin liquidity is 10253000000000000000000
     And margin set additional swap 0.5% for EURUSD
     When open positions
       | Name  | Pair   | Leverage | Amount | Price |
       | Alice | EURUSD | Long 10  | $5000  | $4    |
     Then margin balances are
       | Name  | Free  | Margin |
-      | Alice | $5000 | $4151  |
+      | Alice | $5000 | 4747000000000000000000   |
     And margin execute block 22..32
     When close positions
       | Name  | ID | Price |
       | Alice | 2  | $2    |
     Then margin balances are
       | Name  | Free  | Margin                 |
-      | Alice | $5000 | 3724500000000000000000 |
-    Then margin liquidity is 11275500000000000000000
+      | Alice | $5000 | 4471500000000000000000  |
+    Then margin liquidity is 10528500000000000000000
     When open positions
       | Name  | Pair   | Leverage | Amount | Price |
       | Alice | EURUSD | Short 10  | $5000 | $2    |
     Then margin balances are
       | Name  | Free  | Margin                 |
-      | Alice | $5000 | 3724500000000000000000 |
+      | Alice | $5000 | 4471500000000000000000  |
     And margin execute block 32..42
     When close positions
       | Name  | ID | Price |
       | Alice | 3  | $4    |
     Then margin balances are
       | Name  | Free  | Margin |
-      | Alice | $5000 | $3301  |
-    Then margin liquidity is $11699
+      | Alice | $5000 | 4495000000000000000000   |
+    Then margin liquidity is 10505000000000000000000
 
   Scenario: margin liquidity pool liquidate
     Given accounts
