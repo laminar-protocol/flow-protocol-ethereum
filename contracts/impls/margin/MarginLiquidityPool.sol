@@ -72,7 +72,7 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         return baseTokenAmount;
     }
 
-    function getLiquidity() external override returns (uint256) {
+    function getLiquidity() external view override returns (uint256) {
         return moneyMarket.iToken().balanceOf(address(this));
     }
 

@@ -397,8 +397,8 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
                 MarginFlowProtocol.CurrencyType.QUOTE
             );
 
-            uint256 bidSpread = marginProtocol.storedLiquidatedPoolBidPrices(_pool, pairs[i].base, pairs[i].quote);
-            uint256 askSpread = marginProtocol.storedLiquidatedPoolAskPrices(_pool, pairs[i].base, pairs[i].quote);
+            uint256 bidSpread = marginProtocol.storedLiquidatedPoolBidSpreads(_pool, pairs[i].base, pairs[i].quote);
+            uint256 askSpread = marginProtocol.storedLiquidatedPoolAskSpreads(_pool, pairs[i].base, pairs[i].quote);
             uint256 spreadProfitLong = leveragedHeldsLong.mul(bidSpread).div(1e18);
             uint256 spreadProfitShort = leveragedHeldsShort.mul(askSpread).div(1e18);
 
@@ -490,7 +490,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeOwnable, UpgradeReent
     }
 
     function _getPoolLiquidity(MarginLiquidityPoolInterface _pool) private view returns (uint256) {
-        int256 iTokensPool = int256(marginProtocol.moneyMarket().iToken().balanceOf(address(_pool)));
+        int256 iTokensPool = int256(_pool.getLiquidity());
         int256 iTokensProtocol = marginProtocol.balances(_pool, address(_pool));
         int256 totalItokens = iTokensPool.add(iTokensProtocol);
         uint256 liquidity = totalItokens > 0 ? marginProtocol.moneyMarket().convertAmountToBase(

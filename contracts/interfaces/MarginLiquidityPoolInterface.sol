@@ -8,7 +8,7 @@ interface MarginLiquidityPoolInterface is LiquidityPoolInterface {
     function increaseAllowanceForProtocol(uint256 _realized) external;
     function increaseAllowanceForProtocolSafety(uint256 _realized) external;
     function withdrawLiquidityOwner(uint256 _realized) external returns (uint256);
-    function getLiquidity() external returns (uint256);
+    function getLiquidity() external view returns (uint256);
 
     function getBidSpread(address baseToken, address quoteToken) external view returns (uint256);
     function getAskSpread(address baseToken, address quoteToken) external view returns (uint256);
