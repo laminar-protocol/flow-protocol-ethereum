@@ -51,7 +51,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         return positionIds;
     }
 
-    function getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
+    function getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
         return _getSwapRatesOfTrader(_pool, _trader);
     }
 
@@ -60,19 +60,17 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
     }
 
     function getAccumulatedSwapRateFromParameters(
-        int256 _leveragedDebitsInUsd, uint256 _swapRate, uint256 _timeWhenOpened
+        MarginLiquidityPoolInterface _pool, address base, address quote, int256 _leveragedHeld, uint256 _swapRate, uint256 _timeWhenOpened
     ) public returns (uint256) {
-        TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
-        MarginLiquidityPoolInterface pool = MarginLiquidityPoolInterface(address(0));
         Position memory position = Position(
             12,
             msg.sender,
-            pool,
-            pair,
+            _pool,
+            TradingPair(base, quote),
+            0,
+            _leveragedHeld,
             0,
             0,
-            0,
-            _leveragedDebitsInUsd,
             0,
             Percentage.Percent(_swapRate),
             _timeWhenOpened

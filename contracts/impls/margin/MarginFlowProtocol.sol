@@ -144,8 +144,8 @@ contract MarginFlowProtocol is FlowProtocolBase {
     mapping (MarginLiquidityPoolInterface => uint256) private storedLiquidatedPoolClosingTimes;
     mapping (MarginLiquidityPoolInterface => uint256) public storedLiquidatedPoolBasePrices;
     mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) private storedLiquidatedPoolPairPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolBidPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolAskPrices;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolBidSpreads;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolAskSpreads;
 
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
     mapping (address => mapping(address => mapping (bool => Percentage.Percent))) public currentSwapRates;
@@ -220,8 +220,8 @@ contract MarginFlowProtocol is FlowProtocolBase {
             address quote = tradingPairs[i].quote;
             storedLiquidatedPoolPairPrices[_pool][base] = getPrice(base);
             storedLiquidatedPoolPairPrices[_pool][quote] = getPrice(quote);
-            storedLiquidatedPoolBidPrices[_pool][base][quote] = _getBidSpread(_pool, base, quote);
-            storedLiquidatedPoolAskPrices[_pool][base][quote] = _getAskSpread(_pool, base, quote);
+            storedLiquidatedPoolBidSpreads[_pool][base][quote] = _getBidSpread(_pool, base, quote);
+            storedLiquidatedPoolAskSpreads[_pool][base][quote] = _getAskSpread(_pool, base, quote);
         }
     }
 
@@ -465,21 +465,34 @@ contract MarginFlowProtocol is FlowProtocolBase {
     }
 
     // accumulated interest rate = rate * swap unit
-    function getAccumulatedSwapRateOfPosition(uint256 _positionId) public view returns (uint256) {
-        return _getAccumulatedSwapRateOfPositionUntilDate(_positionId, now);
+    function getAccumulatedSwapRateOfPosition(uint256 _positionId) public returns (uint256) {
+        Position memory position = positionsById[_positionId];
+        Percentage.Percent memory price = position.leverage > 0
+            ? _getAskPrice(position.pool, position.pair, 0)
+            : _getBidPrice(position.pool, position.pair, 0);
+        Percentage.Percent memory usdPairPrice = getPrice(address(moneyMarket.baseToken()), position.pair.base);
+
+        return _getAccumulatedSwapRateOfPositionUntilDate(_positionId, now, price, usdPairPrice);
     }
 
-    function _getAccumulatedSwapRateOfPositionUntilDate(uint256 _positionId, uint256 _time) private view returns (uint256) {
+    function _getAccumulatedSwapRateOfPositionUntilDate(
+        uint256 _positionId,
+        uint256 _time,
+        Percentage.Percent memory _price,
+        Percentage.Percent memory _usdPairPrice
+    ) private view returns (uint256) {
         Position memory position = positionsById[_positionId];
 
         uint256 timeDeltaInSeconds = _time.sub(position.timeWhenOpened);
         uint256 timeUnitsSinceOpen = timeDeltaInSeconds.div(swapRateUnit);
-        uint256 leveragedDebitsAbs = position.leveragedDebitsInUsd >= 0
-            ? uint256(position.leveragedDebitsInUsd)
-            : uint256(-position.leveragedDebitsInUsd);
-        uint256 accumulatedSwapRate = leveragedDebitsAbs.mul(timeUnitsSinceOpen).mulPercent(position.swapRate);
+        uint256 leveragedHeldAbs = position.leveragedHeld >= 0
+            ? uint256(position.leveragedHeld)
+            : uint256(-position.leveragedHeld);
 
-        return accumulatedSwapRate;
+        uint256 accumulatedSwapRateInBase = leveragedHeldAbs.mul(timeUnitsSinceOpen).mulPercent(_price).mulPercent(position.swapRate);
+        uint256 accumulatedSwapRateInUsd = accumulatedSwapRateInBase.mulPercent(_usdPairPrice);
+
+        return accumulatedSwapRateInUsd;
     }
 
     function getPositionsByPoolLength(MarginLiquidityPoolInterface _pool) external view returns (uint256) {
@@ -552,7 +565,7 @@ contract MarginFlowProtocol is FlowProtocolBase {
         return bidPrice;
     }
 
-    function _getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal view returns (uint256) {
+    function _getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (uint256) {
         Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
 
         uint256 accumulatedSwapRates = uint256(0);
@@ -820,31 +833,30 @@ contract MarginFlowProtocol is FlowProtocolBase {
 
         require(stoppedPools[position.pool], "CPL1");
 
-        uint256 usdStopPrice = storedLiquidatedPoolBasePrices[position.pool];
         int256 poolLiquidityIToken = int256(position.pool.getLiquidity()).add(balances[position.pool][address(position.pool)]);
 
         require(poolLiquidityIToken > 0, "CPL2");
-            
-        uint256 closingTime = storedLiquidatedPoolClosingTimes[position.pool];
-        uint256 baseStopPrice = storedLiquidatedPoolPairPrices[position.pool][position.pair.base];
-        uint256 quoteStopPrice = storedLiquidatedPoolPairPrices[position.pool][position.pair.quote];
-        uint256 spread = position.leverage > 0
-            ? storedLiquidatedPoolBidPrices[position.pool][position.pair.base][position.pair.quote]
-            : storedLiquidatedPoolAskPrices[position.pool][position.pair.base][position.pair.quote];
 
-        Percentage.Percent memory usdPairPrice = Percentage.fromFraction(baseStopPrice, usdStopPrice);
-        Percentage.Percent memory marketStopPrice = Percentage.fromFraction(quoteStopPrice, baseStopPrice);
-        Percentage.Percent memory marketStopPriceWithSpread = position.leverage > 0
-            ? Percentage.Percent(marketStopPrice.value.sub(spread))
-            : Percentage.Percent(marketStopPrice.value.add(spread));
+        uint256 bidSpread = storedLiquidatedPoolBidSpreads[position.pool][position.pair.base][position.pair.quote];
+        uint256 askSpread = storedLiquidatedPoolAskSpreads[position.pool][position.pair.base][position.pair.quote];
+        Percentage.Percent memory usdPairPrice = Percentage.fromFraction(storedLiquidatedPoolPairPrices[position.pool][position.pair.base], storedLiquidatedPoolBasePrices[position.pool]);
+        Percentage.Percent memory marketStopPrice = Percentage.fromFraction(storedLiquidatedPoolPairPrices[position.pool][position.pair.quote], storedLiquidatedPoolPairPrices[position.pool][position.pair.base]);
+        Percentage.Percent memory marketStopPriceWithBidSpread = Percentage.Percent(marketStopPrice.value.sub(bidSpread));
+        Percentage.Percent memory marketStopPriceWithAskSpread = Percentage.Percent(marketStopPrice.value.add(askSpread));
 
         int256 unrealized = _getUnrealizedPlForStoppedPool(
             usdPairPrice,
-            marketStopPriceWithSpread,
+            position.leverage > 0 ? marketStopPriceWithBidSpread : marketStopPriceWithAskSpread,
             position.leveragedDebits,
             position.leveragedHeld
         );
-        uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPositionUntilDate(position.id, closingTime);
+
+        uint256 accumulatedSwapRate = _getAccumulatedSwapRateOfPositionUntilDate(
+            position.id,
+            storedLiquidatedPoolClosingTimes[position.pool],
+            position.leverage > 0 ? marketStopPriceWithAskSpread : marketStopPriceWithBidSpread,
+            usdPairPrice
+        );
         int256 totalUnrealized = unrealized.sub(int256(accumulatedSwapRate));
 
         _transferUnrealized(position.pool, msg.sender, totalUnrealized);

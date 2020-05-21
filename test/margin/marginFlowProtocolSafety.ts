@@ -890,7 +890,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         });
 
         it('sends leftover liquidity to trader', async () => {
-          const poolLiquidityBefore = await liquidityPool.getLiquidity.call();
+          const poolLiquidityBefore = await liquidityPool.getLiquidity();
           const aliceBalanceBefore = await protocol.balances(
             liquidityPool.address,
             alice,
@@ -898,7 +898,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           await protocol.closePositionForLiquidatedPool(0, {
             from: alice,
           });
-          const poolLiquidityAfter = await liquidityPool.getLiquidity.call();
+          const poolLiquidityAfter = await liquidityPool.getLiquidity();
           const aliceBalanceAfter = await protocol.balances(
             liquidityPool.address,
             alice,
@@ -941,7 +941,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           });
-          poolLiquidity = await liquidityPool.getLiquidity.call();
+          poolLiquidity = await liquidityPool.getLiquidity();
           await protocolSafety.liquidateLiquidityPool(liquidityPool.address, {
             from: bob,
           });
@@ -950,9 +950,9 @@ contract('MarginFlowProtocolSafety', accounts => {
         it('moves all leftover liquidity', async () => {
           const treasuryBalance = await iUsd.balanceOf(laminarTreasury);
           expect(treasuryBalance).to.be.bignumber.equals(poolLiquidity);
-          expect(
-            await liquidityPool.getLiquidity.call(),
-          ).to.be.bignumber.equals(bn(0));
+          expect(await liquidityPool.getLiquidity()).to.be.bignumber.equals(
+            bn(0),
+          );
         });
       });
 
@@ -1026,14 +1026,16 @@ contract('MarginFlowProtocolSafety', accounts => {
                 await protocol.getUnrealizedPlOfPosition.call(i),
               );
               swapRatesAlice[i] = convertFromBaseToken(
-                await protocol.getAccumulatedSwapRateOfPosition(i),
+                await (protocol as any).getAccumulatedSwapRateOfPosition.call(
+                  i,
+                ),
               );
             }
             unrealizedBob = convertFromBaseToken(
               await protocol.getUnrealizedPlOfPosition.call(9),
             );
             swapRateBob = convertFromBaseToken(
-              await protocol.getAccumulatedSwapRateOfPosition(9),
+              await (protocol as any).getAccumulatedSwapRateOfPosition.call(9),
             );
 
             await time.increase(time.duration.days(8));
@@ -1045,7 +1047,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           });
 
           it('allows traders to close positions on stopped pool', async () => {
-            const poolLiquidityBefore = await liquidityPool.getLiquidity.call();
+            const poolLiquidityBefore = await liquidityPool.getLiquidity();
             const poolBalanceBefore = await protocol.balances(
               liquidityPool.address,
               liquidityPool.address,
@@ -1072,7 +1074,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               from: bob,
             });
             const poolLiquidityDiff = poolLiquidityBefore.sub(
-              await liquidityPool.getLiquidity.call(),
+              await liquidityPool.getLiquidity(),
             );
 
             const aliceBalanceDiff = (
@@ -1413,7 +1415,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         );
 
         const liquidity = convertToBaseToken(
-          await liquidityPool.getLiquidity.call(),
+          await liquidityPool.getLiquidity(),
         );
         let allUnrealizedPl = bn(0);
         // let allAccumulatedSwapRate = bn(0);

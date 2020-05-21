@@ -310,14 +310,11 @@ Given(/accounts/, async (table: TableDefinition) => {
     table.rows().map(row => transfer(row[0], parseAmount('$0.1'))),
   );
 
+  await emptyAccount('Alice');
+  await emptyAccount('Bob');
+
   await Promise.all(
-    table
-      .rows()
-      .map(row =>
-        emptyAccount(row[0]).then(() =>
-          transferUsd(row[0], parseAmount(row[1])),
-        ),
-      ),
+    table.rows().map(row => transferUsd(row[0], parseAmount(row[1]))),
   );
 
   await emptyPool();
@@ -367,6 +364,10 @@ Given('margin deposit', async (table: TableDefinition) => {
 });
 
 Given('oracle price', async (table: TableDefinition) => {
+  await sendTx({
+    contractMethod: oracleContract.methods.setExpireIn(PRICE_EXPIRE_TIME),
+    to: oracleAddress,
+  });
   await sendTx({
     contractMethod: oracleContract.methods.setOracleDeltaSnapshotLimit(
       web3.utils.toWei('10000'),
