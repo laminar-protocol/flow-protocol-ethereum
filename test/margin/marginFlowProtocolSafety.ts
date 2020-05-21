@@ -214,8 +214,8 @@ contract('MarginFlowProtocolSafety', accounts => {
     await protocol.addTradingPair(
       usd.address,
       eur,
-      fromPercent(2),
-      fromPercent(2),
+      fromPercent(-2),
+      fromPercent(-2),
     );
 
     await protocolSafety.payTraderDeposits(liquidityPool.address, {
@@ -236,7 +236,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     await liquidityPool.enableToken(jpy, eur, initialSpread);
     await oracle.feedPrice(jpy, fromPercent(200), { from: owner });
 
-    await protocol.addTradingPair(eur, jpy, fromPercent(1), fromPercent(1));
+    await protocol.addTradingPair(eur, jpy, fromPercent(1), fromPercent(-1));
 
     await protocol.deposit(liquidityPool.address, dollar(1000), {
       from: alice,
@@ -1068,7 +1068,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               });
               expectedAliceBalanceDiff = expectedAliceBalanceDiff
                 .add(unrealizedAlice[i])
-                .sub(swapRatesAlice[i]);
+                .add(swapRatesAlice[i]);
             }
             await protocol.closePositionForLiquidatedPool(9, {
               from: bob,
@@ -1093,7 +1093,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               expectedAliceBalanceDiff,
             );
             expect(bobBalanceDiff).to.be.bignumber.equals(
-              unrealizedBob.sub(swapRateBob),
+              unrealizedBob.add(swapRateBob),
             );
 
             const poolTotalDiff = poolLiquidityDiff.sub(poolBalanceDiff);
