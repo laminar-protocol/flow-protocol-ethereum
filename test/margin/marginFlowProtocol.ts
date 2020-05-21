@@ -1136,7 +1136,7 @@ contract('MarginFlowProtocol', accounts => {
           : expectedPoolBalanceDifference,
       );
     else {
-      const poolLiquidityAfter = await usedLiquidtyPool.getLiquidity.call();
+      const poolLiquidityAfter = await usedLiquidtyPool.getLiquidity();
       const poolLiquidityDifference = poolLiquidityAfter.sub(
         poolLiquidityBefore,
       );
@@ -1200,7 +1200,7 @@ contract('MarginFlowProtocol', accounts => {
         liquidityPool.address,
         alice,
       );
-      poolLiquidityBefore = await liquidityPool.getLiquidity.call();
+      poolLiquidityBefore = await liquidityPool.getLiquidity();
       poolBalanceBefore = await protocol.balances(
         liquidityPool.address,
         liquidityPool.address,
@@ -1446,7 +1446,7 @@ contract('MarginFlowProtocol', accounts => {
         initialAskPrice = expectedPrice.add(initialSpread);
         initialBidPrice = expectedPrice.sub(initialSpread);
 
-        poolLiquidityBefore2 = await liquidityPool2.getLiquidity.call();
+        poolLiquidityBefore2 = await liquidityPool2.getLiquidity();
 
         await protocol.openPosition(
           liquidityPool.address,
@@ -1614,7 +1614,7 @@ contract('MarginFlowProtocol', accounts => {
         await liquidityPool.withdrawLiquidityOwner(
           convertFromBaseToken(dollar(19000)),
         );
-        poolLiquidityBefore = await liquidityPool.getLiquidity.call();
+        poolLiquidityBefore = await liquidityPool.getLiquidity();
       });
 
       it("only increases trader's balance by the pool's available liquidity", async () => {
@@ -2133,29 +2133,39 @@ contract('MarginFlowProtocol', accounts => {
 
   describe('when computing the accumulated swap rate', () => {
     it('should return the correct accumulated swap rate', async () => {
-      const leveragedDebitsInUsd = dollar(5000);
+      const leveragedHeld = dollar(5000);
       const daysOfPosition = 20;
       const ageOfPosition = time.duration.days(daysOfPosition);
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
       const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters.call(
-        leveragedDebitsInUsd,
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leveragedHeld,
         swapRate,
         timeWhenOpened,
       );
 
+      const bidPrice = await protocol.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
       const expectedAccSwapRate = fromEth(
         swapRate
           .mul(bn(daysOfPosition))
           .mul(bn(3)) // 3x 8 hours per day
-          .mul(leveragedDebitsInUsd),
+          .mul(leveragedHeld),
       );
+      const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice));
 
-      expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
+      expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
     });
 
     it('counts only full rate units', async () => {
-      const leveragedDebitsInUsd = dollar(5000);
+      const leveragedHeld = dollar(5000);
       const daysOfPosition = 20;
       const ageOfPosition = time.duration
         .days(daysOfPosition)
@@ -2163,18 +2173,29 @@ contract('MarginFlowProtocol', accounts => {
       const swapRate = bn(5);
       const timeWhenOpened = (await time.latest()).sub(ageOfPosition);
       const accSwapRate = await protocol.getAccumulatedSwapRateFromParameters.call(
-        leveragedDebitsInUsd,
+        liquidityPool.address,
+        usd.address,
+        eur,
+        leveragedHeld,
         swapRate,
         timeWhenOpened,
       );
 
+      const bidPrice = await protocol.getBidPrice.call(
+        liquidityPool.address,
+        usd.address,
+        eur,
+        0,
+      );
       const expectedAccSwapRate = swapRate
         .mul(bn(daysOfPosition))
         .mul(bn(3)) // 3x 8 hours per day
         .sub(bn(5))
-        .mul(leveragedDebitsInUsd)
+        .mul(leveragedHeld)
         .div(bn(1e18));
-      expect(accSwapRate).to.be.bignumber.equal(expectedAccSwapRate);
+      const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice));
+
+      expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
     });
   });
 
@@ -2249,7 +2270,7 @@ contract('MarginFlowProtocol', accounts => {
           liquidityPool.address,
           alice,
         );
-        const aliceSwapRates = await protocol.getSwapRatesOfTrader(
+        const aliceSwapRates = await protocol.getSwapRatesOfTrader.call(
           liquidityPool.address,
           alice,
         );
@@ -2264,7 +2285,7 @@ contract('MarginFlowProtocol', accounts => {
           liquidityPool.address,
           bob,
         );
-        const bobSwapRates = await protocol.getSwapRatesOfTrader(
+        const bobSwapRates = await protocol.getSwapRatesOfTrader.call(
           liquidityPool.address,
           bob,
         );
@@ -2314,7 +2335,7 @@ contract('MarginFlowProtocol', accounts => {
             liquidityPool.address,
             bob,
           );
-          const bobSwapRates = await protocol.getSwapRatesOfTrader(
+          const bobSwapRates = await protocol.getSwapRatesOfTrader.call(
             liquidityPool.address,
             bob,
           );
@@ -2373,15 +2394,15 @@ contract('MarginFlowProtocol', accounts => {
         const daysOfPosition = 5;
         await time.increase(time.duration.days(daysOfPosition));
 
-        const accSwapRates = await protocol.getSwapRatesOfTrader(
+        const accSwapRates = await protocol.getSwapRatesOfTrader.call(
           liquidityPool.address,
           alice,
         );
 
-        const position1SwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
+        const position1SwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition.call(
           bn(0),
         );
-        const position2SwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition(
+        const position2SwapRate = await (protocol as any).getAccumulatedSwapRateOfPosition.call(
           bn(1),
         );
 
