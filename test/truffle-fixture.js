@@ -10,6 +10,8 @@ const MarginLiquidityPoolRegistry = artifacts.require(
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const MarginFlowProtocol = artifacts.require('MarginFlowProtocol');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
+const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
+const MarginMarketLib = artifacts.require('MarginMarketLib');
 
 module.exports = async () => {
   const moneyMarket = await MoneyMarket.new();
@@ -28,8 +30,20 @@ module.exports = async () => {
   MarginLiquidityPoolRegistry.setAsDeployed(marginLiquidityPoolRegistry);
   const simplePriceOracle = await SimplePriceOracle.new();
   SimplePriceOracle.setAsDeployed(simplePriceOracle);
+
+  const marginMarketLib = await MarginMarketLib.new();
+  MarginMarketLib.setAsDeployed(marginMarketLib);
+
+  try {
+    MarginFlowProtocol.link(marginMarketLib);
+  } catch (e) {
+    // ignore
+  }
+
   const marginFlowProtocol = await MarginFlowProtocol.new();
   MarginFlowProtocol.setAsDeployed(marginFlowProtocol);
   const marginFlowProtocolSafety = await MarginFlowProtocolSafety.new();
   MarginFlowProtocolSafety.setAsDeployed(marginFlowProtocolSafety);
+  const marginFlowProtocolConfig = await MarginFlowProtocolConfig.new();
+  MarginFlowProtocolConfig.setAsDeployed(marginFlowProtocolConfig);
 };
