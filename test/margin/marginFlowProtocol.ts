@@ -301,7 +301,7 @@ contract('MarginFlowProtocol', accounts => {
       protocolBalanceBefore = await iUsd.balanceOf(protocol.address);
     });
 
-    describe.only('when depositing funds', () => {
+    describe('when depositing funds', () => {
       beforeEach(async () => {
         depositInUsd = dollar(80);
 
