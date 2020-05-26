@@ -49,7 +49,10 @@ contract('MarginLiquidityPoolRegistry', accounts => {
     liquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
       liquidityPoolRegistryProxy.address,
     );
-    await liquidityPoolRegistry.initialize(moneyMarket.address, protocol);
+    await (liquidityPoolRegistry as any).initialize(
+      moneyMarket.address,
+      protocol,
+    );
   });
 
   describe('when used by the procotol', () => {

@@ -1,6 +1,6 @@
 pragma solidity ^0.6.4;
 
-import "../../impls/SimplePriceOracle.sol";
+import "../../impls/oracles/SimplePriceOracle.sol";
 
 contract SimplePriceOracleNewVersion is SimplePriceOracle {
     bytes32[] public newStorageBytes32;
