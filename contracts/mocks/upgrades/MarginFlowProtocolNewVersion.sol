@@ -15,7 +15,7 @@ contract MarginFlowProtocolNewVersion is MarginFlowProtocol {
         newStorageUint = _newStorageUint;
     }
 
-    function getNewValuePlusMaxSpread() public view returns (uint256) {
-        return maxSpread.add(newStorageUint);
+    function getNewValuePlusNextPositionId() public view returns (uint256) {
+        return nextPositionId.add(newStorageUint);
     }
 }

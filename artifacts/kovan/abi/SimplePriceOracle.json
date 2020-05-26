@@ -16,8 +16,7 @@
       }
     ],
     "name": "OwnershipTransferred",
-    "type": "event",
-    "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -42,8 +41,7 @@
       }
     ],
     "name": "PriceFeeded",
-    "type": "event",
-    "signature": "0x3105faf42de9614e0ddc10fabac5d5aaf57cc1632093d5e3e42e89a505edb7c8"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -56,8 +54,7 @@
       }
     ],
     "name": "PriceFeederAdded",
-    "type": "event",
-    "signature": "0x68240862346bd0f2e60d75837b2effa789fa7f0264b6d1a1ab25f33e01616cc6"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -70,8 +67,7 @@
       }
     ],
     "name": "PriceFeederRemoved",
-    "type": "event",
-    "signature": "0x4d4e6c140fba47f554ec7a4d922d452ab7324313b6f6d83ca679ee91ee8e7dbb"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -90,8 +86,7 @@
       }
     ],
     "name": "PriceUpdated",
-    "type": "event",
-    "signature": "0x0d86730737b142fc160892fa8a0f2db687a92a0e294d1ad70624cf5acef03b84"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -116,8 +111,7 @@
       }
     ],
     "name": "RoleGranted",
-    "type": "event",
-    "signature": "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -142,8 +136,7 @@
       }
     ],
     "name": "RoleRevoked",
-    "type": "event",
-    "signature": "0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b"
+    "type": "event"
   },
   {
     "inputs": [],
@@ -156,9 +149,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xa217fddf"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -171,9 +162,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x83ed8063"
+    "type": "function"
   },
   {
     "inputs": [
@@ -186,8 +175,7 @@
     "name": "addPriceFeeder",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x72f34208"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -200,9 +188,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x7bb70c94"
+    "type": "function"
   },
   {
     "inputs": [
@@ -221,9 +207,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x248a9ca3"
+    "type": "function"
   },
   {
     "inputs": [
@@ -247,9 +231,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x9010d07c"
+    "type": "function"
   },
   {
     "inputs": [
@@ -268,9 +250,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xca15c873"
+    "type": "function"
   },
   {
     "inputs": [
@@ -288,8 +268,7 @@
     "name": "grantRole",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x2f2ff15d"
+    "type": "function"
   },
   {
     "inputs": [
@@ -313,9 +292,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x91d14854"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -328,9 +305,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x8f32d59b"
+    "type": "function"
   },
   {
     "inputs": [
@@ -349,9 +324,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xf9aad6d7"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -364,9 +337,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x86c51385"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -379,9 +350,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xe2c1946d"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -394,9 +363,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x7adee8e0"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -409,9 +376,7 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x8da5cb5b"
+    "type": "function"
   },
   {
     "inputs": [
@@ -424,24 +389,21 @@
     "name": "removePriceFeeder",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x79a68c6c"
+    "type": "function"
   },
   {
     "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x715018a6"
+    "type": "function"
   },
   {
     "inputs": [],
     "name": "renouncePriceFeeder",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xea35de5f"
+    "type": "function"
   },
   {
     "inputs": [
@@ -459,8 +421,7 @@
     "name": "renounceRole",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x36568abe"
+    "type": "function"
   },
   {
     "inputs": [
@@ -478,8 +439,7 @@
     "name": "revokeRole",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xd547741f"
+    "type": "function"
   },
   {
     "inputs": [
@@ -492,8 +452,7 @@
     "name": "setExpireIn",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xa373fb3a"
+    "type": "function"
   },
   {
     "inputs": [
@@ -506,8 +465,7 @@
     "name": "setOracleDeltaLastLimit",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xda279e21"
+    "type": "function"
   },
   {
     "inputs": [
@@ -520,8 +478,7 @@
     "name": "setOracleDeltaSnapshotLimit",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x0f7ab4d8"
+    "type": "function"
   },
   {
     "inputs": [
@@ -534,8 +491,7 @@
     "name": "setOracleDeltaSnapshotTime",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xf6dd31d9"
+    "type": "function"
   },
   {
     "inputs": [
@@ -548,16 +504,14 @@
     "name": "transferOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xf2fde38b"
+    "type": "function"
   },
   {
     "inputs": [],
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x8129fc1c"
+    "type": "function"
   },
   {
     "inputs": [
@@ -570,8 +524,7 @@
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xc4d66de8"
+    "type": "function"
   },
   {
     "inputs": [],
@@ -584,9 +537,7 @@
       }
     ],
     "stateMutability": "pure",
-    "type": "function",
-    "constant": true,
-    "signature": "0x66331bba"
+    "type": "function"
   },
   {
     "inputs": [
@@ -604,8 +555,7 @@
     "name": "feedPrice",
     "outputs": [],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xcd56022e"
+    "type": "function"
   },
   {
     "inputs": [
@@ -624,8 +574,7 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x41976e09"
+    "type": "function"
   },
   {
     "inputs": [
@@ -644,8 +593,6 @@
       }
     ],
     "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x033d497a"
+    "type": "function"
   }
 ]

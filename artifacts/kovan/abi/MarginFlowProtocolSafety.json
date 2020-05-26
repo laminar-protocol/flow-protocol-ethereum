@@ -47,26 +47,6 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnershipTransferred",
-    "type": "event",
-    "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
         "name": "liquidityPool",
         "type": "address"
       },
@@ -117,7 +97,63 @@
   },
   {
     "inputs": [],
-    "name": "isOwner",
+    "name": "TRADER_LIQUIDATION_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xcb323e0b"
+  },
+  {
+    "inputs": [],
+    "name": "TRADER_MARGIN_CALL_FEE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xb2d61c3d"
+  },
+  {
+    "inputs": [],
+    "name": "laminarTreasury",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x28e704ee"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "traderHasPaidDeposits",
     "outputs": [
       {
         "internalType": "bool",
@@ -128,142 +164,59 @@
     "stateMutability": "view",
     "type": "function",
     "constant": true,
-    "signature": "0x8f32d59b"
-  },
-  {
-    "inputs": [],
-    "name": "liquidityPoolELLLiquidateThreshold",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xd345d2b3"
-  },
-  {
-    "inputs": [],
-    "name": "liquidityPoolELLMarginThreshold",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x2fa86769"
-  },
-  {
-    "inputs": [],
-    "name": "liquidityPoolENPLiquidateThreshold",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x62e81cac"
-  },
-  {
-    "inputs": [],
-    "name": "liquidityPoolENPMarginThreshold",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xd25b3ec3"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x8da5cb5b"
-  },
-  {
-    "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x715018a6"
-  },
-  {
-    "inputs": [],
-    "name": "traderRiskLiquidateThreshold",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "value",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xef029ecf"
-  },
-  {
-    "inputs": [],
-    "name": "traderRiskMarginCallThreshold",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "value",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x0fc9d28c"
+    "signature": "0x46e5ce5e"
   },
   {
     "inputs": [
       {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
         "internalType": "address",
-        "name": "newOwner",
+        "name": "",
         "type": "address"
       }
     ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "traderLiquidationITokens",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function",
-    "signature": "0xf2fde38b"
+    "constant": true,
+    "signature": "0x221861ae"
   },
   {
-    "inputs": [],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "traderMarginCallITokens",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function",
-    "signature": "0x8129fc1c"
+    "constant": true,
+    "signature": "0x0d3cc84c"
   },
   {
     "inputs": [
@@ -273,47 +226,8 @@
         "type": "address"
       },
       {
-        "internalType": "uint256",
-        "name": "_initialTraderRiskMarginCallThreshold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialTraderRiskLiquidateThreshold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialLiquidityPoolENPMarginThreshold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialLiquidityPoolELLMarginThreshold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialLiquidityPoolENPLiquidateThreshold",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialLiquidityPoolELLLiquidateThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x8142951a"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "address",
-        "name": "sender",
+        "name": "_laminarTreasury",
         "type": "address"
       }
     ],
@@ -321,91 +235,15 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0xc4d66de8"
+    "signature": "0x485cc955"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newTraderRiskMarginCallThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "setTraderRiskMarginCallThreshold",
+    "inputs": [],
+    "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0xf4675788"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newTraderRiskLiquidateThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "setTraderRiskLiquidateThreshold",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xab248aa3"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newLiquidityPoolENPMarginThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "setLiquidityPoolENPMarginThreshold",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xf2ca025a"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newLiquidityPoolELLMarginThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "setLiquidityPoolELLMarginThreshold",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x824fd689"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newLiquidityPoolENPLiquidateThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "setLiquidityPoolENPLiquidateThreshold",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x53f769a0"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newLiquidityPoolELLLiquidateThreshold",
-        "type": "uint256"
-      }
-    ],
-    "name": "setLiquidityPoolELLLiquidateThreshold",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x0f61ada4"
+    "signature": "0x8129fc1c"
   },
   {
     "inputs": [
@@ -426,6 +264,46 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x148cf553"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "payTraderDeposits",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8bbb3f7e"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawTraderDeposits",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x86278228"
   },
   {
     "inputs": [
@@ -525,5 +403,147 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x6c51062f"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "isTraderSafe",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x071ee2c6"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "getMarginLevel",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+          }
+        ],
+        "internalType": "struct Percentage.SignedPercent",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x4bcc4975"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "getEnpAndEll",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Percentage.Percent",
+        "name": "",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "value",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Percentage.Percent",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x1b4378de"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "getLeveragedDebitsOfTrader",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x76fd7cec"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "getEquityOfPool",
+    "outputs": [
+      {
+        "internalType": "int256",
+        "name": "",
+        "type": "int256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x4dd283b2"
   }
 ]
