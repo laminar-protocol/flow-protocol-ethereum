@@ -4,7 +4,7 @@ import {
   MarginLiquidityPoolInstance,
   TestTokenInstance,
   MoneyMarketInstance,
-  Ierc20Instance,
+  IERC20Instance,
 } from 'types/truffle-contracts';
 import * as helper from '../helpers';
 
@@ -28,7 +28,7 @@ contract('MarginLiquidityPool', accounts => {
   const badAddress = accounts[5];
   let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
-  let iToken: Ierc20Instance;
+  let iToken: IERC20Instance;
   let moneyMarket: MoneyMarketInstance;
 
   beforeEach(async () => {

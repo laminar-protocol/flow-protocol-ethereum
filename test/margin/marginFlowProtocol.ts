@@ -11,12 +11,11 @@ import {
   SimplePriceOracleInstance,
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
-  MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
-  Ierc20Instance,
+  IERC20Instance,
 } from 'types/truffle-contracts';
 
 import {
@@ -33,10 +32,11 @@ import {
 } from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
-const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
-const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
+const MarginFlowProtocolNewVersion = artifacts.require(
+  'MarginFlowProtocolNewVersion',
+);
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
   'MarginLiquidityPoolRegistry',
@@ -55,11 +55,10 @@ contract('MarginFlowProtocol', accounts => {
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
-  let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
-  let iUsd: Ierc20Instance; // eslint-disable-line
+  let iUsd: IERC20Instance; // eslint-disable-line
   let moneyMarket: MoneyMarketInstance;
 
   let initialSpread: BN;
@@ -70,24 +69,13 @@ contract('MarginFlowProtocol', accounts => {
   let initialSwapRateLong: BN;
   let initialSwapRateShort: BN;
 
-  before(async () => {
-    const marketLib = await MarginMarketLib.new();
-
-    try {
-      TestMarginFlowProtocol.link(MarginMarketLib);
-    } catch (error) {
-      // running in buidler, use instance
-      TestMarginFlowProtocol.link(marketLib);
-    }
-  });
-
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
     oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
-    await (oracle as any).initialize();
+    await oracle.initialize();
 
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
@@ -124,15 +112,6 @@ contract('MarginFlowProtocol', accounts => {
       flowMarginProtocolSafetyProxy.address,
     );
 
-    const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
-    const flowMarginProtocolConfigProxy = await Proxy.new();
-    await flowMarginProtocolConfigProxy.upgradeTo(
-      flowMarginProtocolConfigImpl.address,
-    );
-    protocolConfig = await MarginFlowProtocolConfig.at(
-      flowMarginProtocolConfigProxy.address,
-    );
-
     const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
     const liquidityPoolRegistryProxy = await Proxy.new();
     await liquidityPoolRegistryProxy.upgradeTo(
@@ -145,16 +124,17 @@ contract('MarginFlowProtocol', accounts => {
     await (protocol as any).initialize( // eslint-disable-line
       oracle.address,
       moneyMarket.address,
-      protocolConfig.address,
       protocolSafety.address,
       liquidityPoolRegistry.address,
-    );
-    await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
-    await (protocolConfig as any).initialize(
       1,
       50,
       2,
       60 * 60 * 8, // 8 hours
+    );
+
+    await (protocolSafety as any).initialize(
+      protocol.address,
+      laminarTreasury,
       fromPercent(5),
       fromPercent(2),
       fromPercent(50),
@@ -163,7 +143,7 @@ contract('MarginFlowProtocol', accounts => {
       fromPercent(2),
     );
 
-    await (liquidityPoolRegistry as any).initialize(
+    await liquidityPoolRegistry.initialize(
       moneyMarket.address,
       protocol.address,
     );
@@ -224,13 +204,13 @@ contract('MarginFlowProtocol', accounts => {
       from: liquidityProvider,
     });
     await liquidityPoolRegistry.verifyPool(liquidityPool.address);
-    await protocolConfig.addTradingPair(
+    await protocol.addTradingPair(
       jpy,
       eur,
       initialSwapRateLong,
       initialSwapRateShort,
     );
-    await protocolConfig.addTradingPair(
+    await protocol.addTradingPair(
       usd.address,
       eur,
       initialSwapRateLong,
@@ -279,6 +259,133 @@ contract('MarginFlowProtocol', accounts => {
     );
   };
 
+  describe('when adding a trading pair', () => {
+    it('sets new parameter', async () => {
+      await protocol.addTradingPair(
+        eur,
+        jpy,
+        initialSwapRateLong,
+        initialSwapRateShort,
+      );
+
+      expect(await protocol.tradingPairWhitelist(eur, jpy)).to.be.true;
+    });
+
+    it('reverts when trading pair already whitelisted', async () => {
+      await protocol.addTradingPair(
+        eur,
+        jpy,
+        initialSwapRateLong,
+        initialSwapRateShort,
+      );
+
+      await expectRevert(
+        protocol.addTradingPair(
+          eur,
+          jpy,
+          initialSwapRateLong,
+          initialSwapRateShort,
+        ),
+        messages.tradingPairAlreadyWhitelisted,
+      );
+    });
+
+    it('reverts when trading pair tokens are identical', async () => {
+      await expectRevert(
+        protocol.addTradingPair(
+          eur,
+          eur,
+          initialSwapRateLong,
+          initialSwapRateShort,
+        ),
+        messages.tradingPairTokensMustBeDifferent,
+      );
+    });
+
+    it('allows only owner to add a trading pair', async () => {
+      await expectRevert(
+        protocol.addTradingPair(
+          eur,
+          jpy,
+          initialSwapRateLong,
+          initialSwapRateShort,
+          {
+            from: alice,
+          },
+        ),
+        messages.onlyOwner,
+      );
+    });
+  });
+
+  describe('when using setCurrentSwapRate', () => {
+    const LONG = true;
+    const SHORT = false;
+    let newSwapRateLong: BN;
+    let newSwapRateShort: BN;
+
+    beforeEach(() => {
+      newSwapRateLong = bn(123);
+      newSwapRateShort = bn(456);
+    });
+
+    it('sets new currentSwapRate', async () => {
+      await protocol.setCurrentSwapRateForPair(
+        usd.address,
+        eur,
+        newSwapRateLong,
+        newSwapRateShort,
+      );
+      const newStoredSwapRateLong = await protocol.currentSwapRates(
+        usd.address,
+        eur,
+        LONG,
+      );
+      const newStoredSwapRateShort = await protocol.currentSwapRates(
+        usd.address,
+        eur,
+        SHORT,
+      );
+      expect(newStoredSwapRateLong).to.be.bignumber.equals(newSwapRateLong);
+      expect(newStoredSwapRateShort).to.be.bignumber.equals(newSwapRateShort);
+    });
+
+    it('allows only owner to set parameters', async () => {
+      await expectRevert(
+        protocol.setCurrentSwapRateForPair(
+          usd.address,
+          eur,
+          newSwapRateLong,
+          newSwapRateShort,
+          { from: alice },
+        ),
+        messages.onlyOwner,
+      );
+    });
+
+    it('does not allow zero values', async () => {
+      await expectRevert(
+        protocol.setCurrentSwapRateForPair(
+          usd.address,
+          eur,
+          0,
+          newSwapRateShort,
+        ),
+        messages.settingZeroValueNotAllowed,
+      );
+
+      await expectRevert(
+        protocol.setCurrentSwapRateForPair(
+          usd.address,
+          eur,
+          newSwapRateLong,
+          0,
+        ),
+        messages.settingZeroValueNotAllowed,
+      );
+    });
+  });
+
   describe('when handling funds', () => {
     let depositInUsd: BN;
     let depositInIUsd: BN;
@@ -286,7 +393,7 @@ contract('MarginFlowProtocol', accounts => {
     let traderBalanceUsdBefore: BN;
     let moneyMarketBalanceBefore: BN;
     let protocolBalanceBefore: BN;
-    let receipt: Truffle.TransactionResponse<Truffle.AnyEvent>;
+    let receipt: Truffle.TransactionResponse;
 
     beforeEach(async () => {
       depositInUsd = dollar(80);
@@ -301,7 +408,7 @@ contract('MarginFlowProtocol', accounts => {
       protocolBalanceBefore = await iUsd.balanceOf(protocol.address);
     });
 
-    describe.only('when depositing funds', () => {
+    describe('when depositing funds', () => {
       beforeEach(async () => {
         depositInUsd = dollar(80);
 
@@ -420,7 +527,7 @@ contract('MarginFlowProtocol', accounts => {
     expectedTimeWhenOpened: BN;
     baseToken?: string;
     quoteToken?: string;
-    receipt: Truffle.TransactionResponse<Truffle.AnyEvent>;
+    receipt: Truffle.TransactionResponse;
   }) => {
     const position = await protocol.positionsById(id);
     const positionId = position['0'];
@@ -771,7 +878,7 @@ contract('MarginFlowProtocol', accounts => {
     describe('when the leverage is too small', () => {
       beforeEach(async () => {
         leveragedHeldInEuro = bn(100);
-        await protocolConfig.setMinLeverage(5);
+        await protocol.setMinLeverage(5);
       });
 
       describe('when given a short', () => {
@@ -820,7 +927,7 @@ contract('MarginFlowProtocol', accounts => {
     describe('when the leverage is too big', () => {
       beforeEach(async () => {
         leveragedHeldInEuro = bn(100);
-        await protocolConfig.setMaxLeverage(10);
+        await protocol.setMaxLeverage(10);
       });
 
       describe('when given a short', () => {
@@ -956,7 +1063,7 @@ contract('MarginFlowProtocol', accounts => {
     poolBalanceBefore: BN;
     initialAskPrice: BN;
     initialBidPrice: BN;
-    receipt: Truffle.TransactionResponse<Truffle.AnyEvent>;
+    receipt: Truffle.TransactionResponse;
     baseToken?: string;
     quoteToken?: string;
     useMaxRealizable?: boolean;
@@ -1077,7 +1184,7 @@ contract('MarginFlowProtocol', accounts => {
     let traderBalanceBefore: BN;
     let poolLiquidityBefore: BN;
     let poolBalanceBefore: BN;
-    let receipt: Truffle.TransactionResponse<Truffle.AnyEvent>;
+    let receipt: Truffle.TransactionResponse;
 
     beforeEach(async () => {
       leverage = bn(20);
@@ -1457,7 +1564,7 @@ contract('MarginFlowProtocol', accounts => {
 
       describe('when the loss covered by another position', () => {
         beforeEach(async () => {
-          await protocolConfig.setMaxLeverage(leverage.mul(bn(4)));
+          await protocol.setMaxLeverage(leverage.mul(bn(4)));
           await protocol.openPosition(
             liquidityPool.address,
             usd.address,
@@ -2424,6 +2531,55 @@ contract('MarginFlowProtocol', accounts => {
         ),
         messages.marginBidPriceTooLow,
       );
+    });
+  });
+
+  describe('when upgrading the contract', () => {
+    it('upgrades the contract', async () => {
+      const flowMarginProtocolProxy = await Proxy.at(protocol.address);
+      const newMarginFlowProtocolImpl = await MarginFlowProtocolNewVersion.new();
+      await flowMarginProtocolProxy.upgradeTo(
+        newMarginFlowProtocolImpl.address,
+      );
+      const newMarginFlowProtocol = await MarginFlowProtocolNewVersion.at(
+        protocol.address,
+      );
+      const value = bn(345);
+      const firstBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+      const secondBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+      const newValueBefore = await newMarginFlowProtocol.newStorageUint();
+      await newMarginFlowProtocol.addNewStorageBytes32(firstBytes32);
+      await newMarginFlowProtocol.setNewStorageUint(value);
+      await newMarginFlowProtocol.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newMarginFlowProtocol.newStorageUint();
+      const newStorageByte1 = await newMarginFlowProtocol.newStorageBytes32(0);
+      const newStorageByte2 = await newMarginFlowProtocol.newStorageBytes32(1);
+
+      expect(newValueBefore).to.be.bignumber.equal(bn(0));
+      expect(newValueAfter).to.be.bignumber.equal(value);
+      expect(newStorageByte1).to.be.equal(firstBytes32);
+      expect(newStorageByte2).to.be.equal(secondBytes32);
+    });
+
+    it('works with old and new data', async () => {
+      const maxSpread = await protocol.maxSpread();
+
+      const flowMarginProtocolProxy = await Proxy.at(protocol.address);
+      const newMarginFlowProtocolImpl = await MarginFlowProtocolNewVersion.new();
+      await flowMarginProtocolProxy.upgradeTo(
+        newMarginFlowProtocolImpl.address,
+      );
+      const newMarginFlowProtocol = await MarginFlowProtocolNewVersion.at(
+        protocol.address,
+      );
+      const value = bn(345);
+      await newMarginFlowProtocol.setNewStorageUint(value);
+      const maxSpreadPlusNewValue = await newMarginFlowProtocol.getNewValuePlusMaxSpread();
+
+      expect(maxSpreadPlusNewValue).to.be.bignumber.equal(value.add(maxSpread));
     });
   });
 });

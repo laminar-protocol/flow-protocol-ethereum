@@ -22,8 +22,7 @@
       }
     ],
     "name": "PriceFeeded",
-    "type": "event",
-    "signature": "0x3105faf42de9614e0ddc10fabac5d5aaf57cc1632093d5e3e42e89a505edb7c8"
+    "type": "event"
   },
   {
     "anonymous": false,
@@ -42,8 +41,7 @@
       }
     ],
     "name": "PriceUpdated",
-    "type": "event",
-    "signature": "0x0d86730737b142fc160892fa8a0f2db687a92a0e294d1ad70624cf5acef03b84"
+    "type": "event"
   },
   {
     "inputs": [],
@@ -56,9 +54,7 @@
       }
     ],
     "stateMutability": "pure",
-    "type": "function",
-    "constant": true,
-    "signature": "0x66331bba"
+    "type": "function"
   },
   {
     "inputs": [
@@ -77,7 +73,25 @@
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x41976e09"
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "key",
+        "type": "address"
+      }
+    ],
+    "name": "readPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import Web3 from 'web3';
-import { PriceOracleInterfaceInstance } from 'types/truffle-contracts';
 
 const deployTokens = async (
   artifacts: Truffle.Artifacts,
@@ -54,21 +53,6 @@ const getTokensByNetwork = {
   ),
 };
 
-const getChainlinkOraclesByNetwork = {
-  kovan: {
-    JPY: '0xcd93a652e731Bb38eA9Efc5fEbCf977EDa2a01f7',
-    EUR: '0xf23CCdA8333f658c43E7fC19aa00f6F5722eB225',
-    XAU: '0xF1302340da93EdEF6DA03C66bc52F75A956e482C',
-    BTC: '0x2445F2466898565374167859Ae5e3a231e48BB41',
-  },
-  mainnet: {
-    JPY: '0xe1407BfAa6B5965BAd1C9f38316A3b655A09d8A6',
-    EUR: '0x25Fa978ea1a7dc9bDc33a2959B9053EaE57169B5',
-    XAU: '0xafcE0c7b7fE3425aDb3871eAe5c0EC6d93E01935',
-    BTC: '0xF5fff180082d6017036B771bA883025c654BC935',
-  },
-};
-
 const save = (obj: any, filePath: string[]) => {
   const finalPath = path.join(...filePath);
   const dirname = path.dirname(finalPath);
@@ -82,7 +66,6 @@ const save = (obj: any, filePath: string[]) => {
 type Network = keyof typeof getTokensByNetwork;
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
-  const ChainLinkOracle = artifacts.require('ChainLinkOracle');
   const MoneyMarket = artifacts.require('MoneyMarket');
   const Proxy = artifacts.require('Proxy');
   const SyntheticFlowProtocol = artifacts.require('SyntheticFlowProtocol');
@@ -95,10 +78,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const SimplePriceOracle = artifacts.require('SimplePriceOracle');
   const IERC20 = artifacts.require('IERC20');
   const MarginFlowProtocol = artifacts.require('MarginFlowProtocol');
-  const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
-  const MarginFlowProtocolConfig = artifacts.require(
-    'MarginFlowProtocolConfig',
-  );
   const MarginFlowProtocolSafety = artifacts.require(
     'MarginFlowProtocolSafety',
   );
@@ -144,30 +123,14 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // TODO: make price feeder configurable
 
-    let oracle: PriceOracleInterfaceInstance;
+    await deployer.deploy(SimplePriceOracle);
+    const simplePriceOracleImpl = await SimplePriceOracle.deployed();
+    await deployer.deploy(Proxy);
+    const simplePriceOracleProxy = await Proxy.deployed();
+    await simplePriceOracleProxy.upgradeTo(simplePriceOracleImpl.address);
+    const oracle = await SimplePriceOracle.at(simplePriceOracleProxy.address);
 
-    if (network !== 'development') {
-      await deployer.deploy(ChainLinkOracle as any);
-      const chainlinkImpl = await ChainLinkOracle.deployed();
-      await deployer.deploy(Proxy);
-      const chainlinkProxy = await Proxy.deployed();
-      await chainlinkProxy.upgradeTo(chainlinkImpl.address);
-      const chainlink = await ChainLinkOracle.at(chainlinkProxy.address);
-
-      oracle = await PriceOracleInterface.at(chainlink.address);
-    } else {
-      await deployer.deploy(SimplePriceOracle);
-      const simplePriceOracleImpl = await SimplePriceOracle.deployed();
-      await deployer.deploy(Proxy);
-      const simplePriceOracleProxy = await Proxy.deployed();
-      await simplePriceOracleProxy.upgradeTo(simplePriceOracleImpl.address);
-      const simplePriceOracle = await SimplePriceOracle.at(
-        simplePriceOracleProxy.address,
-      );
-      await (simplePriceOracle as any).initialize();
-
-      oracle = await PriceOracleInterface.at(simplePriceOracle.address);
-    }
+    await oracle.initialize();
 
     await deployer.deploy(SyntheticFlowProtocol);
     const flowProtocolImpl = await SyntheticFlowProtocol.deployed();
@@ -176,7 +139,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
     const protocol = await SyntheticFlowProtocol.at(flowProtocolProxy.address);
-    await (protocol as any).initialize(oracle.address, moneyMarket.address);
+    await protocol.initialize(oracle.address, moneyMarket.address);
 
     await deployer.deploy(SyntheticFlowToken);
     const flowTokenImpl = await SyntheticFlowToken.deployed();
@@ -234,65 +197,28 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await protocol.addFlowToken(fXAU.address);
     await protocol.addFlowToken(fAAPL.address);
 
-    // requires cDAI balance, use faucet at http://flow.laminar.one/ | TODO
-    const kovanDeployerAddr = '0x15ae150d7dC03d3B635EE90b85219dBFe071ED35';
-
-    if (network !== 'development') {
-      const chainlinkOracles =
-        getChainlinkOraclesByNetwork[network as 'kovan' | 'mainnet'];
-      const chainlinkOracle = await ChainLinkOracle.at(oracle.address);
-
-      await (chainlinkOracle as any).initialize(
-        '0x0000000000000000000000000000000000000000', // use public default contract
-        chainlinkOracles.EUR,
-        chainlinkOracles.JPY,
-        chainlinkOracles.XAU,
-        chainlinkOracles.BTC, // TODO use BTC as AAPL for now
-        fEUR.address,
-        fJPY.address,
-        fXAU.address,
-        fAAPL.address,
-      );
-    } else {
-      const priceFeeder = accounts[0];
-      const simplePriceOracle = await SimplePriceOracle.at(oracle.address);
-      await simplePriceOracle.addPriceFeeder(priceFeeder);
-      await simplePriceOracle.addPriceFeeder(
-        '0x481c00e62cC701925a676BC713E0E71C692aC46d',
-      ); // kovan oracle server
-      await simplePriceOracle.setExpireIn(172800); // 2 days for now
-      await simplePriceOracle.feedPrice(
-        baseToken.address,
-        web3.utils.toWei('1'),
-        {
-          from: priceFeeder,
-        },
-      );
-      await simplePriceOracle.feedPrice(fEUR.address, web3.utils.toWei('1.2'), {
-        from: priceFeeder,
-      });
-      await simplePriceOracle.feedPrice(
-        fJPY.address,
-        web3.utils.toWei('0.0092'),
-        {
-          from: priceFeeder,
-        },
-      );
-      await simplePriceOracle.feedPrice(
-        fXAU.address,
-        web3.utils.toWei('1490'),
-        {
-          from: priceFeeder,
-        },
-      );
-      await simplePriceOracle.feedPrice(
-        fAAPL.address,
-        web3.utils.toWei('257'),
-        {
-          from: priceFeeder,
-        },
-      );
-    }
+    // set feeder and price
+    const kovanDeployerAddr = '0x15ae150d7dC03d3B635EE90b85219dBFe071ED35'; // requires cDAI balance, use faucet at http://flow.laminar.one/ | TODO
+    const priceFeeder =
+      network === 'development' ? accounts[0] : kovanDeployerAddr;
+    await oracle.addPriceFeeder(priceFeeder);
+    await oracle.addPriceFeeder('0x481c00e62cC701925a676BC713E0E71C692aC46d'); // kovan oracle server
+    await oracle.setExpireIn(172800); // 2 days for now
+    await oracle.feedPrice(baseToken.address, web3.utils.toWei('1'), {
+      from: priceFeeder,
+    });
+    await oracle.feedPrice(fEUR.address, web3.utils.toWei('1.2'), {
+      from: priceFeeder,
+    });
+    await oracle.feedPrice(fJPY.address, web3.utils.toWei('0.0092'), {
+      from: priceFeeder,
+    });
+    await oracle.feedPrice(fXAU.address, web3.utils.toWei('1490'), {
+      from: priceFeeder,
+    });
+    await oracle.feedPrice(fAAPL.address, web3.utils.toWei('257'), {
+      from: priceFeeder,
+    });
 
     // --- pool registry
 
@@ -309,8 +235,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     );
 
     // --- margin protocol
-    await deployer.deploy(MarginMarketLib);
-    await deployer.link(MarginMarketLib, MarginFlowProtocol);
+
     await deployer.deploy(MarginFlowProtocol);
     const flowMarginProtocolImpl = await MarginFlowProtocol.deployed();
     await deployer.deploy(Proxy);
@@ -331,17 +256,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       flowMarginProtocolSafetyProxy.address,
     );
 
-    await deployer.deploy(MarginFlowProtocolConfig);
-    const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.deployed();
-    await deployer.deploy(Proxy);
-    const flowMarginProtocolConfigProxy = await Proxy.deployed();
-    await flowMarginProtocolConfigProxy.upgradeTo(
-      flowMarginProtocolConfigImpl.address,
-    );
-    const marginProtocolConfig = await MarginFlowProtocolConfig.at(
-      flowMarginProtocolConfigProxy.address,
-    );
-
     const initialSwapRate = web3.utils.toWei('1'); // TODO
     const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.03');
     const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.01');
@@ -354,21 +268,17 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await (marginProtocol as any).initialize(
       oracle.address,
       moneyMarket.address,
-      marginProtocolConfig.address,
       marginProtocolSafety.address,
       marginLiquidityPoolRegistry.address,
+      1,
+      50,
+      2,
+      network === 'development' ? 60 * 60 * 24 * 3650 : 60 * 60 * 8, // 8 hours
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolSafety as any).initialize(
       marginProtocol.address,
       kovanDeployerAddr, // TODO laminar treasury
-    );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    await (marginProtocolConfig as any).initialize(
-      1,
-      50,
-      2,
-      network === 'development' ? 60 * 60 * 24 * 3650 : 60 * 60 * 8, // 8 hours
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -377,7 +287,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       initialLiquidityPoolELLLiquidateThreshold,
     );
 
-    await (marginLiquidityPoolRegistry as any).initialize(
+    await marginLiquidityPoolRegistry.initialize(
       moneyMarket.address,
       marginProtocolSafety.address,
     );
@@ -414,10 +324,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       const syntheticPool = await SyntheticLiquidityPool.at(
         syntheticliquidityPoolProxy.address,
       );
-      await (syntheticPool as any).initialize(
-        moneyMarket.address,
-        protocol.address,
-      );
+      await syntheticPool.initialize(moneyMarket.address, protocol.address);
       await syntheticPool.approveToProtocol(web3.utils.toWei('100000000000'));
 
       for (const token of [
@@ -450,10 +357,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       const marginPool = await MarginLiquidityPool.at(
         marginliquidityPoolProxy.address,
       );
-      await (marginPool as any).initialize(
-        moneyMarket.address,
-        marginProtocol.address,
-      );
+      await marginPool.initialize(moneyMarket.address, marginProtocol.address);
       await marginPool.approveToProtocol(web3.utils.toWei('100000000000'));
 
       for (const [base, quote] of [
@@ -468,7 +372,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       ]) {
         await marginPool.enableToken(base, quote, '28152000000000');
         if (i === 0)
-          await marginProtocolConfig.addTradingPair(
+          await marginProtocol.addTradingPair(
             base,
             quote,
             initialSwapRate,
@@ -495,7 +399,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       fAAPL: [fAAPL, SyntheticFlowToken],
       marginProtocol: [marginProtocol, MarginFlowProtocol],
       marginProtocolSafety: [marginProtocolSafety, MarginFlowProtocolSafety],
-      marginProtocolConfig: [marginProtocolConfig, MarginFlowProtocolConfig],
       marginPoolRegistry: [
         marginLiquidityPoolRegistry,
         MarginLiquidityPoolRegistry,

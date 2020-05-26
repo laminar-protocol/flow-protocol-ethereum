@@ -1,5 +1,5 @@
 
-pragma solidity >=0.4.21 <0.7.0;
+pragma solidity >=0.4.21 <=0.6.4;
 
 interface CErc20Interface {
 

@@ -19,7 +19,7 @@ declare module 'openzeppelin-test-helpers' {
   };
   export const constants: any;
   export const expectEvent: (
-    receipt: Truffle.TransactionResponse<Truffle.AnyEvent>,
+    receipt: Truffle.TransactionResponse,
     eventName: string,
     eventArgs: {},
   ) => Promise<any>;

@@ -6,12 +6,11 @@ import {
   SimplePriceOracleInstance,
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
-  MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
-  Ierc20Instance,
+  IERC20Instance,
 } from 'types/truffle-contracts';
 
 import {
@@ -30,9 +29,10 @@ import {
 
 const Proxy = artifacts.require('Proxy');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
-const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
-const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
+const MarginFlowProtocolSafetyNewVersion = artifacts.require(
+  'MarginFlowProtocolSafetyNewVersion',
+);
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
   'MarginLiquidityPoolRegistry',
@@ -52,11 +52,10 @@ contract('MarginFlowProtocolSafety', accounts => {
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
-  let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
-  let iUsd: Ierc20Instance; // eslint-disable-line
+  let iUsd: IERC20Instance; // eslint-disable-line
   let moneyMarket: MoneyMarketInstance;
 
   let initialSpread: BN;
@@ -81,24 +80,13 @@ contract('MarginFlowProtocolSafety', accounts => {
   let initialAskPriceJpy: BN;
   let initialBidPriceJpy: BN;
 
-  before(async () => {
-    const marketLib = await MarginMarketLib.new();
-
-    try {
-      TestMarginFlowProtocol.link(MarginMarketLib);
-    } catch (error) {
-      // running in buidler, use instance
-      TestMarginFlowProtocol.link(marketLib);
-    }
-  });
-
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
     oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
-    await (oracle as any).initialize();
+    await oracle.initialize();
 
     oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
@@ -140,15 +128,6 @@ contract('MarginFlowProtocolSafety', accounts => {
       flowMarginProtocolSafetyProxy.address,
     );
 
-    const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
-    const flowMarginProtocolConfigProxy = await Proxy.new();
-    await flowMarginProtocolConfigProxy.upgradeTo(
-      flowMarginProtocolConfigImpl.address,
-    );
-    protocolConfig = await MarginFlowProtocolConfig.at(
-      flowMarginProtocolConfigProxy.address,
-    );
-
     const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
     const liquidityPoolRegistryProxy = await Proxy.new();
     await liquidityPoolRegistryProxy.upgradeTo(
@@ -161,16 +140,17 @@ contract('MarginFlowProtocolSafety', accounts => {
     await (protocol as any).initialize( // eslint-disable-line
       oracle.address,
       moneyMarket.address,
-      protocolConfig.address,
       protocolSafety.address,
       liquidityPoolRegistry.address,
-    );
-    await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
-    await (protocolConfig as any).initialize(
       1,
       50,
-      2,
+      1,
       60 * 60 * 8, // 8 hours
+    );
+
+    await (protocolSafety as any).initialize(
+      protocol.address,
+      laminarTreasury,
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -179,7 +159,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       initialLiquidityPoolELLLiquidateThreshold,
     );
 
-    await (liquidityPoolRegistry as any).initialize(
+    await liquidityPoolRegistry.initialize(
       moneyMarket.address,
       protocolSafety.address,
     );
@@ -231,7 +211,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       from: liquidityProvider,
     });
     await liquidityPoolRegistry.verifyPool(liquidityPool.address);
-    await protocolConfig.addTradingPair(
+    await protocol.addTradingPair(
       usd.address,
       eur,
       fromPercent(-2),
@@ -256,12 +236,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     await liquidityPool.enableToken(jpy, eur, initialSpread);
     await oracle.feedPrice(jpy, fromPercent(200), { from: owner });
 
-    await protocolConfig.addTradingPair(
-      eur,
-      jpy,
-      fromPercent(1),
-      fromPercent(-1),
-    );
+    await protocol.addTradingPair(eur, jpy, fromPercent(1), fromPercent(-1));
 
     await protocol.deposit(liquidityPool.address, dollar(1000), {
       from: alice,
@@ -335,6 +310,52 @@ contract('MarginFlowProtocolSafety', accounts => {
     await oracle.feedPrice(jpy, fromPercent(150), { from: owner });
     await oracle.feedPrice(eur, fromPercent(140), { from: owner });
   };
+
+  describe('when setting new parameters', () => {
+    for (const setFunction of [
+      'setTraderRiskMarginCallThreshold',
+      'setTraderRiskLiquidateThreshold',
+      'setLiquidityPoolENPMarginThreshold',
+      'setLiquidityPoolELLMarginThreshold',
+      'setLiquidityPoolENPLiquidateThreshold',
+      'setLiquidityPoolELLLiquidateThreshold',
+    ]) {
+      describe(`when using ${setFunction}`, () => {
+        let newParameter: BN;
+
+        beforeEach(() => {
+          newParameter = bn(123);
+        });
+
+        it('sets new parameter', async () => {
+          await (protocolSafety as any)[setFunction](newParameter);
+
+          const setParameter = setFunction
+            .slice(3)
+            .replace(/^\w/, c => c.toLowerCase());
+          const newStoredParameter = await (protocolSafety as any)[
+            setParameter
+          ]();
+
+          expect(newStoredParameter).to.be.bignumber.equals(newParameter);
+        });
+
+        it('allows only owner to set parameters', async () => {
+          await expectRevert(
+            (protocolSafety as any)[setFunction](newParameter, { from: alice }),
+            messages.onlyOwner,
+          );
+        });
+
+        it('does not allow zero values', async () => {
+          await expectRevert(
+            (protocolSafety as any)[setFunction](0),
+            messages.settingZeroValueNotAllowed,
+          );
+        });
+      });
+    }
+  });
 
   describe('when trader pays the fees', () => {
     it('transfers fees to the protocol', async () => {
@@ -1189,6 +1210,30 @@ contract('MarginFlowProtocolSafety', accounts => {
               .div(bn(1e18));
             const penaltyJpy = penaltyJpyLong.add(penaltyJpyShort);
 
+            console.log('leveragedLongEurJpy', leveragedLongEurJpy.toString());
+            console.log('bidSpreadEurJpy', bidSpreadEurJpy.toString());
+            console.log('spreadProfitLong', penaltyJpyLong.toString());
+            console.log(
+              'spreadProfitLongUsd',
+              penaltyJpyLong
+                .mul(initialUsdPrice)
+                .div(bn(1e18))
+                .toString(),
+            );
+
+            console.log({
+              penaltyJpyLong: penaltyJpyLong.toString(),
+              penaltyPairs: penaltyUsd
+                .add(penaltyJpy)
+                .mul(bn(2))
+                .toString(),
+              penaltySingle: parseInt(
+                totalPenalty.mul(bn(2)).toString(),
+                10,
+              ).toString(),
+              treasuryBalance: treasuryBalance.toString(),
+            });
+
             expect(
               penaltyUsd.add(penaltyJpy).mul(bn(2)),
             ).to.be.bignumber.equals(convertToBaseToken(treasuryBalance));
@@ -1543,6 +1588,41 @@ contract('MarginFlowProtocolSafety', accounts => {
           leveragedDebitsEur.add(leveragedDebitsJpy),
         );
       });
+    });
+  });
+
+  describe('when upgrading the contract', () => {
+    it('upgrades the contract', async () => {
+      const flowMarginProtocolSafetyProxy = await Proxy.at(protocol.address);
+      const newFlowMarginProtocolSafetyImpl = await MarginFlowProtocolSafetyNewVersion.new();
+      await flowMarginProtocolSafetyProxy.upgradeTo(
+        newFlowMarginProtocolSafetyImpl.address,
+      );
+      const newFlowMarginProtocolSafety = await MarginFlowProtocolSafetyNewVersion.at(
+        protocol.address,
+      );
+      const value = bn(345);
+      const firstBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc00';
+      const secondBytes32 =
+        '0x18e5f16b91bbe0defc5ee6bc25b514b030126541a8ed2fc0b69402452465cc99';
+
+      const newValueBefore = await newFlowMarginProtocolSafety.newStorageUint();
+      await newFlowMarginProtocolSafety.addNewStorageBytes32(firstBytes32);
+      await newFlowMarginProtocolSafety.setNewStorageUint(value);
+      await newFlowMarginProtocolSafety.addNewStorageBytes32(secondBytes32);
+      const newValueAfter = await newFlowMarginProtocolSafety.newStorageUint();
+      const newStorageByte1 = await newFlowMarginProtocolSafety.newStorageBytes32(
+        0,
+      );
+      const newStorageByte2 = await newFlowMarginProtocolSafety.newStorageBytes32(
+        1,
+      );
+
+      expect(newValueBefore).to.be.bignumber.equal(bn(0));
+      expect(newValueAfter).to.be.bignumber.equal(value);
+      expect(newStorageByte1).to.be.equal(firstBytes32);
+      expect(newStorageByte2).to.be.equal(secondBytes32);
     });
   });
 });

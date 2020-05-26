@@ -72,7 +72,7 @@ dataSources:
       apiVersion: 0.0.3
       language: wasm/assemblyscript
       entities:
-        - MarginFlowProtocol
+        - Price
       abis:
         - name: MarginFlowProtocol
           file: ../build/contracts/MarginFlowProtocol.json
@@ -80,29 +80,9 @@ dataSources:
           file: ../build/contracts/MoneyMarket.json
       file: ./src/mapping.ts
       eventHandlers:
+        - event: NewTradingPair(indexed address,indexed address)
+          handler: handleNewTradingPair
         - event: PositionOpened(uint256,indexed address,indexed address,indexed address,address,int256,int256,uint256)
           handler: handleOpenPosition
         - event: PositionClosed(uint256,indexed address,indexed address,indexed address,address,int256,uint256)
           handler: handleClosePosition
-  - kind: ethereum/contract
-    name: MarginFlowProtocolConfig
-    network: ${ network }
-    source:
-      address: '${ deployment.marginProtocolConfig }'
-      abi: MarginFlowProtocolConfig
-      startBlock: 18264484
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.3
-      language: wasm/assemblyscript
-      entities:
-        - MarginFlowProtocol
-      abis:
-        - name: MarginFlowProtocolConfig
-          file: ../build/contracts/MarginFlowProtocolConfig.json
-        - name: MoneyMarket
-          file: ../build/contracts/MoneyMarket.json
-      file: ./src/mapping.ts
-      eventHandlers:
-        - event: NewTradingPair(indexed address,indexed address)
-          handler: handleNewTradingPair

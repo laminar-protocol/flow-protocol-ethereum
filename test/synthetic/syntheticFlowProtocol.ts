@@ -7,7 +7,7 @@ import {
   TestTokenInstance,
   SyntheticFlowTokenInstance,
   MoneyMarketInstance,
-  Ierc20Instance,
+  IERC20Instance,
 } from 'types/truffle-contracts';
 import {
   createTestToken,
@@ -39,7 +39,7 @@ contract('SyntheticFlowProtocol', accounts => {
   let protocol: SyntheticFlowProtocolInstance;
   let liquidityPool: SyntheticLiquidityPoolInstance;
   let usd: TestTokenInstance;
-  let iUsd: Ierc20Instance;
+  let iUsd: IERC20Instance;
   let fToken: SyntheticFlowTokenInstance;
   let moneyMarket: MoneyMarketInstance;
 
@@ -49,7 +49,7 @@ contract('SyntheticFlowProtocol', accounts => {
     oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
-    await (oracle as any).initialize();
+    await oracle.initialize();
     await oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
@@ -70,7 +70,7 @@ contract('SyntheticFlowProtocol', accounts => {
 
     await flowProtocolProxy.upgradeTo(flowProtocolImpl.address);
     protocol = await SyntheticFlowProtocol.at(flowProtocolProxy.address);
-    await (protocol as any).initialize(oracle.address, moneyMarket.address);
+    await protocol.initialize(oracle.address, moneyMarket.address);
 
     const fTokenImpl = await SyntheticFlowToken.new();
     const fTokenProxy = await Proxy.new();
@@ -164,7 +164,7 @@ contract('SyntheticFlowProtocol', accounts => {
       },
     );
   const balance = (
-    token: Ierc20Instance,
+    token: IERC20Instance,
     addr: string,
     amount: any,
   ) => async () =>

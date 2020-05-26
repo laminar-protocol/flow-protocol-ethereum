@@ -129,7 +129,7 @@
         "type": "address"
       }
     ],
-    "name": "poolHasPaidDeposits",
+    "name": "poolHasPaidFees",
     "outputs": [
       {
         "internalType": "bool",
@@ -140,49 +140,7 @@
     "stateMutability": "view",
     "type": "function",
     "constant": true,
-    "signature": "0xe64bdf9e"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract MarginLiquidityPoolInterface",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "poolLiquidationITokens",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x76d94e1b"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract MarginLiquidityPoolInterface",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "poolMarginCallITokens",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xa1714932"
+    "signature": "0x94ba13c6"
   },
   {
     "inputs": [],
@@ -298,36 +256,10 @@
       }
     ],
     "name": "marginCallPool",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x37a615b5"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract MarginLiquidityPoolInterface",
-        "name": "_pool",
-        "type": "address"
-      }
-    ],
-    "name": "liquidatePool",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x019a3046"
   },
   {
     "inputs": [

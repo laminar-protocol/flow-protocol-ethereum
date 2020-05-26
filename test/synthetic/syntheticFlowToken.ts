@@ -4,7 +4,7 @@ import {
   TestTokenInstance,
   SyntheticFlowTokenInstance,
   MoneyMarketInstance,
-  Ierc20Instance,
+  IERC20Instance,
 } from 'types/truffle-contracts';
 import {
   createTestToken,
@@ -26,7 +26,7 @@ contract('SyntheticFlowToken', accounts => {
   const alice = accounts[3];
 
   let usd: TestTokenInstance;
-  let iUsd: Ierc20Instance;
+  let iUsd: IERC20Instance;
   let fToken: SyntheticFlowTokenInstance;
   let moneyMarket: MoneyMarketInstance;
 

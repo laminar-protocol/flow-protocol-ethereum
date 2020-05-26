@@ -24,9 +24,8 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
     }
 
     modifier onlyProtocolSafety() {
-        (,,,MarginFlowProtocolSafety safety,,) = MarginFlowProtocol(protocol).market();
         require(
-            msg.sender == address(safety),
+            msg.sender == address(MarginFlowProtocol(protocol).safetyProtocol()),
             "Ownable: caller is not the protocol safety"
         );
         _;
@@ -54,14 +53,11 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
     }
 
     function increaseAllowanceForProtocolSafety(uint _iTokenAmount) external override onlyProtocolSafety {
-        (,,,MarginFlowProtocolSafety safety,,) = MarginFlowProtocol(protocol).market();
-        address safetyProtocol = address(safety);
+        address safetyProtocol = address(MarginFlowProtocol(protocol).safetyProtocol());
         moneyMarket.iToken().safeIncreaseAllowance(safetyProtocol, _iTokenAmount);
     }
 
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
-        (,,,MarginFlowProtocolSafety safety,,) = MarginFlowProtocol(protocol).market();
-
         int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
         if (protocolBalance > 0) {
             MarginFlowProtocol(protocol).withdrawForPool(uint256(protocolBalance));
@@ -69,7 +65,7 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
 
         uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
         require(
-            safety.isPoolSafe(MarginLiquidityPoolInterface(this)),
+            MarginFlowProtocol(protocol).safetyProtocol().isPoolSafe(MarginLiquidityPoolInterface(this)),
             "Pool not safe after withdrawal"
         );
 

@@ -2,7 +2,6 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
 import "../../impls/margin/MarginFlowProtocol.sol";
-import "../../impls/margin/MarginMarketLib.sol";
 
 contract TestMarginFlowProtocol is MarginFlowProtocol {
     function getUnrealizedPlAndMarketPriceOfPosition(
@@ -12,7 +11,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         int256 _leverage,
         int256 _leveragedHeld,
         int256 _leveragedDebits,
-        uint256 _maxPrice
+        uint256 maxPrice
     ) public returns(int256, uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
         Position memory position = Position(
@@ -29,41 +28,28 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
             0
         );
 
-        (int256 unrealized, Percentage.Percent memory price) = MarginMarketLib.getUnrealizedPlAndMarketPriceOfPosition(
-            market,
-            position,
-            _maxPrice
-        );
+        (int256 unrealized, Percentage.Percent memory price) = _getUnrealizedPlAndMarketPriceOfPosition(position, maxPrice);
 
         return (unrealized, price.value);
-    }
-
-    function getPrice(address _base, address _quote) public returns (Percentage.Percent memory) {
-        return MarginMarketLib.getPriceForPair(market, _base, _quote);
-    }
-
-    function getUsdValue(address _base, int256 _amount) public returns (int256) {
-        return MarginMarketLib.getUsdValue(market, _base, _amount);
     }
 
     function getAskPrice(MarginLiquidityPoolInterface _pool, address _base, address _quote, uint256 _max) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
-        return MarginMarketLib.getAskPrice(market, _pool, pair, _max).value;
+        return _getAskPrice(_pool, pair, _max).value;
     }
 
     function getBidPrice(MarginLiquidityPoolInterface _pool, address _base, address _quote, uint256 _min) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
-        return MarginMarketLib.getBidPrice(market, _pool, pair, _min).value;
+        return _getBidPrice(_pool, pair, _min).value;
     }
 
     function removePositionFromPoolList(MarginLiquidityPoolInterface _pool, uint256 _positionId) public {
         TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
         Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.SignedPercent(0), 0);
 
-        _removePositionFromList(positionsByPoolAndTrader[position.pool][position.owner], position.id);
-        _removePositionFromList(positionsByPool[position.pool], position.id);
+        _removePositionFromLists(position);
     }
 
     function getPositionsByPool(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256[] memory) {
@@ -78,13 +64,11 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
     }
 
     function getSwapRatesOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
-        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
-        return MarginMarketLib.getSwapRatesOfTrader(market, positions);
+        return _getSwapRatesOfTrader(_pool, _trader);
     }
 
     function getUnrealizedPlOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
-        Position[] memory positions = positionsByPoolAndTrader[_pool][_trader];
-        return MarginMarketLib.getUnrealizedPlOfTrader(market, positions);
+        return _getUnrealizedPlOfTrader(_pool, _trader);
     }
 
     function getAccumulatedSwapRateFromParameters(
