@@ -705,7 +705,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "additionaMinted",
+        "name": "additionalMinted",
         "type": "uint256"
       },
       {
