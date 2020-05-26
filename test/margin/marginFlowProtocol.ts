@@ -72,7 +72,13 @@ contract('MarginFlowProtocol', accounts => {
 
   before(async () => {
     const marketLib = await MarginMarketLib.new();
-    TestMarginFlowProtocol.link(marketLib);
+
+    try {
+      TestMarginFlowProtocol.link(MarginMarketLib);
+    } catch (error) {
+      // running in buidler, use instance
+      TestMarginFlowProtocol.link(marketLib);
+    }
   });
 
   beforeEach(async () => {
@@ -295,7 +301,7 @@ contract('MarginFlowProtocol', accounts => {
       protocolBalanceBefore = await iUsd.balanceOf(protocol.address);
     });
 
-    describe('when depositing funds', () => {
+    describe.only('when depositing funds', () => {
       beforeEach(async () => {
         depositInUsd = dollar(80);
 
