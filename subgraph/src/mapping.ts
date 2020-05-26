@@ -11,10 +11,10 @@ import {
 } from '../generated/SyntheticFlowProtocol/SyntheticFlowProtocol';
 import { SyntheticFlowToken } from '../generated/SyntheticFlowProtocol/SyntheticFlowToken';
 import {
-  NewTradingPair,
   PositionOpened,
   PositionClosed,
 } from '../generated/MarginFlowProtocol/MarginFlowProtocol';
+import { NewTradingPair } from '../generated/MarginFlowProtocolConfig/MarginFlowProtocolConfig';
 import { MoneyMarket } from '../generated/MarginFlowProtocol/MoneyMarket';
 import {
   PriceFeeded,
@@ -167,7 +167,7 @@ export function handleFlowTokenWithdrew(event: FlowTokenWithdrew): void {
 export function handlePriceFeeded(event: PriceFeeded): void {
   let price = new PriceEntity(event.params.addr.toHex());
   let oracle = PriceOracleInterface.bind(event.address);
-  let value = oracle.readPrice(event.params.addr).divDecimal(one);
+  let value = oracle.getPrice(event.params.addr).divDecimal(one);
   price.value = value;
   price.updatedAt = event.block.timestamp.toI32();
   price.save();

@@ -1,9 +1,11 @@
 pragma solidity ^0.6.4;
-import "../interfaces/PriceOracleInterface.sol";
-import "../impls/PriceOracleConfig.sol";
-import "../libs/Percentage.sol";
-import "../roles/PriceFeederRole.sol";
-import "../libs/Arrays.sol";
+
+import "../../interfaces/PriceOracleInterface.sol";
+import "../../roles/PriceFeederRole.sol";
+import "../../libs/Arrays.sol";
+import "../../libs/Percentage.sol";
+
+import "./PriceOracleConfig.sol";
 
 library PriceOracleStructs {
     struct PriceRecord {
@@ -86,7 +88,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function readPrice(address key) external view override returns (uint) {
+    function readPrice(address key) external view returns (uint) {
         if (hasUpdate[key]) {
             uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {

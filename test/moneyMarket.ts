@@ -5,7 +5,7 @@ import { expect } from 'chai';
 import {
   TestTokenInstance,
   MoneyMarketInstance,
-  IERC20Instance,
+  Ierc20Instance,
   TestCTokenInstance,
 } from 'types/truffle-contracts';
 import {
@@ -25,7 +25,7 @@ contract('MoneyMarket', accounts => {
   const bob = accounts[2];
   const badAddress = accounts[3];
   let usd: TestTokenInstance;
-  let iToken: IERC20Instance;
+  let iToken: Ierc20Instance;
   let cToken: TestCTokenInstance;
   let moneyMarket: MoneyMarketInstance;
 
@@ -41,7 +41,7 @@ contract('MoneyMarket', accounts => {
   });
 
   const expectBalances = async (
-    token: IERC20Instance | TestCTokenInstance | TestTokenInstance,
+    token: Ierc20Instance | TestCTokenInstance | TestTokenInstance,
     address: string | { address: string },
     value: number | string,
   ) =>
