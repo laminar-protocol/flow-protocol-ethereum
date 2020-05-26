@@ -28,58 +28,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "approveToProtocol",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "moneyMarket",
-    "outputs": [
-      {
-        "internalType": "contract MoneyMarketInterface",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "protocol",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "_realized",
         "type": "uint256"
       }
@@ -103,21 +51,14 @@
         "type": "uint256"
       }
     ],
-    "name": "increaseAllowanceForProtocol",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
+    "name": "withdrawLiquidity",
+    "outputs": [
       {
         "internalType": "uint256",
-        "name": "_realized",
+        "name": "",
         "type": "uint256"
       }
     ],
-    "name": "increaseAllowanceForProtocolSafety",
-    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -150,7 +91,7 @@
         "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

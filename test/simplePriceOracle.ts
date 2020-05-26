@@ -28,7 +28,7 @@ contract('SimplePriceOracle', accounts => {
     oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
-    await (oracle as any).initialize();
+    await oracle.initialize();
     await oracle.addPriceFeeder(priceFeeder);
   });
 

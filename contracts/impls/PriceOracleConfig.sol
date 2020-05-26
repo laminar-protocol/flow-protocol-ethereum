@@ -2,8 +2,8 @@ pragma solidity ^0.6.4;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 
-import "../../libs/upgrades/UpgradeOwnable.sol";
-import "../../libs/Percentage.sol";
+import "../libs/upgrades/UpgradeOwnable.sol";
+import "../libs/Percentage.sol";
 
 contract PriceOracleConfig is Initializable, UpgradeOwnable {
     // max price diff since last input

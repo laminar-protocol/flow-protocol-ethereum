@@ -6,7 +6,6 @@ import BN from 'bn.js';
 
 import erc20Abi from '../../artifacts/development/abi/ERC20Detailed.json';
 import flowMarginProtocolAbi from '../../artifacts/development/abi/MarginFlowProtocol.json';
-import flowMarginProtocolConfigAbi from '../../artifacts/development/abi/MarginFlowProtocolConfig.json';
 import flowMarginProtocolSafetyAbi from '../../artifacts/development/abi/MarginFlowProtocolSafety.json';
 import poolAbi from '../../artifacts/development/abi/MarginLiquidityPoolInterface.json';
 import priceOracleAbi from '../../artifacts/development/abi/SimplePriceOracle.json';
@@ -31,11 +30,6 @@ const flowMarginProtocolAddress = deployment.marginProtocol;
 const flowMarginProtocolContract = new web3.eth.Contract(
   flowMarginProtocolAbi as any,
   flowMarginProtocolAddress,
-);
-const flowMarginProtocolConfigAddress = deployment.marginProtocolConfig;
-const flowMarginProtocolConfigContract = new web3.eth.Contract(
-  flowMarginProtocolConfigAbi as any,
-  flowMarginProtocolConfigAddress,
 );
 const flowMarginProtocolSafetyAddress = deployment.marginProtocolSafety;
 const flowMarginProtocolSafetyContract = new web3.eth.Contract(
@@ -427,10 +421,10 @@ Given(
   /margin set min leveraged amount to \$(\d*)/,
   async (leveragedAmount: string) => {
     await sendTx({
-      contractMethod: flowMarginProtocolConfigContract.methods.setMinLeverageAmount(
+      contractMethod: flowMarginProtocolContract.methods.setMinLeverageAmount(
         leveragedAmount,
       ),
-      to: flowMarginProtocolConfigAddress,
+      to: flowMarginProtocolAddress,
     });
   },
 );
@@ -439,10 +433,10 @@ Given(
   /margin set default min leveraged amount to \$(\d*)/,
   async (defaultMinLeveragedAmount: string) => {
     await sendTx({
-      contractMethod: flowMarginProtocolConfigContract.methods.setMinLeverageAmount(
+      contractMethod: flowMarginProtocolContract.methods.setMinLeverageAmount(
         defaultMinLeveragedAmount,
       ),
-      to: flowMarginProtocolConfigAddress,
+      to: flowMarginProtocolAddress,
     });
   },
 );
@@ -454,13 +448,13 @@ Given('margin set swap rate', async (table: TableDefinition) => {
     const shortSpread = parseSwapRate(short);
 
     await sendTx({
-      contractMethod: flowMarginProtocolConfigContract.methods.setCurrentSwapRateForPair(
+      contractMethod: flowMarginProtocolContract.methods.setCurrentSwapRateForPair(
         baseAddress,
         quoteAddress,
         longSwapRate,
         shortSpread,
       ),
-      to: flowMarginProtocolConfigAddress,
+      to: flowMarginProtocolAddress,
     });
   }
 });
@@ -494,10 +488,10 @@ Given(/margin execute block (\d*)..(\d*)/, async (from: string, to: string) => {
 
   await increaseTimeBy(swapTimes * swapUnit + 1);
   await sendTx({
-    contractMethod: flowMarginProtocolConfigContract.methods.setMinLeverageAmount(
+    contractMethod: flowMarginProtocolContract.methods.setMinLeverageAmount(
       100,
     ),
-    to: flowMarginProtocolConfigAddress,
+    to: flowMarginProtocolAddress,
   });
 });
 
@@ -507,23 +501,23 @@ Then(
     const { baseAddress, quoteAddress } = parseTradingPair(tradingPair);
 
     const swapRate = parseSwapRate(additionalSwapRate);
-    const currentLongSwapRate = await flowMarginProtocolConfigContract.methods
+    const currentLongSwapRate = await flowMarginProtocolContract.methods
       .currentSwapRates(baseAddress, quoteAddress, true)
       .call();
-    const currentShortSwapRate = await flowMarginProtocolConfigContract.methods
+    const currentShortSwapRate = await flowMarginProtocolContract.methods
       .currentSwapRates(baseAddress, quoteAddress, false)
       .call();
     const newLongSwapRate = new BN(currentLongSwapRate).add(swapRate);
     const newShortwapRate = new BN(currentShortSwapRate).add(swapRate);
 
     await sendTx({
-      contractMethod: flowMarginProtocolConfigContract.methods.setCurrentSwapRateForPair(
+      contractMethod: flowMarginProtocolContract.methods.setCurrentSwapRateForPair(
         baseAddress,
         quoteAddress,
         newLongSwapRate,
         newShortwapRate,
       ),
-      to: flowMarginProtocolConfigAddress,
+      to: flowMarginProtocolAddress,
     });
   },
 );
@@ -531,19 +525,19 @@ Then(
 Given(/margin enable trading pair (\D*)/, async (tradingPair: string) => {
   const { baseAddress, quoteAddress } = parseTradingPair(tradingPair);
 
-  const isWhitelisted = await flowMarginProtocolConfigContract.methods
+  const isWhitelisted = await flowMarginProtocolContract.methods
     .tradingPairWhitelist(baseAddress, quoteAddress)
     .call();
 
   if (!isWhitelisted)
     await sendTx({
-      contractMethod: flowMarginProtocolConfigContract.methods.addTradingPair(
+      contractMethod: flowMarginProtocolContract.methods.addTradingPair(
         baseAddress,
         quoteAddress,
         1,
         1,
       ),
-      to: flowMarginProtocolConfigAddress,
+      to: flowMarginProtocolAddress,
     });
 });
 

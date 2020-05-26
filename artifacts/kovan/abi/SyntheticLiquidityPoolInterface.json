@@ -27,57 +27,10 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "approveToProtocol",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "moneyMarket",
-    "outputs": [
-      {
-        "internalType": "contract MoneyMarketInterface",
-        "name": "",
+        "internalType": "contract SyntheticFlowProtocol",
+        "name": "protocol",
         "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "protocol",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
+      },
       {
         "internalType": "contract SyntheticFlowToken",
         "name": "token",
@@ -96,6 +49,11 @@
   },
   {
     "inputs": [
+      {
+        "internalType": "contract SyntheticFlowProtocol",
+        "name": "protocol",
+        "type": "address"
+      },
       {
         "internalType": "contract SyntheticFlowToken",
         "name": "token",
