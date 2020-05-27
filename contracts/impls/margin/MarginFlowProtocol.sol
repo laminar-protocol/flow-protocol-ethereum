@@ -459,11 +459,11 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     ) internal {
         int256 heldSignum = _leverage > 0 ? int256(1) :  int256(-1);
         uint256 leveragedDebits = _leveragedHeld.mulPercent(_debitsPrice);
-        uint256 leveragedHeldInUsd = uint256(
+        uint256 leveragedDebitsInUsd = uint256(
             market.getUsdValue(_pair.base, int256(leveragedDebits))
         );
         uint256 marginHeld = uint256(
-            int256(leveragedHeldInUsd)
+            int256(leveragedDebitsInUsd)
                 .mul(_leverage > 0 ? int256(1) :  int256(-1))
                 .div(_leverage)
         );
@@ -474,14 +474,14 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE]
                 .add(leveragedDebits);
             poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
-                .add(leveragedHeldInUsd);
+                .add(leveragedDebitsInUsd);
         } else {
             poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
                 .add(_leveragedHeld);
             poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE]
                 .add(leveragedDebits);
             poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
-                .add(leveragedHeldInUsd);
+                .add(leveragedDebitsInUsd);
         }
 
         Position memory position = _createPosition(
@@ -490,7 +490,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             _leverage,
             _leveragedHeld,
             leveragedDebits,
-            leveragedHeldInUsd,
+            leveragedDebitsInUsd,
             marginHeld
         );
 
@@ -508,7 +508,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             _pair.base,
             _pair.quote,
             _leverage,
-            int256(leveragedHeldInUsd).mul(heldSignum.mul(-1)),
+            int256(leveragedDebitsInUsd).mul(heldSignum.mul(-1)),
             _debitsPrice.value
         );
     }
