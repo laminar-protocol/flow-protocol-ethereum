@@ -1,0 +1,55 @@
+{
+    "name": "ACME", 
+    "initialDeposit": "1000000$",
+    "tradingPairs": [
+        {
+            "name": "EURUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.001"
+        },
+        {
+            "name": "AUDUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.001"
+        },
+        {
+            "name": "USDCAD",
+            "minLeveragedAmount": "700$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.001"
+        },
+        {
+            "name": "USDCHF",
+            "minLeveragedAmount": "483Fr",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.001"
+        },
+        {
+            "name": "USDJPY",
+            "minLeveragedAmount": "53768¥",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.004"
+        },
+        {
+            "name": "XAUUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.6"
+        },
+        {
+            "name": "USOILUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "1.0"
+        }
+    ]
+}

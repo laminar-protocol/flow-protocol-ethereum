@@ -1,0 +1,69 @@
+{
+    "name": "General", 
+    "initialDeposit": "1000000$",
+    "tradingPairs": [
+        {
+            "name": "EURUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.0008"
+        },
+        {
+            "name": "AUDUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.0008"
+        },
+        {
+            "name": "USDCAD",
+            "minLeveragedAmount": "700$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.0008"
+        },
+        {
+            "name": "USDCHF",
+            "minLeveragedAmount": "483Fr",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.0008"
+        },
+        {
+            "name": "USDJPY",
+            "minLeveragedAmount": "53768¥",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.006"
+        },
+        {
+            "name": "XAUUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.006"
+        },
+        {
+            "name": "USOILUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.8"
+        },
+        {
+            "name": "BTCUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "6"
+        },
+        {
+            "name": "ETHUSD",
+            "minLeveragedAmount": "500$",
+            "minLeverage": "5x",
+            "maxLeverage": "20x",
+            "additionalSwap": "0.08"
+        }
+    ]
+}

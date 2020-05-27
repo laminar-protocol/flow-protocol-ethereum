@@ -1,0 +1,44 @@
+{
+    "config": {
+        "maxSpread": "0.01$",
+        "traderMarginCall": "7%",
+        "traderStopOut": "4%",
+        "enpMarginCall": "60%",
+        "enpStopOut": "30%",
+        "ellMarginCall": "20%",
+        "ellStopOut": "5%",
+        "traderMarginCallDeposit": "100$",
+        "traderStopOutDeposit": "100$",
+        "poolMarginCallDeposit": "300$",
+        "poolStopOutDeposit": "1000$"
+    },
+    "tradingPairs": [
+        {
+            "type": "fiat",
+            "swapRateUnit": "24 hours",
+            "swapRateLong": "1/10000",
+            "swapRateShort": "-1/10000",
+            "names": [
+                "EURUSD",
+                "USDJPY",
+                "USDEUR",
+                "USDXAU",
+                "USDAUD",
+                "USDGBP",
+                "USDCAD",
+                "USDUSOIL",
+                "USDAPL"
+            ]
+        },
+        {
+            "type": "crypto",
+            "swapRateUnit": "8 hours",
+            "swapRateLong": "0.0001",
+            "swapRateShort": "-0.0001",
+            "names": [
+                "USDBTC",
+                "USDETH"
+            ]
+        }
+    ]
+}

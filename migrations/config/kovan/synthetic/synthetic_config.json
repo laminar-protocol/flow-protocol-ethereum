@@ -1,0 +1,26 @@
+[
+    {
+        "additional collateral": "10%",
+        "liquidation ratio": "5%",
+        "extreme ratio": "1%",
+        "names": [
+            "fEUR",
+            "fJPY",
+            "fAUD",
+            "fCAD",
+            "fCHF",
+            "fXAU",
+            "fGBP"
+        ]
+    },
+    {
+        "additional collateral": "50%",
+        "liquidation ratio": "10%",
+        "extreme ratio": "5%",
+        "names": [
+            "fOIL,",
+            "fBTC",
+            "fETH"
+        ]
+    }
+]
