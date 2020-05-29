@@ -41,7 +41,10 @@ contract SyntheticFlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
         string memory _name,
         string memory _symbol,
         MoneyMarketInterface _moneyMarket,
-        address _protocol
+        address _protocol,
+        uint _extremeCollateralRatio,
+        uint _liquidationCollateralRatio,
+        uint _defaultCollateralRatio
     ) public initializer {
         ProtocolOwnable.initialize(_protocol);
         ERC20DetailedUpgradable.initialize(_name, _symbol, 18);
@@ -50,10 +53,9 @@ contract SyntheticFlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
 
         moneyMarket.iToken().safeApprove(_protocol, MAX_UINT);
 
-        // TODO: from constructor parameter
-        extremeCollateralRatio = Percentage.fromFraction(1, 100);
-        liquidationCollateralRatio = Percentage.fromFraction(5, 100);
-        defaultCollateralRatio = Percentage.fromFraction(10, 100);
+        extremeCollateralRatio = Percentage.Percent(_extremeCollateralRatio);
+        liquidationCollateralRatio = Percentage.Percent(_liquidationCollateralRatio);
+        defaultCollateralRatio = Percentage.Percent(_defaultCollateralRatio);
     }
 
     function setLiquidationCollateralRatio(uint percent) external onlyProtocol {
