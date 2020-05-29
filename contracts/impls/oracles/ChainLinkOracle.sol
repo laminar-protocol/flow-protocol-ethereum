@@ -9,20 +9,18 @@ import "../../interfaces/PriceOracleInterface.sol";
 import "../../libs/upgrades/UpgradeOwnable.sol";
 
 contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable, UpgradeOwnable {
-    mapping (address => AggregatorInterface) private aggregators;
+    mapping (address => AggregatorInterface) public aggregators;
+    address public usdToken;
 
     function initialize(
         address _link,
-        address _eurRef,
-        address _jpyRef,
-        address _xauRef,
-        address _aaplRef,
-        address _eurToken,
-        address _jpyToken,
-        address _xauToken,
-        address _aaplToken
+        address _usdToken,
+        address[] memory _currencyReferences,
+        address[] memory _tokenReferences
     ) public initializer {
         UpgradeOwnable.initialize(msg.sender);
+
+        require(_currencyReferences.length == _tokenReferences.length, "Token count must match oracle count");
 
         if(_link == address(0)) {
             setPublicChainlinkToken();
@@ -30,10 +28,11 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
             setChainlinkToken(_link);
         }
 
-        aggregators[_eurToken] = AggregatorInterface(_eurRef);
-        aggregators[_jpyToken] = AggregatorInterface(_jpyRef);
-        aggregators[_xauToken] = AggregatorInterface(_xauRef);
-        aggregators[_aaplToken] = AggregatorInterface(_aaplRef);
+        usdToken = _usdToken;
+
+        for (uint256 i = 0; i < _currencyReferences.length; i++) {
+            aggregators[_tokenReferences[i]] = AggregatorInterface(_currencyReferences[i]);
+        }
     }
 
     function setOracleAddress(address _token, address _aggregator) public onlyOwner {
@@ -41,6 +40,12 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
     }
 
     function getPrice(address _key) public override returns (uint256) {
+        if (_key == usdToken) {
+            return 1e18;
+        }
+
+        require(address(aggregators[_key]) != address(0), "Invalid token address for oracle");
+
         int256 price = aggregators[_key].latestAnswer();
         require(price > 0, "no price available");
 
