@@ -1,0 +1,14 @@
+{
+    "name": "XYZ", 
+    "initialDeposit": "500000$",
+    "tradingPairs": [
+        {
+            "name": "BTC",
+            "spread": "6"
+        },
+        {
+            "name": "ETH",
+            "spread": "0.08"
+        }
+    ]
+}
