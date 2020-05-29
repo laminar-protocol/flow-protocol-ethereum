@@ -3,18 +3,12 @@
     "initialDeposit": "500000$",
     "tradingPairs": [
         {
-            "name": "BTCUSD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "additionalSwap": "6"
+            "name": "BTC",
+            "spread": "6"
         },
         {
-            "name": "ETHUSD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "additionalSwap": "0.08"
+            "name": "ETH",
+            "spread": "0.08"
         }
     ]
 }

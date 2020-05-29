@@ -3,53 +3,60 @@
     "initialDeposit": "1000000$",
     "tradingPairs": [
         {
-            "name": "EURUSD",
+            "name": "EUR/USD",
             "minLeveragedAmount": "500$",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "0.001"
+            "spread": "0.001",
+            "additionalSwap": "10%"
         },
         {
-            "name": "AUDUSD",
+            "name": "AUD/USD",
             "minLeveragedAmount": "500$",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "0.001"
+            "spread": "0.001",
+            "additionalSwap": "10%"
         },
         {
-            "name": "USDCAD",
+            "name": "USD/CAD",
             "minLeveragedAmount": "700$",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "0.001"
+            "spread": "0.001",
+            "additionalSwap": "10%"
         },
         {
-            "name": "USDCHF",
+            "name": "USD/CHF",
             "minLeveragedAmount": "483Fr",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "0.001"
+            "spread": "0.001",
+            "additionalSwap": "10%"
         },
         {
-            "name": "USDJPY",
+            "name": "USD/JPY",
             "minLeveragedAmount": "53768¥",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "0.004"
+            "spread": "0.004",
+            "additionalSwap": "10%"
         },
         {
-            "name": "XAUUSD",
+            "name": "XAU/USD",
             "minLeveragedAmount": "500$",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "0.6"
+            "spread": "0.6",
+            "additionalSwap": "10%"
         },
         {
-            "name": "USOILUSD",
+            "name": "USOIL/USD",
             "minLeveragedAmount": "500$",
             "minLeverage": "5x",
             "maxLeverage": "20x",
-            "additionalSwap": "1.0"
+            "spread": "1.0",
+            "additionalSwap": "10%"
         }
     ]
 }
