@@ -110,8 +110,7 @@ const readDeploymentConfig = (network: Network) => {
     },
     synthetic: { config: [], pools: [] },
   };
-
-  const configPath = path.join(`migrations/config/${network}/`);
+  const configPath = path.join(__dirname, `config/${network}/`);
   const marginPath = path.join(`${configPath}/margin/`);
   const syntheticPath = path.join(`${configPath}/synthetic/`);
   const marginPoolPath = path.join(`${marginPath}/margin_pools/`);
