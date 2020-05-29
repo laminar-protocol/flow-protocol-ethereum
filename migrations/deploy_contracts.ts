@@ -563,7 +563,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
       for (const pair of (marginPoolConfig as any).tradingPairs) {
         const [baseSymbol, quoteSymbol] = pair.name.split('/');
-        console.log({ baseSymbol, quoteSymbol });
         const base =
           baseSymbol === 'USD'
             ? baseToken.address
@@ -581,7 +580,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
         // TODO minLeveragedAmount, minLeverage, maxLeverage, additionalSwap
 
-        console.log({ base, quote, spread });
         await marginPool.enableToken(base, quote, spread);
       }
 
