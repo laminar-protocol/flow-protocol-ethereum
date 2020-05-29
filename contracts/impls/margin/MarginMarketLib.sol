@@ -269,7 +269,7 @@ library MarginMarketLib {
         MarginFlowProtocol.TradingPair memory _pair,
         uint256[4] memory _pairValues
     ) public returns (int256) {
-        (int256 longUnrealized,) = getUnrealizedPlForParams(
+        (int256 longUnrealized,) = _pairValues[2] > 0 ? getUnrealizedPlForParams(
             self,
             _pool,
             _pair,
@@ -277,8 +277,8 @@ library MarginMarketLib {
             int256(_pairValues[2]),
             1,
             0
-        );
-        (int256 shortUnrealized,) = getUnrealizedPlForParams(
+        ) : (int256(0), Percentage.Percent(0));
+        (int256 shortUnrealized,) = _pairValues[3] > 0 ? getUnrealizedPlForParams(
             self,
             _pool,
             _pair,
@@ -286,7 +286,7 @@ library MarginMarketLib {
             int256(_pairValues[3]).mul(-1),
             -1,
             0
-        );
+        ) : (int256(0), Percentage.Percent(0));
 
         return longUnrealized.add(shortUnrealized);
     }
