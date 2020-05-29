@@ -1,5 +1,5 @@
 {
-    "maxSpread": "10$",
+    "maxSpread": "0.1$",
     "traderMarginCall": "3%",
     "traderStopOut": "1%",
     "enpMarginCall": "30%",

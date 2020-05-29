@@ -151,6 +151,7 @@ contract('MarginFlowProtocol', accounts => {
     );
     await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
     await (protocolConfig as any).initialize(
+      dollar('0.1'),
       1,
       50,
       2,
