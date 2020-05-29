@@ -59,6 +59,7 @@ const getTokensByNetwork = {
   ),
 };
 
+const ALL_CURRENCIES_DEVELOPMENT = ['EUR', 'JPY', 'XAU'];
 const ALL_CURRENCIES_KOVAN = [
   'EUR',
   'JPY',
@@ -364,7 +365,27 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
           from: priceFeeder,
         },
       );
-      // TODO local price oracle
+      await simplePriceOracle.feedPrice(
+        fTokensMapping.fEUR.address,
+        web3.utils.toWei('1.2'),
+        {
+          from: priceFeeder,
+        },
+      );
+      await simplePriceOracle.feedPrice(
+        fTokensMapping.fJPY.address,
+        web3.utils.toWei('0.0092'),
+        {
+          from: priceFeeder,
+        },
+      );
+      await simplePriceOracle.feedPrice(
+        fTokensMapping.fXAU.address,
+        web3.utils.toWei('1490'),
+        {
+          from: priceFeeder,
+        },
+      );
     }
 
     // --- pool registry
@@ -588,9 +609,12 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       marginPools.push(marginPool);
     }
 
-    const fTokensDeployment = ALL_CURRENCIES_KOVAN.reduce((acc, key) => {
+    const fTokensDeployment = (network === 'development'
+      ? ALL_CURRENCIES_DEVELOPMENT
+      : ALL_CURRENCIES_KOVAN
+    ).reduce((acc, key) => {
       const current = {
-        [key]: [fTokensMapping[`f${key}`], SyntheticFlowToken],
+        [`f${key}`]: [fTokensMapping[`f${key}`], SyntheticFlowToken],
       };
 
       return { ...acc, ...current };

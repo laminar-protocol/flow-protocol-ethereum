@@ -1,78 +1,70 @@
 {
     "name": "General", 
-    "initialDeposit": "1000000$",
+    "initialDeposit": "20000$",
     "tradingPairs": [
         {
             "name": "EUR/USD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.0008",
-            "additionalSwap": "10%"
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
         },
         {
-            "name": "AUD/USD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.0008",
-            "additionalSwap": "10%"
+            "name": "USD/EUR",
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
         },
         {
-            "name": "USD/CAD",
-            "minLeveragedAmount": "700$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.0008",
-            "additionalSwap": "10%"
-        },
-        {
-            "name": "USD/CHF",
-            "minLeveragedAmount": "483Fr",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.0008",
-            "additionalSwap": "10%"
+            "name": "JPY/USD",
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
         },
         {
             "name": "USD/JPY",
-            "minLeveragedAmount": "53768¥",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.006",
-            "additionalSwap": "10%"
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
+        },
+        {
+            "name": "JPY/EUR",
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
+        },
+        {
+            "name": "EUR/JPY",
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
         },
         {
             "name": "XAU/USD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.006",
-            "additionalSwap": "10%"
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
         },
         {
-            "name": "USOIL/USD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.8",
-            "additionalSwap": "10%"
-        },
-        {
-            "name": "BTC/USD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "6",
-            "additionalSwap": "10%"
-        },
-        {
-            "name": "ETH/USD",
-            "minLeveragedAmount": "500$",
-            "minLeverage": "5x",
-            "maxLeverage": "20x",
-            "spread": "0.08",
-            "additionalSwap": "10%"
+            "name": "USD/XAU",
+            "minLeveragedAmount": "1$",
+            "minLeverage": "1x",
+            "maxLeverage": "50x",
+            "spread": "0.000028152",
+            "additionalSwap": "0%"
         }
     ]
 }

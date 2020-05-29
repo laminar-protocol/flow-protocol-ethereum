@@ -43,7 +43,7 @@ const flowMarginProtocolSafetyContract = new web3.eth.Contract(
   flowMarginProtocolSafetyAddress,
 );
 
-const poolAddress = deployment.marginPool;
+const poolAddress = deployment['marginPool-General'];
 const poolContract = new web3.eth.Contract(poolAbi as any, poolAddress);
 
 const oracleAddress = deployment.oracle;
@@ -61,7 +61,6 @@ const tokenStringToAddress = {
   EUR: deployment.fEUR,
   JPY: deployment.fJPY,
   AUX: deployment.fXAU,
-  AAPL: deployment.fAAPL,
 };
 
 const accountOf = (name: string): Account => {
@@ -101,7 +100,7 @@ const transferUsd = async (to: string, amount: BN): Promise<any> => {
 const parseCurrency = (amount: string): string => {
   const parsed = amount.replace('F', 'f');
 
-  return deployment[parsed as 'fEUR' | 'fJPY' | 'fXAU' | 'fAAPL'];
+  return deployment[parsed as 'fEUR' | 'fJPY' | 'fXAU'];
 };
 
 const parseAmount = (amount: string): BN => {
@@ -508,10 +507,10 @@ Then(
 
     const swapRate = parseSwapRate(additionalSwapRate);
     const currentLongSwapRate = await flowMarginProtocolConfigContract.methods
-      .currentSwapRates(baseAddress, quoteAddress, true)
+      .currentSwapRates(baseAddress, quoteAddress, '0')
       .call();
     const currentShortSwapRate = await flowMarginProtocolConfigContract.methods
-      .currentSwapRates(baseAddress, quoteAddress, false)
+      .currentSwapRates(baseAddress, quoteAddress, '1')
       .call();
     const newLongSwapRate = new BN(currentLongSwapRate).add(swapRate);
     const newShortwapRate = new BN(currentShortSwapRate).add(swapRate);
@@ -728,6 +727,21 @@ Given('margin liquidity pool margin call', async (table: TableDefinition) => {
 Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
   for (const [result] of table.rows()) {
     try {
+      const enpThreshold = await flowMarginProtocolConfigContract.methods
+        .liquidityPoolENPLiquidateThreshold()
+        .call();
+      const ellThreshold = await flowMarginProtocolConfigContract.methods
+        .liquidityPoolELLLiquidateThreshold()
+        .call();
+      const enpAndEll = await flowMarginProtocolSafetyContract.methods
+        .getEnpAndEll(poolAddress)
+        .call();
+      console.log({
+        enp: enpAndEll['0'].toString(),
+        ell: enpAndEll['1'].toString(),
+        enpThreshold: enpThreshold.toString(),
+        ellThreshold: ellThreshold.toString(),
+      });
       await sendTx({
         contractMethod: flowMarginProtocolSafetyContract.methods.liquidateLiquidityPool(
           poolAddress,
@@ -737,7 +751,11 @@ Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
       if (result !== 'Ok')
         expect.fail(`Pool liquidation call should have reverted, but didnt!`);
 
+      console.log('Before force close 1');
+
       const alicePositionCount = await forceCloseForPool(alice, 0);
+
+      console.log('Before force close 2');
       await forceCloseForPool(bob, alicePositionCount);
     } catch (error) {
       if (result === 'Ok')

@@ -316,7 +316,7 @@ library MarginMarketLib {
     ) public returns (uint256, uint256, int256) {
         Percentage.Percent memory basePrice = Percentage.Percent(getPrice(self, address(self.moneyMarket.baseToken())));
 
-        uint256 net = (int256(_longUsd).sub(int256(_shortUsd)) >= 0
+        uint256 net = (_longUsd > _shortUsd
             ? uint256(int256(_longUsd).sub(int256(_shortUsd)))
             : uint256(-(int256(_longUsd).sub(int256(_shortUsd))))
         ).mulPercent(basePrice);

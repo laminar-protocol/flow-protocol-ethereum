@@ -124,8 +124,8 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      */
     function addTradingPair(address _base, address _quote, int256 _swapRateLong, int256 _swapRateShort) external onlyOwner {
         require(_base != address(0) && _quote != address(0) && _swapRateLong != 0 && _swapRateShort != 0, "0");
-        require(_base != _quote, "TP3");
         require(!tradingPairWhitelist[_base][_quote], "TP2");
+        require(_base != _quote, "TP3");
 
         currentSwapRates[_base][_quote][PositionType.LONG] = Percentage.SignedPercent(_swapRateLong);
         currentSwapRates[_base][_quote][PositionType.SHORT] = Percentage.SignedPercent(_swapRateShort);
