@@ -43,7 +43,7 @@ const flowMarginProtocolSafetyContract = new web3.eth.Contract(
   flowMarginProtocolSafetyAddress,
 );
 
-const poolAddress = deployment['marginPool-General'];
+const poolAddress = deployment.marginPoolGeneral;
 const poolContract = new web3.eth.Contract(poolAbi as any, poolAddress);
 
 const oracleAddress = deployment.oracle;

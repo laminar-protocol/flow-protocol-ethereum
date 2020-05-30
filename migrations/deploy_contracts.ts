@@ -621,7 +621,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     }, {});
     const marginPoolsDeployment = marginPools.reduce((acc, pool) => {
       const current = {
-        [`marginPool-${(pool as any).poolName}`]: [
+        [`marginPool${(pool as any).poolName}`]: [
           pool,
           MarginLiquidityPoolInterface,
         ],
@@ -631,7 +631,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     }, {});
     const syntheticPoolsDeployment = syntheticPools.reduce((acc, pool) => {
       const current = {
-        [`syntheticPool-${(pool as any).poolName}`]: [
+        [`syntheticPool${(pool as any).poolName}`]: [
           pool,
           SyntheticLiquidityPoolInterface,
         ],
