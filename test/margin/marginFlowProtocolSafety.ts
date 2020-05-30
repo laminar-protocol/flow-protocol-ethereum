@@ -167,6 +167,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     );
     await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
     await (protocolConfig as any).initialize(
+      dollar('0.1'),
       1,
       50,
       2,
@@ -1426,7 +1427,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         const equity = await protocolSafety.getEquityOfPool.call(
           liquidityPool.address,
         );
-        const netAbs = net.abs(); // TODO test netAbs = 0
+        const netAbs = net.abs();
         const expectedPoolENP = equity.mul(bn(1e18)).div(netAbs);
 
         expect(enp.value).to.be.bignumber.equal(expectedPoolENP);
@@ -1474,7 +1475,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           liquidityPool.address,
         );
 
-        const longestLeg = BN.max(positive, negative.abs()); // TODO longestLeg = 0
+        const longestLeg = BN.max(positive, negative.abs());
         const expectedPoolELL = equity.mul(bn(1e18)).div(longestLeg);
 
         expect(ell.value).to.be.bignumber.equal(expectedPoolELL);

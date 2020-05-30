@@ -39,6 +39,7 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
     uint256 public liquidityPoolELLLiquidateThreshold;
 
     function initialize(
+        uint256 _maxSpread,
         uint256 _initialMinLeverage,
         uint256 _initialMaxLeverage,
         uint256 _initialMinLeverageAmount,
@@ -52,12 +53,11 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
     ) public initializer {
         UpgradeOwnable.initialize(msg.sender);
 
+        maxSpread = _maxSpread;
         minLeverage = _initialMinLeverage;
         maxLeverage = _initialMaxLeverage;
         minLeverageAmount = _initialMinLeverageAmount;
         swapRateUnit = _swapRateUnit;
-
-        maxSpread = 1 ether / 10; // 10% TODO: pick a justified value
 
         liquidityPoolENPMarginThreshold = _initialLiquidityPoolENPMarginThreshold;
         liquidityPoolELLMarginThreshold = _initialLiquidityPoolELLMarginThreshold;
@@ -124,8 +124,8 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      */
     function addTradingPair(address _base, address _quote, int256 _swapRateLong, int256 _swapRateShort) external onlyOwner {
         require(_base != address(0) && _quote != address(0) && _swapRateLong != 0 && _swapRateShort != 0, "0");
-        require(_base != _quote, "TP3");
         require(!tradingPairWhitelist[_base][_quote], "TP2");
+        require(_base != _quote, "TP3");
 
         currentSwapRates[_base][_quote][PositionType.LONG] = Percentage.SignedPercent(_swapRateLong);
         currentSwapRates[_base][_quote][PositionType.SHORT] = Percentage.SignedPercent(_swapRateShort);

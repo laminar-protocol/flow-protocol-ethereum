@@ -81,6 +81,9 @@ contract('SyntheticFlowProtocol', accounts => {
       'EUR',
       moneyMarket.address,
       protocol.address,
+      fromPercent(1),
+      fromPercent(5),
+      fromPercent(10),
     );
 
     await protocol.addFlowToken(fToken.address);

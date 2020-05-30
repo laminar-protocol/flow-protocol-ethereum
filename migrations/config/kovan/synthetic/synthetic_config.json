@@ -1,0 +1,26 @@
+[
+    {
+        "additionalCollateral": "10%",
+        "liquidationRatio": "5%",
+        "extremeRatio": "1%",
+        "tokens": [
+            { "symbol": "fEUR", "name": "Euro" },
+            { "symbol": "fJPY", "name": "Yen" },
+            { "symbol": "fAUD", "name": "Australian Dollar" },
+            { "symbol": "fCAD", "name": "Canadian Dollar" },
+            { "symbol": "fCHF", "name": "Swiss Franc" },
+            { "symbol": "fXAU", "name": "Gold" },
+            { "symbol": "fGBP", "name": "British Pound" }
+        ]
+    },
+    {
+        "additionalCollateral": "50%",
+        "liquidationRatio": "10%",
+        "extremeRatio": "5%",
+        "tokens": [
+            { "symbol": "fUSOIL", "name": "US Oil" },
+            { "symbol": "fBTC", "name": "Bitcoin" },
+            { "symbol": "fETH", "name": "Ether" }
+        ]
+    }
+]

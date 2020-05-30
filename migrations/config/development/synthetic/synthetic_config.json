@@ -1,0 +1,12 @@
+[
+    {
+        "additionalCollateral": "10%",
+        "liquidationRatio": "5%",
+        "extremeRatio": "1%",
+        "tokens": [
+            { "symbol": "fEUR", "name": "Euro" },
+            { "symbol": "fJPY", "name": "Yen" },
+            { "symbol": "fXAU", "name": "Gold" }
+        ]
+    }
+]

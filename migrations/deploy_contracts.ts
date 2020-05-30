@@ -1,7 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import Web3 from 'web3';
-import { PriceOracleInterfaceInstance } from 'types/truffle-contracts';
+import {
+  PriceOracleInterfaceInstance,
+  ProxyContract,
+  SyntheticFlowTokenContract,
+  SyntheticFlowTokenInstance,
+} from 'types/truffle-contracts';
 
 const deployTokens = async (
   artifacts: Truffle.Artifacts,
@@ -54,20 +59,19 @@ const getTokensByNetwork = {
   ),
 };
 
-const getChainlinkOraclesByNetwork = {
-  kovan: {
-    JPY: '0xcd93a652e731Bb38eA9Efc5fEbCf977EDa2a01f7',
-    EUR: '0xf23CCdA8333f658c43E7fC19aa00f6F5722eB225',
-    XAU: '0xF1302340da93EdEF6DA03C66bc52F75A956e482C',
-    BTC: '0x2445F2466898565374167859Ae5e3a231e48BB41',
-  },
-  mainnet: {
-    JPY: '0xe1407BfAa6B5965BAd1C9f38316A3b655A09d8A6',
-    EUR: '0x25Fa978ea1a7dc9bDc33a2959B9053EaE57169B5',
-    XAU: '0xafcE0c7b7fE3425aDb3871eAe5c0EC6d93E01935',
-    BTC: '0xF5fff180082d6017036B771bA883025c654BC935',
-  },
-};
+const ALL_CURRENCIES_DEVELOPMENT = ['EUR', 'JPY', 'XAU'];
+const ALL_CURRENCIES_KOVAN = [
+  'EUR',
+  'JPY',
+  'CAD',
+  'CHF',
+  'GBP',
+  'AUD',
+  'USOIL',
+  'XAU',
+  'BTC',
+  'ETH',
+];
 
 const save = (obj: any, filePath: string[]) => {
   const finalPath = path.join(...filePath);
@@ -80,6 +84,122 @@ const save = (obj: any, filePath: string[]) => {
 };
 
 type Network = keyof typeof getTokensByNetwork;
+
+const readDeploymentConfig = (network: Network) => {
+  if (network !== 'kovan' && network !== 'development') {
+    throw new Error(`Network ${network} not yet supported for deployments`);
+  }
+  const deploymentConfig = {
+    oracles: {},
+    margin: {
+      config: {
+        maxSpread: '',
+        traderMarginCall: '',
+        traderStopOut: '',
+        enpMarginCall: '',
+        enpStopOut: '',
+        ellMarginCall: '',
+        ellStopOut: '',
+        traderMarginCallDeposit: '',
+        traderStopOutDeposit: '',
+        poolMarginCallDeposit: '',
+        poolStopOutDeposit: '',
+        treasuryAddress: '',
+        tradingPairs: [],
+      },
+      pools: [],
+    },
+    synthetic: { config: [], pools: [] },
+  };
+  const configPath = path.join(__dirname, `config/${network}/`);
+  const marginPath = path.join(`${configPath}/margin/`);
+  const syntheticPath = path.join(`${configPath}/synthetic/`);
+  const marginPoolPath = path.join(`${marginPath}/margin_pools/`);
+  const syntheticPoolPath = path.join(`${syntheticPath}/synthetic_pools/`);
+
+  const oracles = JSON.parse(
+    fs.readFileSync(`${configPath}oracles.json`) as any,
+  );
+  const marginConfig = JSON.parse(
+    fs.readFileSync(`${marginPath}margin_config.json`) as any,
+  );
+  const syntheticConfig = JSON.parse(
+    fs.readFileSync(`${syntheticPath}synthetic_config.json`) as any,
+  );
+
+  const marginPoolFiles = fs.readdirSync(marginPoolPath);
+  const marginPools = marginPoolFiles.map(pool =>
+    JSON.parse(fs.readFileSync(marginPoolPath + pool) as any),
+  );
+  const syntheticPoolFiles = fs.readdirSync(syntheticPoolPath);
+  const syntheticPools = syntheticPoolFiles.map(pool =>
+    JSON.parse(fs.readFileSync(syntheticPoolPath + pool) as any),
+  );
+
+  deploymentConfig.oracles = oracles;
+  deploymentConfig.margin.config = marginConfig;
+  (deploymentConfig.margin.pools as any[]) = marginPools;
+  (deploymentConfig.synthetic.pools as any[]) = syntheticPools;
+  deploymentConfig.synthetic.config = syntheticConfig;
+
+  return deploymentConfig;
+};
+
+const floatUsdToWei = (floatString: string) =>
+  `${parseFloat(floatString.replace('$', '')) * 1e18}`;
+
+const usdToWei = (usd: string, web3: Web3) => {
+  const usdString = usd
+    .replace('$', '')
+    .replace('Fr', '')
+    .replace('¥', '');
+  return web3.utils.toWei(usdString);
+};
+const percentageToWei = (percentage: string) =>
+  `${parseFloat(percentage.replace('%', '')) * 1e16}`;
+
+const deployFToken = async ({
+  deployer,
+  Proxy,
+  SyntheticFlowToken,
+  fTokenImpl,
+  name,
+  symbol,
+  moneyMarketAddress,
+  protocolAddress,
+  additionalCollateral,
+  liquidationRatio,
+  extremeRatio,
+}: {
+  deployer: Truffle.Deployer;
+  Proxy: ProxyContract;
+  SyntheticFlowToken: SyntheticFlowTokenContract;
+  fTokenImpl: SyntheticFlowTokenInstance;
+  name: string;
+  symbol: string;
+  moneyMarketAddress: string;
+  protocolAddress: string;
+  additionalCollateral: string;
+  liquidationRatio: string;
+  extremeRatio: string;
+}) => {
+  await deployer.deploy(Proxy);
+  const fProxy = await Proxy.deployed();
+  await fProxy.upgradeTo(fTokenImpl.address);
+  const fToken = await SyntheticFlowToken.at(fProxy.address);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  await (fToken as any).initialize(
+    name,
+    symbol,
+    moneyMarketAddress,
+    protocolAddress,
+    extremeRatio,
+    additionalCollateral,
+    liquidationRatio,
+  );
+
+  return fToken;
+};
 
 module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const ChainLinkOracle = artifacts.require('ChainLinkOracle');
@@ -119,6 +239,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   ) => {
     console.log(`---- Deploying on network: ${network}`);
 
+    const deploymentConfig = await readDeploymentConfig(network);
     const { cToken, baseToken } = await getTokensByNetwork[network](
       artifacts,
       deployer,
@@ -179,79 +300,55 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await (protocol as any).initialize(oracle.address, moneyMarket.address);
 
     await deployer.deploy(SyntheticFlowToken);
-    const flowTokenImpl = await SyntheticFlowToken.deployed();
+    const fTokenImpl = await SyntheticFlowToken.deployed();
 
-    await deployer.deploy(Proxy);
-    const fEURProxy = await Proxy.deployed();
-    await fEURProxy.upgradeTo(flowTokenImpl.address);
-    const fEUR = await SyntheticFlowToken.at(fEURProxy.address);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    await (fEUR as any).initialize(
-      'Flow Euro',
-      'fEUR',
-      moneyMarket.address,
-      protocol.address,
-    );
+    const fTokens = [];
+    const fTokensMapping = {} as any;
+    const deployFTokenParams = {
+      deployer,
+      Proxy,
+      SyntheticFlowToken,
+      fTokenImpl,
+    };
+    for (const fTokenConfigParams of deploymentConfig.synthetic.config) {
+      const additionalCollateral = percentageToWei(
+        (fTokenConfigParams as any).additionalCollateral,
+      );
+      const liquidationRatio = percentageToWei(
+        (fTokenConfigParams as any).liquidationRatio,
+      );
+      const extremeRatio = percentageToWei(
+        (fTokenConfigParams as any).extremeRatio,
+      );
 
-    await deployer.deploy(Proxy);
-    const fJPYProxy = await Proxy.deployed();
-    await fJPYProxy.upgradeTo(flowTokenImpl.address);
-    const fJPY = await SyntheticFlowToken.at(fJPYProxy.address);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    await (fJPY as any).initialize(
-      'Flow Japanese Yen',
-      'fJPY',
-      moneyMarket.address,
-      protocol.address,
-    );
-
-    await deployer.deploy(Proxy);
-    const fXAUProxy = await Proxy.deployed();
-    await fXAUProxy.upgradeTo(flowTokenImpl.address);
-    const fXAU = await SyntheticFlowToken.at(fXAUProxy.address);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    await (fXAU as any).initialize(
-      'Gold',
-      'fXAU',
-      moneyMarket.address,
-      protocol.address,
-    );
-
-    await deployer.deploy(Proxy);
-    const fAAPLProxy = await Proxy.deployed();
-    await fAAPLProxy.upgradeTo(flowTokenImpl.address);
-    const fAAPL = await SyntheticFlowToken.at(fAAPLProxy.address);
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    await (fAAPL as any).initialize(
-      'Apple Inc.',
-      'fAAPL',
-      moneyMarket.address,
-      protocol.address,
-    );
-
-    await protocol.addFlowToken(fEUR.address);
-    await protocol.addFlowToken(fJPY.address);
-    await protocol.addFlowToken(fXAU.address);
-    await protocol.addFlowToken(fAAPL.address);
-
-    // requires cDAI balance, use faucet at http://flow.laminar.one/ | TODO
-    const kovanDeployerAddr = '0x15ae150d7dC03d3B635EE90b85219dBFe071ED35';
+      for (const fTokenConfigNames of (fTokenConfigParams as any).tokens) {
+        const fToken = await deployFToken({
+          ...deployFTokenParams,
+          name: fTokenConfigNames.name,
+          symbol: fTokenConfigNames.symbol,
+          moneyMarketAddress: moneyMarket.address,
+          protocolAddress: protocol.address,
+          additionalCollateral,
+          liquidationRatio,
+          extremeRatio,
+        });
+        await protocol.addFlowToken(fToken.address);
+        fTokens.push(fToken);
+        fTokensMapping[fTokenConfigNames.symbol] = fToken;
+      }
+    }
 
     if (network !== 'development') {
-      const chainlinkOracles =
-        getChainlinkOraclesByNetwork[network as 'kovan' | 'mainnet'];
+      const chainlinkOracles = ALL_CURRENCIES_KOVAN.map(
+        key => (deploymentConfig.oracles as any)[key],
+      );
       const chainlinkOracle = await ChainLinkOracle.at(oracle.address);
 
       await (chainlinkOracle as any).initialize(
         '0x0000000000000000000000000000000000000000', // use public default contract
-        chainlinkOracles.EUR,
-        chainlinkOracles.JPY,
-        chainlinkOracles.XAU,
-        chainlinkOracles.BTC, // TODO use BTC as AAPL for now
-        fEUR.address,
-        fJPY.address,
-        fXAU.address,
-        fAAPL.address,
+        baseToken.address,
+        chainlinkOracles,
+        fTokens.map(fToken => fToken.address),
       );
     } else {
       const priceFeeder = accounts[0];
@@ -268,26 +365,23 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
           from: priceFeeder,
         },
       );
-      await simplePriceOracle.feedPrice(fEUR.address, web3.utils.toWei('1.2'), {
-        from: priceFeeder,
-      });
       await simplePriceOracle.feedPrice(
-        fJPY.address,
+        fTokensMapping.fEUR.address,
+        web3.utils.toWei('1.2'),
+        {
+          from: priceFeeder,
+        },
+      );
+      await simplePriceOracle.feedPrice(
+        fTokensMapping.fJPY.address,
         web3.utils.toWei('0.0092'),
         {
           from: priceFeeder,
         },
       );
       await simplePriceOracle.feedPrice(
-        fXAU.address,
+        fTokensMapping.fXAU.address,
         web3.utils.toWei('1490'),
-        {
-          from: priceFeeder,
-        },
-      );
-      await simplePriceOracle.feedPrice(
-        fAAPL.address,
-        web3.utils.toWei('257'),
         {
           from: priceFeeder,
         },
@@ -342,13 +436,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       flowMarginProtocolConfigProxy.address,
     );
 
-    const initialSwapRate = web3.utils.toWei('1'); // TODO
-    const initialTraderRiskMarginCallThreshold = web3.utils.toWei('0.03');
-    const initialTraderRiskLiquidateThreshold = web3.utils.toWei('0.01');
-    const initialLiquidityPoolENPMarginThreshold = web3.utils.toWei('0.3');
-    const initialLiquidityPoolELLMarginThreshold = web3.utils.toWei('0.3');
-    const initialLiquidityPoolENPLiquidateThreshold = web3.utils.toWei('0.1');
-    const initialLiquidityPoolELLLiquidateThreshold = web3.utils.toWei('0.1');
+    const marginConfig = deploymentConfig.margin.config;
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocol as any).initialize(
@@ -361,20 +449,21 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolSafety as any).initialize(
       marginProtocol.address,
-      kovanDeployerAddr, // TODO laminar treasury
+      marginConfig.treasuryAddress,
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolConfig as any).initialize(
+      floatUsdToWei(marginConfig.maxSpread),
       1,
       50,
       2,
       network === 'development' ? 60 * 60 * 24 * 3650 : 60 * 60 * 8, // 8 hours
-      initialTraderRiskMarginCallThreshold,
-      initialTraderRiskLiquidateThreshold,
-      initialLiquidityPoolENPMarginThreshold,
-      initialLiquidityPoolELLMarginThreshold,
-      initialLiquidityPoolENPLiquidateThreshold,
-      initialLiquidityPoolELLLiquidateThreshold,
+      percentageToWei(marginConfig.traderMarginCall),
+      percentageToWei(marginConfig.traderStopOut),
+      percentageToWei(marginConfig.enpMarginCall),
+      percentageToWei(marginConfig.ellMarginCall),
+      percentageToWei(marginConfig.enpStopOut),
+      percentageToWei(marginConfig.ellStopOut),
     );
 
     await (marginLiquidityPoolRegistry as any).initialize(
@@ -385,8 +474,6 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       marginLiquidityPoolRegistry.address,
       web3.utils.toWei('8000', 'ether'),
     );
-
-    const usd = await moneyMarket.baseToken();
 
     // approve default account
     await baseToken.approve(
@@ -399,10 +486,43 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       web3.utils.toWei('100000000000'),
     );
 
-    // synthetic liquidity pool
+    for (const pair of marginConfig.tradingPairs) {
+      const { swapRateUnit, swapRateLong, swapRateShort } = pair;
 
+      const parsedSwapLong = floatUsdToWei(swapRateLong);
+      const parsedSwapShort = floatUsdToWei(swapRateShort);
+
+      for (const name of (pair as any).names) {
+        const [baseSymbol, quoteSymbol] = name.split('/');
+        const base =
+          baseSymbol === 'USD'
+            ? baseToken.address
+            : fTokensMapping[`f${baseSymbol}`].address;
+        const quote =
+          quoteSymbol === 'USD'
+            ? baseToken.address
+            : fTokensMapping[`f${quoteSymbol}`].address;
+
+        await marginProtocolConfig.addTradingPair(
+          // TODO swapRateUnit,
+          base,
+          quote,
+          parsedSwapLong,
+          parsedSwapShort,
+        );
+      }
+    }
+
+    // synthetic liquidity pool
     const syntheticPools = [];
-    for (let i = 0; i < 2; i += 1) {
+    const syntheticPoolConfigs = deploymentConfig.synthetic.pools;
+
+    for (const syntheticPoolConfig of syntheticPoolConfigs) {
+      const initialDeposit = usdToWei(
+        (syntheticPoolConfig as any).initialDeposit,
+        web3,
+      );
+
       await deployer.deploy(SyntheticLiquidityPool);
       const syntheticLiquidityPoolImpl = await SyntheticLiquidityPool.deployed();
       await deployer.deploy(Proxy);
@@ -418,29 +538,30 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         moneyMarket.address,
         protocol.address,
       );
-      await syntheticPool.approveToProtocol(web3.utils.toWei('100000000000'));
+      await moneyMarket.mintTo(syntheticPool.address, initialDeposit);
+      await syntheticPool.approveToProtocol(initialDeposit);
 
-      for (const token of [
-        usd,
-        fEUR.address,
-        fJPY.address,
-        fXAU.address,
-        fAAPL.address,
-      ]) {
-        await syntheticPool.enableToken(token, '28152000000000');
+      for (const pair of (syntheticPoolConfig as any).tradingPairs) {
+        const token = fTokensMapping[`f${pair.name}`].address;
+        const spread = floatUsdToWei(pair.spread);
+
+        await syntheticPool.enableToken(token, spread);
       }
 
-      await moneyMarket.mintTo(
-        syntheticPool.address,
-        web3.utils.toWei('20000'),
-      );
-
+      (syntheticPool as any).poolName = (syntheticPoolConfig as any).name;
       syntheticPools.push(syntheticPool);
     }
 
     // margin liquidity pool
     const marginPools = [];
-    for (let i = 0; i < 2; i += 1) {
+    const marginPoolConfigs = deploymentConfig.margin.pools;
+
+    for (const marginPoolConfig of marginPoolConfigs) {
+      const initialDeposit = usdToWei(
+        (marginPoolConfig as any).initialDeposit,
+        web3,
+      );
+
       await deployer.deploy(MarginLiquidityPool);
       const marginLiquidityPoolImpl = await MarginLiquidityPool.deployed();
       await deployer.deploy(Proxy);
@@ -450,49 +571,81 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       const marginPool = await MarginLiquidityPool.at(
         marginliquidityPoolProxy.address,
       );
+
       await (marginPool as any).initialize(
         moneyMarket.address,
         marginProtocol.address,
       );
-      await marginPool.approveToProtocol(web3.utils.toWei('100000000000'));
-
-      for (const [base, quote] of [
-        [usd, fEUR.address],
-        [fEUR.address, usd],
-        [usd, fJPY.address],
-        [fJPY.address, usd],
-        [usd, fXAU.address],
-        [fXAU.address, usd],
-        [usd, fAAPL.address],
-        [fAAPL.address, usd],
-      ]) {
-        await marginPool.enableToken(base, quote, '28152000000000');
-        if (i === 0)
-          await marginProtocolConfig.addTradingPair(
-            base,
-            quote,
-            initialSwapRate,
-            initialSwapRate,
-          );
-      }
+      await moneyMarket.mintTo(marginPool.address, initialDeposit);
+      await marginPool.approveToProtocol(initialDeposit);
 
       await marginLiquidityPoolRegistry.registerPool(marginPool.address);
       await marginLiquidityPoolRegistry.verifyPool(marginPool.address);
 
-      await moneyMarket.mintTo(marginPool.address, web3.utils.toWei('20000'));
+      for (const pair of (marginPoolConfig as any).tradingPairs) {
+        const [baseSymbol, quoteSymbol] = pair.name.split('/');
+        const base =
+          baseSymbol === 'USD'
+            ? baseToken.address
+            : fTokensMapping[`f${baseSymbol}`].address;
+        const quote =
+          quoteSymbol === 'USD'
+            ? baseToken.address
+            : fTokensMapping[`f${quoteSymbol}`].address;
+
+        const spread = floatUsdToWei(pair.spread);
+        const minLeveragedAmount = usdToWei(pair.minLeveragedAmount, web3);
+        const minLeverage = pair.minLeverage.replace('x', '');
+        const maxLeverage = pair.maxLeverage.replace('x', '');
+        const additionalSwap = percentageToWei(pair.additionalSwap);
+
+        // TODO minLeveragedAmount, minLeverage, maxLeverage, additionalSwap
+
+        await marginPool.enableToken(base, quote, spread);
+      }
+
+      (marginPool as any).poolName = (marginPoolConfig as any).name;
 
       marginPools.push(marginPool);
     }
+
+    const fTokensDeployment = (network === 'development'
+      ? ALL_CURRENCIES_DEVELOPMENT
+      : ALL_CURRENCIES_KOVAN
+    ).reduce((acc, key) => {
+      const current = {
+        [`f${key}`]: [fTokensMapping[`f${key}`], SyntheticFlowToken],
+      };
+
+      return { ...acc, ...current };
+    }, {});
+    const marginPoolsDeployment = marginPools.reduce((acc, pool) => {
+      const current = {
+        [`marginPool${(pool as any).poolName}`]: [
+          pool,
+          MarginLiquidityPoolInterface,
+        ],
+      };
+
+      return { ...acc, ...current };
+    }, {});
+    const syntheticPoolsDeployment = syntheticPools.reduce((acc, pool) => {
+      const current = {
+        [`syntheticPool${(pool as any).poolName}`]: [
+          pool,
+          SyntheticLiquidityPoolInterface,
+        ],
+      };
+
+      return { ...acc, ...current };
+    }, {});
 
     const deployment = {
       moneyMarket: [moneyMarket, MoneyMarket],
       iToken: [iToken, ERC20Detailed],
       oracle: [oracle, PriceOracleInterface],
       syntheticProtocol: [protocol, SyntheticFlowProtocol],
-      fEUR: [fEUR, SyntheticFlowToken],
-      fJPY: [fJPY, SyntheticFlowToken],
-      fXAU: [fXAU, SyntheticFlowToken],
-      fAAPL: [fAAPL, SyntheticFlowToken],
+      ...fTokensDeployment,
       marginProtocol: [marginProtocol, MarginFlowProtocol],
       marginProtocolSafety: [marginProtocolSafety, MarginFlowProtocolSafety],
       marginProtocolConfig: [marginProtocolConfig, MarginFlowProtocolConfig],
@@ -500,10 +653,8 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         marginLiquidityPoolRegistry,
         MarginLiquidityPoolRegistry,
       ],
-      marginPool: [marginPools[0], MarginLiquidityPoolInterface],
-      marginPool2: [marginPools[1], MarginLiquidityPoolInterface],
-      syntheticPool: [syntheticPools[0], SyntheticLiquidityPoolInterface],
-      syntheticPool2: [syntheticPools[1], SyntheticLiquidityPoolInterface],
+      ...marginPoolsDeployment,
+      ...syntheticPoolsDeployment,
     };
 
     console.log('Deploy success');

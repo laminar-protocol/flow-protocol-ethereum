@@ -1,0 +1,34 @@
+{
+    "name": "General", 
+    "initialDeposit": "500000$",
+    "tradingPairs": [
+        {
+            "name": "EUR",
+            "spread": "0.0008"
+        },
+        {
+            "name": "AUD",
+            "spread": "0.0008"
+        },
+        {
+            "name": "CAD",
+            "spread": "0.0008"
+        },
+        {
+            "name": "CHF",
+            "spread": "0.0008"
+        },
+        {
+            "name": "JPY",
+            "spread": "0.006"
+        },
+        {
+            "name": "XAU",
+            "spread": "0.006"
+        },
+        {
+            "name": "USOIL",
+            "spread": "0.8"
+        }
+    ]
+}

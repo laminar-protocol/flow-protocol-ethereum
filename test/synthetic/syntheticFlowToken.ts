@@ -41,7 +41,15 @@ contract('SyntheticFlowToken', accounts => {
     const fTokenProxy = await Proxy.new();
     await fTokenProxy.upgradeTo(fTokenImpl.address);
     fToken = await SyntheticFlowToken.at(fTokenProxy.address);
-    await (fToken as any).initialize('Euro', 'EUR', moneyMarket.address, owner);
+    await (fToken as any).initialize(
+      'Euro',
+      'EUR',
+      moneyMarket.address,
+      owner,
+      fromPercent(1),
+      fromPercent(5),
+      fromPercent(10),
+    );
 
     await usd.approve(moneyMarket.address, constants.MAX_UINT256);
 
