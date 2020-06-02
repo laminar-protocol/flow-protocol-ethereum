@@ -542,13 +542,28 @@
         "internalType": "address",
         "name": "_protocol",
         "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_extremeCollateralRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_liquidationCollateralRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_defaultCollateralRatio",
+        "type": "uint256"
       }
     ],
     "name": "initialize",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0x8f15b414"
+    "signature": "0x6ec2a96e"
   },
   {
     "inputs": [
@@ -705,7 +720,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "additionaMinted",
+        "name": "additionalMinted",
         "type": "uint256"
       },
       {
