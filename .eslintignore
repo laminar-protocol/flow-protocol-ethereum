@@ -1,5 +1,0 @@
-**/build/*
-**/coverage/*
-**/node_modules/*
-types/*
-subgraph/generated/*
