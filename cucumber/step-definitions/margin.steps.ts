@@ -1,4 +1,4 @@
-import { Given, TableDefinition, Then } from 'cucumber';
+import { Given, setDefaultTimeout, TableDefinition, Then } from 'cucumber';
 import Web3 from 'web3';
 import { Account } from 'web3-core';
 import { assert, expect } from 'chai';
@@ -13,6 +13,8 @@ import priceOracleAbi from '../../artifacts/development/abi/SimplePriceOracle.js
 import deployment from '../../artifacts/development/deployment.json';
 
 const web3 = new Web3('http://localhost:8545');
+
+setDefaultTimeout(10000);
 
 const ONE_DAY = 86400;
 const PRICE_EXPIRE_TIME = ONE_DAY * 2;
@@ -245,8 +247,8 @@ const approveUsd = ({
 const parseTradingPair = (
   tradingPair: string,
 ): { baseAddress: string; quoteAddress: string } => {
-  const base = tradingPair.slice(3) as 'USD' | 'EUR' | 'JPY' | 'AUX';
-  const quote = tradingPair.slice(0, 3) as 'USD' | 'EUR' | 'JPY' | 'AUX';
+  const base = tradingPair.slice(0, 3) as 'USD' | 'EUR' | 'JPY' | 'AUX';
+  const quote = tradingPair.slice(3) as 'USD' | 'EUR' | 'JPY' | 'AUX';
 
   return {
     baseAddress: tokenStringToAddress[base],
@@ -643,6 +645,16 @@ Then('trader margin positions are', async (table: TableDefinition) => {
     const marginHeld = await flowMarginProtocolContract.methods
       .getMarginHeld(poolAddress, from.address)
       .call();
+
+    console.log({
+      name,
+      equity: equity.toString(),
+      expectedEquity: expectedEquity.toString(),
+      freeMargin: freeMargin.toString(),
+      expectedFreeMargin: expectedFreeMargin.toString(),
+      marginHeld: marginHeld.toString(),
+      expectedMarginHeld: expectedMarginHeld.toString(),
+    });
 
     assert.equal(equity, expectedEquity);
     assert.equal(freeMargin, expectedFreeMargin);
