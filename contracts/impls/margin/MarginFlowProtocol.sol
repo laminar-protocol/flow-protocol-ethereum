@@ -306,12 +306,12 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         uint256 bidSpread = storedLiquidatedPoolBidSpreads[position.pool][position.pair.base][position.pair.quote];
         uint256 askSpread = storedLiquidatedPoolAskSpreads[position.pool][position.pair.base][position.pair.quote];
         Percentage.Percent memory usdPairPrice = Percentage.fromFraction(
-            storedLiquidatedPoolPairPrices[position.pool][position.pair.base],
+            storedLiquidatedPoolPairPrices[position.pool][position.pair.quote],
             storedLiquidatedPoolBasePrices[position.pool]
         );
         Percentage.Percent memory marketStopPrice = Percentage.fromFraction(
-            storedLiquidatedPoolPairPrices[position.pool][position.pair.quote],
-            storedLiquidatedPoolPairPrices[position.pool][position.pair.base]
+            storedLiquidatedPoolPairPrices[position.pool][position.pair.base],
+            storedLiquidatedPoolPairPrices[position.pool][position.pair.quote]
         );
         Percentage.Percent memory marketStopPriceWithBidSpread = Percentage.Percent(marketStopPrice.value.sub(bidSpread));
         Percentage.Percent memory marketStopPriceWithAskSpread = Percentage.Percent(marketStopPrice.value.add(askSpread));
@@ -331,6 +331,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             usdPairPrice
         );
         int256 totalUnrealized = unrealized.add(accumulatedSwapRate);
+
+        console.log("totalUnrealized", uint256(totalUnrealized));
 
         _transferUnrealized(position.pool, msg.sender, totalUnrealized);
         _removePosition(position, totalUnrealized, marketStopPrice);
@@ -460,7 +462,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         int256 heldSignum = _leverage > 0 ? int256(1) :  int256(-1);
         uint256 leveragedDebits = _leveragedHeld.mulPercent(_debitsPrice);
         uint256 leveragedDebitsInUsd = uint256(
-            market.getUsdValue(_pair.base, int256(leveragedDebits))
+            market.getUsdValue(_pair.quote, int256(leveragedDebits))
         );
         uint256 marginHeld = uint256(
             int256(leveragedDebitsInUsd)

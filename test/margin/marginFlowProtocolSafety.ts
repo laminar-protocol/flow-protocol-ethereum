@@ -423,7 +423,9 @@ contract('MarginFlowProtocolSafety', accounts => {
 
     describe('when trader is below margin call threshold', () => {
       beforeEach(async () => {
-        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
+        await oracle.setOracleDeltaLastLimit(dollar(1000000));
+        await oracle.setOracleDeltaSnapshotLimit(dollar(1000000));
+        await oracle.feedPrice(eur, fromPercent(10000), { from: owner });
       });
 
       it('allows margin calling of trader', async () => {
@@ -589,7 +591,9 @@ contract('MarginFlowProtocolSafety', accounts => {
 
     describe('when trader is below liquidation threshold', () => {
       beforeEach(async () => {
-        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
+        await oracle.setOracleDeltaLastLimit(dollar(1000000));
+        await oracle.setOracleDeltaSnapshotLimit(dollar(1000000));
+        await oracle.feedPrice(eur, fromPercent(10000), { from: owner });
       });
 
       it('allows liquidating of trader', async () => {
@@ -675,7 +679,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     describe('when pool is below margin call threshold', () => {
       beforeEach(async () => {
         await liquidityPool.withdrawLiquidityOwner(dollar(199400));
-        await oracle.feedPrice(eur, fromPercent(170), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
       });
 
       it('allows margin calling of pool', async () => {
@@ -832,8 +836,8 @@ contract('MarginFlowProtocolSafety', accounts => {
 
     beforeEach(async () => {
       leverage = bn(20);
-      depositInUsd = dollar(80);
-      leveragedHeldInEuro = euro(100);
+      depositInUsd = dollar(340);
+      leveragedHeldInEuro = euro(200);
       price = bn(0); // accept all
       LIQUIDITY_POOL_LIQUIDATION_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE();
 
@@ -859,7 +863,32 @@ contract('MarginFlowProtocolSafety', accounts => {
 
       describe('when there is not enough liquidity left', () => {
         beforeEach(async () => {
-          await liquidityPool.withdrawLiquidityOwner(dollar(198900));
+          await protocolConfig.setLiquidityPoolELLMarginThreshold(
+            fromPercent(2),
+          );
+          await protocolConfig.setLiquidityPoolENPMarginThreshold(
+            fromPercent(2),
+          );
+          await protocolConfig.setLiquidityPoolELLLiquidateThreshold(
+            fromPercent(1),
+          );
+          await protocolConfig.setLiquidityPoolENPLiquidateThreshold(
+            fromPercent(1),
+          );
+          await liquidityPool.withdrawLiquidityOwner(dollar(199990));
+          await protocolConfig.setLiquidityPoolELLMarginThreshold(
+            fromPercent(100),
+          );
+          await protocolConfig.setLiquidityPoolENPMarginThreshold(
+            fromPercent(100),
+          );
+          await protocolConfig.setLiquidityPoolELLLiquidateThreshold(
+            fromPercent(99),
+          );
+          await protocolConfig.setLiquidityPoolENPLiquidateThreshold(
+            fromPercent(99),
+          );
+
           await oracle.feedPrice(eur, fromPercent(230), { from: owner });
           await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
@@ -875,7 +904,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             liquidityPool.address,
             alice,
           );
-          await protocol.closePositionForLiquidatedPool(0, {
+          await protocol.closePositionForLiquidatedPool(2, {
             from: alice,
           });
           const poolLiquidityAfter = await liquidityPool.getLiquidity();
@@ -891,7 +920,7 @@ contract('MarginFlowProtocolSafety', accounts => {
 
         describe('when there is 0 liquidity left', () => {
           beforeEach(async () => {
-            await protocol.closePositionForLiquidatedPool(0, {
+            await protocol.closePositionForLiquidatedPool(2, {
               from: alice,
             });
           });
@@ -938,7 +967,19 @@ contract('MarginFlowProtocolSafety', accounts => {
 
       describe('when pool is below liquidation threshold', () => {
         beforeEach(async () => {
-          await liquidityPool.withdrawLiquidityOwner(dollar(198400));
+          await liquidityPool.withdrawLiquidityOwner(dollar(193400));
+          await protocolConfig.setLiquidityPoolELLMarginThreshold(
+            fromPercent(1000),
+          );
+          await protocolConfig.setLiquidityPoolENPMarginThreshold(
+            fromPercent(1000),
+          );
+          await protocolConfig.setLiquidityPoolELLLiquidateThreshold(
+            fromPercent(999),
+          );
+          await protocolConfig.setLiquidityPoolENPLiquidateThreshold(
+            fromPercent(999),
+          );
           await oracle.feedPrice(eur, fromPercent(230), { from: owner });
           await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
@@ -1043,6 +1084,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             let expectedAliceBalanceDiff = bn(0);
 
             for (let i = 0; i < 9; i += 1) {
+              console.log({ i });
               await protocol.closePositionForLiquidatedPool(i, {
                 from: alice,
               });
@@ -1207,6 +1249,18 @@ contract('MarginFlowProtocolSafety', accounts => {
     describe('when pool is below liquidation threshold', () => {
       beforeEach(async () => {
         await liquidityPool.withdrawLiquidityOwner(dollar(199400));
+        await protocolConfig.setLiquidityPoolELLMarginThreshold(
+          fromPercent(1000),
+        );
+        await protocolConfig.setLiquidityPoolENPMarginThreshold(
+          fromPercent(1000),
+        );
+        await protocolConfig.setLiquidityPoolELLLiquidateThreshold(
+          fromPercent(999),
+        );
+        await protocolConfig.setLiquidityPoolENPLiquidateThreshold(
+          fromPercent(999),
+        );
         await oracle.feedPrice(eur, fromPercent(230), { from: owner });
         await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
           from: bob,
@@ -1495,29 +1549,50 @@ contract('MarginFlowProtocolSafety', accounts => {
 
     describe('when getting accumulated leveraged debits of a trader', () => {
       it('should return the correct value', async () => {
-        const toUsd = ({
+        const eurToUsd = ({
           amount,
           leverage,
+          basePrice,
+          quotePrice,
         }: {
           amount: BN;
           leverage: BN;
-        }): BN =>
-          fromEth(
+          basePrice: BN;
+          quotePrice: BN;
+        }): BN => {
+          const leveragedDebits = fromEth(
             amount.mul(leverage.isNeg() ? initialBidPrice : initialAskPrice),
           );
-        const toJpy = ({
+          const leveragedDebitsInUsd = leveragedDebits
+            .mul(quotePrice)
+            .div(basePrice);
+
+          return leveragedDebitsInUsd;
+        };
+
+        const jpyToUsd = ({
           amount,
           leverage,
+          basePrice,
+          quotePrice,
         }: {
           amount: BN;
           leverage: BN;
-        }): BN =>
-          fromEth(
+          basePrice: BN;
+          quotePrice: BN;
+        }): BN => {
+          const leveragedDebits = fromEth(
             amount.mul(
               leverage.isNeg() ? initialBidPriceJpy : initialAskPriceJpy,
             ),
           );
-        const toEuro = (amount: BN) => fromEth(amount.mul(initialEurPrice));
+          const leveragedDebitsInUsd = leveragedDebits
+            .mul(quotePrice)
+            .div(basePrice);
+
+          return leveragedDebitsInUsd;
+        };
+
         const leveragedDebits = await protocolSafety.getLeveragedDebitsOfTrader(
           liquidityPool.address,
           alice,
@@ -1526,16 +1601,24 @@ contract('MarginFlowProtocolSafety', accounts => {
         const leveragedDebitsEur = leveragedHeldsEur.reduce(
           (acc, leveragedHeld, i) =>
             acc.add(
-              toUsd({ amount: leveragedHeld, leverage: leveragesEur[i] }),
+              eurToUsd({
+                basePrice: initialUsdPrice,
+                quotePrice: initialEurPrice,
+                amount: leveragedHeld,
+                leverage: leveragesEur[i],
+              }),
             ),
           bn(0),
         );
         const leveragedDebitsJpy = leveragedHeldsJpy.reduce(
           (acc, leveragedHeld, i) =>
             acc.add(
-              toEuro(
-                toJpy({ amount: leveragedHeld, leverage: leveragesJpy[i] }),
-              ),
+              jpyToUsd({
+                basePrice: initialUsdPrice,
+                quotePrice: fromPercent(200),
+                amount: leveragedHeld,
+                leverage: leveragesJpy[i],
+              }),
             ),
           bn(0),
         );

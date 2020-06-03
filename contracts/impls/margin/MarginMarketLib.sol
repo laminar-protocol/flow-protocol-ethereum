@@ -31,7 +31,7 @@ library MarginMarketLib {
 
     // usdValue = amount * price
     function getUsdValue(MarketData storage self, address _currencyToken, int256 _amount) public returns (int256) {
-        Percentage.Percent memory price = getPriceForPair(self, self.marketBaseToken, _currencyToken);
+        Percentage.Percent memory price = getPriceForPair(self, _currencyToken, self.marketBaseToken);
 
         return _amount.signedMulPercent(Percentage.SignedPercent(int256(price.value)));
     }
@@ -41,7 +41,7 @@ library MarginMarketLib {
         uint256 basePrice = getPrice(self, _baseCurrencyId);
         uint256 quotePrice = getPrice(self, _quoteCurrencyId);
 
-        return Percentage.fromFraction(quotePrice, basePrice);
+        return Percentage.fromFraction(basePrice, quotePrice);
     }
 
     function getPrice(MarketData storage self, address _token) public returns (uint) {
@@ -192,7 +192,7 @@ library MarginMarketLib {
         Percentage.Percent memory price = position.leverage > 0
             ? getAskPrice(self, position.pool, position.pair, 0)
             : getBidPrice(self, position.pool, position.pair, 0);
-        Percentage.Percent memory usdPairPrice = getPriceForPair(self, self.marketBaseToken, position.pair.base);
+        Percentage.Percent memory usdPairPrice = getPriceForPair(self, position.pair.quote, self.marketBaseToken);
 
         return getAccumulatedSwapRateOfPositionUntilDate(position, self.config.swapRateUnit(), now, price, usdPairPrice);
     }
@@ -243,7 +243,7 @@ library MarginMarketLib {
         Percentage.SignedPercent memory priceDelta = Percentage.signedSubPercent(currentPrice, openPrice);
         int256 unrealized = _leveragedHeld.signedMulPercent(priceDelta);
 
-        return (getUsdValue(self, _pair.base, unrealized), Percentage.Percent(uint256(currentPrice.value)));
+        return (getUsdValue(self, _pair.quote, unrealized), Percentage.Percent(uint256(currentPrice.value)));
     }
 
     // Returns `(unrealizedPl, marketPrice)` of a given position. If `price`, market price must fit this bound, else reverts.
