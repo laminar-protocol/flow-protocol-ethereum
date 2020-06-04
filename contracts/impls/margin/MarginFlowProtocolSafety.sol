@@ -335,18 +335,18 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
 
     // Margin level of a given user.
     function getMarginLevel(MarginLiquidityPoolInterface _pool, address _trader) public returns (Percentage.SignedPercent memory) {
+        (MoneyMarketInterface moneyMarket,,,,,) = marginProtocol.market();
         int256 equity = marginProtocol.getEquityOfTrader(_pool, _trader);
-        uint256 leveragedDebitsInUsd = getLeveragedDebitsOfTrader(
-            _pool,
-            _trader
+        uint256 leveragedDebitsITokens = moneyMarket.convertAmountFromBase(
+            getLeveragedDebitsOfTrader(_pool, _trader)
         );
 
-        if (leveragedDebitsInUsd == 0) {
+        if (leveragedDebitsITokens == 0) {
             return Percentage.SignedPercent(MAX_INT);
         }
 
         return
-            Percentage.signedFromFraction(equity, int256(leveragedDebitsInUsd));
+            Percentage.signedFromFraction(equity, int256(leveragedDebitsITokens));
     }
 
     // ENP and ELL. If `new_position` is `None`, return the ENP & ELL based on current positions,
@@ -371,7 +371,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
             unrealized = unrealized.add(unrealizedPair);
         }
 
-        int256 equity = int256(_getPoolLiquidity(_pool)).sub(unrealized);
+        int256 equity = marginProtocol.getTotalPoolLiquidity(_pool).sub(unrealized);
 
         if (equity < 0) {
             return (Percentage.Percent(0), Percentage.Percent(0));
@@ -419,7 +419,7 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
             unrealized = unrealized.add(unrealizedPair);
         }
 
-        return int256(_getPoolLiquidity(_pool)).sub(unrealized);
+        return marginProtocol.getTotalPoolLiquidity(_pool).sub(unrealized);
     }
 
     function _getPairPenalty(
@@ -447,17 +447,5 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
         uint256 spreadProfitShort = leveragedHeldsShort.mul(askSpread).div(1e18);
 
         return spreadProfitLong.mulPercent(_usdBasePrice).add(spreadProfitShort.mulPercent(_usdBasePrice));
-    }
-    
-    function _getPoolLiquidity(MarginLiquidityPoolInterface _pool) private view returns (uint256) {
-        (MoneyMarketInterface moneyMarket,,,,,) = marginProtocol.market();
-        int256 iTokensPool = int256(_pool.getLiquidity());
-        int256 iTokensProtocol = marginProtocol.balances(_pool, address(_pool));
-        int256 totalItokens = iTokensPool.add(iTokensProtocol);
-        uint256 liquidity = totalItokens > 0 ? moneyMarket.convertAmountToBase(
-            uint256(totalItokens)
-        ) : 0;
-
-        return liquidity;
     }
 }
