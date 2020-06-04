@@ -632,9 +632,15 @@ Then('trader margin positions are', async (table: TableDefinition) => {
   ] of table.rows()) {
     const from = accountOf(name);
 
-    const expectedEquity = parseAmount(expectedEquityString).toString();
-    const expectedFreeMargin = parseAmount(expectedFreeMarginString).toString();
-    const expectedMarginHeld = parseAmount(expectedMarginHeldString).toString();
+    const expectedEquity = new BN(parseAmount(expectedEquityString))
+      .mul(new BN(10))
+      .toString();
+    const expectedFreeMargin = new BN(parseAmount(expectedFreeMarginString))
+      .mul(new BN(10))
+      .toString();
+    const expectedMarginHeld = new BN(parseAmount(expectedMarginHeldString))
+      .mul(new BN(10))
+      .toString();
 
     const equity = await flowMarginProtocolContract.methods
       .getEquityOfTrader(poolAddress, from.address)
@@ -645,16 +651,6 @@ Then('trader margin positions are', async (table: TableDefinition) => {
     const marginHeld = await flowMarginProtocolContract.methods
       .getMarginHeld(poolAddress, from.address)
       .call();
-
-    console.log({
-      name,
-      equity: equity.toString(),
-      expectedEquity: expectedEquity.toString(),
-      freeMargin: freeMargin.toString(),
-      expectedFreeMargin: expectedFreeMargin.toString(),
-      marginHeld: marginHeld.toString(),
-      expectedMarginHeld: expectedMarginHeld.toString(),
-    });
 
     assert.equal(equity, expectedEquity);
     assert.equal(freeMargin, expectedFreeMargin);
@@ -763,11 +759,8 @@ Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
       if (result !== 'Ok')
         expect.fail(`Pool liquidation call should have reverted, but didnt!`);
 
-      console.log('Before force close 1');
-
       const alicePositionCount = await forceCloseForPool(alice, 0);
 
-      console.log('Before force close 2');
       await forceCloseForPool(bob, alicePositionCount);
     } catch (error) {
       if (result === 'Ok')
