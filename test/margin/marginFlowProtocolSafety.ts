@@ -925,12 +925,32 @@ contract('MarginFlowProtocolSafety', accounts => {
             });
           });
 
-          it('reverts the close position transaction', async () => {
+          it('allows anyone to close and moves funds into protocol pool balance', async () => {
+            const aliceBalanceBefore = await protocol.balances(
+              liquidityPool.address,
+              alice,
+            );
+            await protocol.closePositionForLiquidatedPool(1);
+            const poolLiquidityAfter = await liquidityPool.getLiquidity();
+            const poolBalanceAfter = await protocol.balances(
+              liquidityPool.address,
+              liquidityPool.address,
+            );
+            const aliceBalanceAfter = await protocol.balances(
+              liquidityPool.address,
+              alice,
+            );
+
+            expect(poolLiquidityAfter).to.be.bignumber.equals(bn(0));
+            expect(aliceBalanceAfter).to.be.bignumber.equals(
+              aliceBalanceBefore.sub(poolBalanceAfter),
+            );
+          });
+
+          it('reverts the close position transaction with profit for anyone but owner', async () => {
             await expectRevert(
-              protocol.closePositionForLiquidatedPool(1, {
-                from: alice,
-              }),
-              messages.noLiquidityLeftInPool,
+              protocol.closePositionForLiquidatedPool(3),
+              messages.onlyOwnerCanCloseProfitPosition,
             );
           });
         });
