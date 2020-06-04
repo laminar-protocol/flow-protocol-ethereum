@@ -4,6 +4,7 @@ import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 import "@openzeppelin/contracts/math/Math.sol";
 
 import "@nomiclabs/buidler/console.sol";
@@ -18,6 +19,7 @@ import "./MintableToken.sol";
 
 contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface {
     using SafeMath for uint256;
+    using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
@@ -196,15 +198,31 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         return convertAmountFromBase(exchangeRate(), _baseTokenAmount);
     }
 
+    function convertAmountFromBase(int _baseTokenAmount) public view override returns (int) {
+        return convertAmountFromBase(int(exchangeRate()), _baseTokenAmount);
+    }
+
     function convertAmountFromBase(uint rate, uint _baseTokenAmount) public pure override returns (uint) {
         return _baseTokenAmount.mul(1 ether).div(rate);
+    }
+
+    function convertAmountFromBase(int rate, int _baseTokenAmount) public pure override returns (int) {
+        return _baseTokenAmount.mul(int(1 ether)).div(rate);
     }
 
     function convertAmountToBase(uint iTokenAmount) public view override returns (uint) {
         return convertAmountToBase(exchangeRate(), iTokenAmount);
     }
 
+    function convertAmountToBase(int iTokenAmount) public view override returns (int) {
+        return convertAmountToBase(int(exchangeRate()), iTokenAmount);
+    }
+
     function convertAmountToBase(uint rate, uint iTokenAmount) public pure override returns (uint) {
+        return iTokenAmount.mul(rate).div(1 ether);
+    }
+
+    function convertAmountToBase(int rate, int iTokenAmount) public pure override returns (int) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 }

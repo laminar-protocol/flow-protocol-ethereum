@@ -298,10 +298,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         // allow anyone to close position
 
         require(stoppedPools[position.pool], "CPL1");
-
-        int256 poolLiquidityIToken = int256(position.pool.getLiquidity()).add(balances[position.pool][address(position.pool)]);
-
-        require(poolLiquidityIToken > 0, "CPL2");
+        require(getTotalPoolLiquidity(position.pool) > 0, "CPL2");
 
         uint256 bidSpread = storedLiquidatedPoolBidSpreads[position.pool][position.pair.base][position.pair.quote];
         uint256 askSpread = storedLiquidatedPoolAskSpreads[position.pool][position.pair.base][position.pair.quote];
@@ -313,26 +310,19 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             storedLiquidatedPoolPairPrices[position.pool][position.pair.base],
             storedLiquidatedPoolPairPrices[position.pool][position.pair.quote]
         );
-        Percentage.Percent memory marketStopPriceWithBidSpread = Percentage.Percent(marketStopPrice.value.sub(bidSpread));
-        Percentage.Percent memory marketStopPriceWithAskSpread = Percentage.Percent(marketStopPrice.value.add(askSpread));
 
-        int256 unrealized = MarginMarketLib.getUnrealizedPlForStoppedPool(
+        int256 totalUnrealized = market.getUnrealizedPlForStoppedPool(
             usdPairPrice,
-            position.leverage > 0 ? marketStopPriceWithBidSpread : marketStopPriceWithAskSpread,
+            Percentage.Percent(position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)),
             position.leveragedDebits,
             position.leveragedHeld
-        );
-
-        int256 accumulatedSwapRate = MarginMarketLib.getAccumulatedSwapRateOfPositionUntilDate(
+        ).add(market.getAccumulatedSwapRateOfPositionUntilDate(
             position,
             market.config.swapRateUnit(),
             storedLiquidatedPoolClosingTimes[position.pool],
-            position.leverage > 0 ? marketStopPriceWithAskSpread : marketStopPriceWithBidSpread,
+            Percentage.Percent(position.leverage > 0 ?  marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)),
             usdPairPrice
-        );
-        int256 totalUnrealized = unrealized.add(accumulatedSwapRate);
-
-        console.log("totalUnrealized", uint256(totalUnrealized));
+        ));
 
         _transferUnrealized(position.pool, msg.sender, totalUnrealized);
         _removePosition(position, totalUnrealized, marketStopPrice);
@@ -424,6 +414,13 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         return positionsByPoolAndTrader[_pool][_trader][_index].leveragedDebitsInUsd;
     }
 
+    function getTotalPoolLiquidity(MarginLiquidityPoolInterface _pool) public view returns (int256) {
+        int256 poolLiquidity = int256(_pool.getLiquidity());
+        int256 poolProtocolBalance = balances[_pool][address(_pool)];
+    
+        return poolLiquidity.add(poolProtocolBalance);
+    }
+
     /// Safety protocol functions
 
     function stopPool(MarginLiquidityPoolInterface _pool) external {
@@ -464,11 +461,11 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         uint256 leveragedDebitsInUsd = uint256(
             market.getUsdValue(_pair.quote, int256(leveragedDebits))
         );
-        uint256 marginHeld = uint256(
+        uint256 marginHeld = market.moneyMarket.convertAmountFromBase(uint256(
             int256(leveragedDebitsInUsd)
                 .mul(_leverage > 0 ? int256(1) :  int256(-1))
                 .div(_leverage)
-        );
+        ));
 
         if (_leverage > 0) {
             poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
@@ -596,10 +593,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
     function _transferUnrealized(MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized) private {
         if (_unrealized >= 0) { // trader has profit, max realizable is the pool's liquidity
-            int256 storedITokenBalance = balances[_pool][address(_pool)];
-            int256 poolLiquidityIToken = int256(_pool.getLiquidity()).add(storedITokenBalance);
-            uint256 realizedIToken = market.moneyMarket.convertAmountFromBase(uint256(_unrealized));
-            uint256 realized = poolLiquidityIToken > 0 ? Math.min(uint256(poolLiquidityIToken), realizedIToken) : 0;
+            int256 poolLiquidityIToken = getTotalPoolLiquidity(_pool);
+            uint256 realized = poolLiquidityIToken > 0 ? Math.min(uint256(poolLiquidityIToken), uint256(_unrealized)) : 0;
 
             _transferItokenBalanceFromPool(_pool, _owner, realized);
             return;
@@ -612,9 +607,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
         if (maxRealizable > 0) { // pool gets nothing if no realizable from traders
             uint256 realized = Math.min(uint256(maxRealizable), unrealizedAbs);
-            uint256 realizedIToken = market.moneyMarket.convertAmountFromBase(realized);
-
-            _transferItokenBalanceToPool(_pool, _owner, realizedIToken);
+            _transferItokenBalanceToPool(_pool, _owner, realized);
         }
     }
 

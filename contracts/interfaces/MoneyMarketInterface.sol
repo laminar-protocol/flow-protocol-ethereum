@@ -20,6 +20,11 @@ interface MoneyMarketInterface {
     function convertAmountToBase(uint iTokenAmount) external view returns (uint);
     function convertAmountToBase(uint rate, uint iTokenAmount) external pure returns (uint);
 
+    function convertAmountFromBase(int _baseTokenAmount) external view returns (int);
+    function convertAmountFromBase(int rate, int baseTokenAmount) external pure returns (int);
+    function convertAmountToBase(int iTokenAmount) external view returns (int);
+    function convertAmountToBase(int rate, int iTokenAmount) external pure returns (int);
+
     function totalHoldings() external view returns (uint);
 
 

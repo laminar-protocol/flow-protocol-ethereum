@@ -131,10 +131,7 @@ library MarginMarketLib {
     ) public returns (int256) {
         int256 unrealized = getUnrealizedPlOfTrader(self, _positions);
         int256 accumulatedSwapRates = getSwapRatesOfTrader(self, _positions);
-        uint256 traderBalanceAbs = _traderBalance >= 0 ? uint256(_traderBalance) : uint256(-_traderBalance);
-        uint256 traderBalanceBaseTokenAbs = self.moneyMarket.convertAmountToBase(traderBalanceAbs);
-        int256 traderBalanceBaseToken = _traderBalance >= 0 ? int256(traderBalanceBaseTokenAbs) : int256(-traderBalanceBaseTokenAbs);
-        int256 totalBalance = traderBalanceBaseToken.add(unrealized);
+        int256 totalBalance = _traderBalance.add(unrealized);
 
         return totalBalance.add(accumulatedSwapRates);
     }
@@ -194,16 +191,17 @@ library MarginMarketLib {
             : getBidPrice(self, position.pool, position.pair, 0);
         Percentage.Percent memory usdPairPrice = getPriceForPair(self, position.pair.quote, self.marketBaseToken);
 
-        return getAccumulatedSwapRateOfPositionUntilDate(position, self.config.swapRateUnit(), now, price, usdPairPrice);
+        return getAccumulatedSwapRateOfPositionUntilDate(self, position, self.config.swapRateUnit(), now, price, usdPairPrice);
     }
 
     function getAccumulatedSwapRateOfPositionUntilDate(
+        MarketData storage self,
         MarginFlowProtocol.Position memory position,
         uint256 _swapRateUnit,
         uint256 _time,
         Percentage.Percent memory _price,
         Percentage.Percent memory _usdPairPrice
-    ) public pure returns (int256) {
+    ) public view returns (int256) {
         uint256 timeDeltaInSeconds = _time.sub(position.timeWhenOpened);
         uint256 timeUnitsSinceOpen = timeDeltaInSeconds.div(_swapRateUnit);
         uint256 leveragedHeldAbs = position.leveragedHeld >= 0
@@ -222,7 +220,7 @@ library MarginMarketLib {
             ? int256(accumulatedSwapRateInUsd)
             : int256(-accumulatedSwapRateInUsd);
 
-        return signedSwapRate;
+        return self.moneyMarket.convertAmountFromBase(signedSwapRate);
     }
 
     function getUnrealizedPlForParams(
@@ -242,8 +240,10 @@ library MarginMarketLib {
 
         Percentage.SignedPercent memory priceDelta = Percentage.signedSubPercent(currentPrice, openPrice);
         int256 unrealized = _leveragedHeld.signedMulPercent(priceDelta);
+        int256 unrealizedUsd = getUsdValue(self, _pair.quote, unrealized);
+        int256 unrealizedItokens = self.moneyMarket.convertAmountFromBase(unrealizedUsd);
 
-        return (getUsdValue(self, _pair.quote, unrealized), Percentage.Percent(uint256(currentPrice.value)));
+        return (unrealizedItokens, Percentage.Percent(uint256(currentPrice.value)));
     }
 
     // Returns `(unrealizedPl, marketPrice)` of a given position. If `price`, market price must fit this bound, else reverts.
@@ -292,18 +292,19 @@ library MarginMarketLib {
     }
 
     function getUnrealizedPlForStoppedPool(
+        MarketData storage self,
         Percentage.Percent memory _usdPairPrice,
         Percentage.Percent memory _closePrice,
         int256 _leveragedDebits,
         int256 _leveragedHeld
-    ) public pure returns (int256) {
+    ) public view returns (int256) {
         Percentage.SignedPercent memory openPrice = Percentage.signedFromFraction(-_leveragedDebits, _leveragedHeld);
         Percentage.SignedPercent memory priceDelta = Percentage.signedSubPercent(Percentage.SignedPercent(int256(_closePrice.value)), openPrice);
 
         int256 unrealized = _leveragedHeld.signedMulPercent(priceDelta);
         int256 unrealizedUsd = unrealized.signedMulPercent(Percentage.SignedPercent(int256(_usdPairPrice.value)));
 
-        return unrealizedUsd;
+        return self.moneyMarket.convertAmountFromBase(unrealizedUsd);
     }
 
     function getPairSafetyInfo(
@@ -329,6 +330,6 @@ library MarginMarketLib {
             _pairValues
         );
 
-        return (net, longestLeg, unrealized);
+        return (self.moneyMarket.convertAmountFromBase(net), self.moneyMarket.convertAmountFromBase(longestLeg), unrealized);
     }
 }
