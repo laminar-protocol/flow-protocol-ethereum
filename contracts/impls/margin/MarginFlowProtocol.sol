@@ -221,9 +221,12 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
      * @dev Withdraw amount from pool balance for pool.
      * @param _iTokenAmount The iToken amount to withdraw.
      */
-    function withdrawForPool(uint256 _iTokenAmount) external nonReentrant poolIsVerifiedAndRunning(MarginLiquidityPoolInterface(msg.sender)) {
+    function withdrawForPool(uint256 _iTokenAmount) external nonReentrant {
         require(_iTokenAmount > 0, "0");
         MarginLiquidityPoolInterface pool = MarginLiquidityPoolInterface(msg.sender);
+
+        require(market.liquidityPoolRegistry.isVerifiedPool(pool), "LR1");
+        require(!stoppedPools[pool] || positionsByPool[pool].length == 0, "LR2");
 
         require(int256(_iTokenAmount) <= balances[pool][msg.sender], "WP1");
 
@@ -295,10 +298,9 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
      */
     function closePositionForLiquidatedPool(uint256 _positionId) external nonReentrant {
         Position memory position = positionsById[_positionId];
-        // allow anyone to close position
+        // allow anyone to close positions with loss
 
         require(stoppedPools[position.pool], "CPL1");
-        require(getTotalPoolLiquidity(position.pool) > 0, "CPL2");
 
         uint256 bidSpread = storedLiquidatedPoolBidSpreads[position.pool][position.pair.base][position.pair.quote];
         uint256 askSpread = storedLiquidatedPoolAskSpreads[position.pool][position.pair.base][position.pair.quote];
@@ -324,7 +326,11 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             usdPairPrice
         ));
 
-        _transferUnrealized(position.pool, msg.sender, totalUnrealized);
+        if (totalUnrealized > 0) {
+            require(msg.sender == position.owner, "CPL2");
+        }
+
+        _transferUnrealized(position.pool, position.owner, totalUnrealized);
         _removePosition(position, totalUnrealized, marketStopPrice);
     }
 

@@ -114,5 +114,5 @@ export const messages = {
   canOnlyBeUsedBySafetyProtocol: 'SP1',
   withdrawDepositRequireZeroPositions: 'WD1',
   onlyForLiquidatedPools: 'CPL1',
-  noLiquidityLeftInPool: 'CPL2',
+  onlyOwnerCanCloseProfitPosition: 'CPL2',
 };
