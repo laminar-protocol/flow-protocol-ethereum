@@ -469,7 +469,9 @@ contract('MarginFlowProtocol', accounts => {
       .mul(baseInUsdPrice)
       .div(bn(1e18));
 
-    const expectedMarginHeld = expectedLeveragedDebitsInUsd.div(leverage).abs();
+    const expectedMarginHeld = convertFromBaseToken(
+      expectedLeveragedDebitsInUsd.div(leverage).abs(),
+    );
 
     expect(positionId).to.be.bignumber.equal(id);
     expect(positionOwner).to.be.bignumber.equal(expectedOwner);
@@ -991,27 +993,27 @@ contract('MarginFlowProtocol', accounts => {
     const baseInUsdPrice = quotePrice.mul(bn(1e18)).div(usdPrice);
 
     // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-    const expectedPl = fromEth(
-      currentPrice
-        .sub(openPrice)
-        .mul(leveragedHeldInQuote)
-        .mul(baseInUsdPrice)
-        .div(bn(1e18))
-        .mul(expectedLeverage.isNeg() ? bn(-1) : bn(1)),
+    const expectedPl = convertFromBaseToken(
+      fromEth(
+        currentPrice
+          .sub(openPrice)
+          .mul(leveragedHeldInQuote)
+          .mul(baseInUsdPrice)
+          .div(bn(1e18))
+          .mul(expectedLeverage.isNeg() ? bn(-1) : bn(1)),
+      ),
     );
 
     const unrealized = expectedPl.mul(bn(2));
-    const equity = convertToBaseToken(traderBalanceBefore).add(unrealized);
-    const maxRealizableLoss = convertFromBaseToken(
-      equity.sub(expectedPl).mul(bn(-1)),
-    );
+    const equity = traderBalanceBefore.add(unrealized);
+    const maxRealizableLoss = equity.sub(expectedPl).mul(bn(-1));
     const maxRealizableProfit = poolLiquidityBefore;
     const maxRealizable = expectedPl.isNeg()
       ? maxRealizableLoss
       : maxRealizableProfit;
 
     expect(traderBalanceDifference).to.be.bignumber.equal(
-      useMaxRealizable ? maxRealizable : convertFromBaseToken(expectedPl),
+      useMaxRealizable ? maxRealizable : expectedPl,
     );
 
     const usedLiquidtyPool = await MarginLiquidityPool.at(expectedPool);
@@ -1020,9 +1022,7 @@ contract('MarginFlowProtocol', accounts => {
       expectedPool,
     );
     const poolBalanceDifference = poolBalanceAfter.sub(poolBalanceBefore);
-    const expectedPoolBalanceDifference = convertFromBaseToken(
-      expectedPl.mul(bn(-1)),
-    );
+    const expectedPoolBalanceDifference = expectedPl.mul(bn(-1));
 
     if (expectedPl.isNeg())
       expect(poolBalanceDifference).to.be.bignumber.equal(
@@ -1723,9 +1723,8 @@ contract('MarginFlowProtocol', accounts => {
           quotePrice: await oracle.getPrice.call(eur),
         };
 
-        const expectedMarginHeldAlice = leverages
-          .slice(0, -1)
-          .reduce((accValue, leverage, i) => {
+        const expectedMarginHeldAlice = convertFromBaseToken(
+          leverages.slice(0, -1).reduce((accValue, leverage, i) => {
             const leveragedHeld = leveragedHelds[i];
             const leveragedDebitAlice = getLeveragedDebits({
               leveragedHeld,
@@ -1734,13 +1733,16 @@ contract('MarginFlowProtocol', accounts => {
             });
 
             return accValue.add(leveragedDebitAlice.div(leverage).abs());
-          }, bn(0));
+          }, bn(0)),
+        );
         const leveragedDebitBob = getLeveragedDebits({
           leveragedHeld: leveragedHelds[3],
           leverage: leverages[3],
           ...prices,
         });
-        const expectedMarginHeldBob = leveragedDebitBob.div(leverages[3]).abs();
+        const expectedMarginHeldBob = convertFromBaseToken(
+          leveragedDebitBob.div(leverages[3]).abs(),
+        );
 
         expect(marginHeldAlice).to.be.bignumber.equal(expectedMarginHeldAlice);
         expect(marginHeldBob).to.be.bignumber.equal(expectedMarginHeldBob);
@@ -1828,12 +1830,14 @@ contract('MarginFlowProtocol', accounts => {
           .div(leveragedHeldInEuro)
           .abs();
         // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-        const expectedPl = fromEth(
-          currentPrice
-            .sub(openPrice)
-            .mul(leveragedHeldInEuro)
-            .mul(quotePrice)
-            .div(basePrice),
+        const expectedPl = convertFromBaseToken(
+          fromEth(
+            currentPrice
+              .sub(openPrice)
+              .mul(leveragedHeldInEuro)
+              .mul(quotePrice)
+              .div(basePrice),
+          ),
         );
 
         return { expectedPl, currentPrice };
@@ -2025,7 +2029,7 @@ contract('MarginFlowProtocol', accounts => {
           .div(basePrice),
       );
 
-      return expectedPl1.add(expectedPl2);
+      return convertFromBaseToken(expectedPl1.add(expectedPl2));
     };
 
     it('should return correct unrealized PL at the beginning of a new position', async () => {
@@ -2085,9 +2089,11 @@ contract('MarginFlowProtocol', accounts => {
           .mul(bn(3)) // 3x 8 hours per day
           .mul(leveragedHeld),
       );
-      const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice))
-        .mul(quotePrice)
-        .div(basePrice);
+      const expectedRateWithPrice = convertFromBaseToken(
+        fromEth(expectedAccSwapRate.mul(bidPrice))
+          .mul(quotePrice)
+          .div(basePrice),
+      );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
     });
@@ -2123,9 +2129,11 @@ contract('MarginFlowProtocol', accounts => {
         .sub(bn(5))
         .mul(leveragedHeld)
         .div(bn(1e18));
-      const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice))
-        .mul(quotePrice)
-        .div(basePrice);
+      const expectedRateWithPrice = convertFromBaseToken(
+        fromEth(expectedAccSwapRate.mul(bidPrice))
+          .mul(quotePrice)
+          .div(basePrice),
+      );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
     });
@@ -2159,9 +2167,11 @@ contract('MarginFlowProtocol', accounts => {
           .mul(bn(3)) // 3x 8 hours per day
           .mul(leveragedHeld),
       );
-      const expectedRateWithPrice = fromEth(expectedAccSwapRate.mul(bidPrice))
-        .mul(quotePrice)
-        .div(basePrice);
+      const expectedRateWithPrice = convertFromBaseToken(
+        fromEth(expectedAccSwapRate.mul(bidPrice))
+          .mul(quotePrice)
+          .div(basePrice),
+      );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
     });
@@ -2231,8 +2241,9 @@ contract('MarginFlowProtocol', accounts => {
         );
 
         // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-        const aliceBalance = convertToBaseToken(
-          await protocol.balances(liquidityPool.address, alice),
+        const aliceBalance = await protocol.balances(
+          liquidityPool.address,
+          alice,
         );
         const aliceUnrealized = await protocol.getUnrealizedPlOfTrader.call(
           liquidityPool.address,
@@ -2246,9 +2257,7 @@ contract('MarginFlowProtocol', accounts => {
           .add(aliceUnrealized)
           .sub(aliceSwapRates);
 
-        const bobBalance = convertToBaseToken(
-          await protocol.balances(liquidityPool.address, bob),
-        );
+        const bobBalance = await protocol.balances(liquidityPool.address, bob);
         const bobUnrealized = await protocol.getUnrealizedPlOfTrader.call(
           liquidityPool.address,
           bob,
@@ -2296,8 +2305,9 @@ contract('MarginFlowProtocol', accounts => {
             bob,
           );
 
-          const bobBalance = convertToBaseToken(
-            await protocol.balances(liquidityPool.address, bob),
+          const bobBalance = await protocol.balances(
+            liquidityPool.address,
+            bob,
           );
           const bobUnrealized = await protocol.getUnrealizedPlOfTrader.call(
             liquidityPool.address,

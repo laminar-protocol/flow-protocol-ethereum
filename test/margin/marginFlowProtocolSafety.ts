@@ -1043,20 +1043,18 @@ contract('MarginFlowProtocolSafety', accounts => {
             swapRatesAlice = Array(8).fill(bn(0));
 
             for (let i = 0; i < 9; i += 1) {
-              unrealizedAlice[i] = convertFromBaseToken(
-                await protocol.getUnrealizedPlOfPosition.call(i),
-              );
-              swapRatesAlice[i] = convertFromBaseToken(
-                await (protocol as any).getAccumulatedSwapRateOfPosition.call(
-                  i,
-                ),
+              unrealizedAlice[
+                i
+              ] = await protocol.getUnrealizedPlOfPosition.call(i);
+              swapRatesAlice[
+                i
+              ] = await (protocol as any).getAccumulatedSwapRateOfPosition.call(
+                i,
               );
             }
-            unrealizedBob = convertFromBaseToken(
-              await protocol.getUnrealizedPlOfPosition.call(9),
-            );
-            swapRateBob = convertFromBaseToken(
-              await (protocol as any).getAccumulatedSwapRateOfPosition.call(9),
+            unrealizedBob = await protocol.getUnrealizedPlOfPosition.call(9);
+            swapRateBob = await (protocol as any).getAccumulatedSwapRateOfPosition.call(
+              9,
             );
 
             await time.increase(time.duration.days(8));
@@ -1084,7 +1082,6 @@ contract('MarginFlowProtocolSafety', accounts => {
             let expectedAliceBalanceDiff = bn(0);
 
             for (let i = 0; i < 9; i += 1) {
-              console.log({ i });
               await protocol.closePositionForLiquidatedPool(i, {
                 from: alice,
               });
@@ -1424,9 +1421,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           liquidityPool.address,
         );
 
-        const liquidity = convertToBaseToken(
-          await liquidityPool.getLiquidity(),
-        );
+        const liquidity = await liquidityPool.getLiquidity();
         let allUnrealizedPl = bn(0);
         // let allAccumulatedSwapRate = bn(0);
 
@@ -1466,9 +1461,9 @@ contract('MarginFlowProtocolSafety', accounts => {
         const positionCount = 9;
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = (await protocol.positionsById(positionId))[
-            '7'
-          ];
+          const leveragedDebits = convertFromBaseToken(
+            (await protocol.positionsById(positionId))['7'],
+          );
           net = net.add(leveragedDebits);
 
           if (leveragedDebits.isNeg()) {
@@ -1513,9 +1508,9 @@ contract('MarginFlowProtocolSafety', accounts => {
         const positionCount = 9;
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = (await protocol.positionsById(positionId))[
-            '7'
-          ];
+          const leveragedDebits = convertFromBaseToken(
+            (await protocol.positionsById(positionId))['7'],
+          );
           net = net.add(leveragedDebits);
 
           if (leveragedDebits.isNeg()) {
