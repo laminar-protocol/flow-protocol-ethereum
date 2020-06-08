@@ -301,16 +301,20 @@ contract('MarginFlowProtocolConfig', accounts => {
         newSwapRateLong,
         newSwapRateShort,
       );
-      const newStoredSwapRateLong = await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
-        liquidityPool.address,
-        { base: usd.address, quote: eur },
-        LONG,
-      );
-      const newStoredSwapRateShort = await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
-        liquidityPool.address,
-        { base: usd.address, quote: eur },
-        SHORT,
-      );
+      const newStoredSwapRateLong = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          LONG,
+        )
+      ).value;
+      const newStoredSwapRateShort = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          SHORT,
+        )
+      ).value;
       expect(newStoredSwapRateLong).to.be.bignumber.equals(newSwapRateLong);
       expect(newStoredSwapRateShort).to.be.bignumber.equals(newSwapRateShort);
     });
@@ -377,16 +381,20 @@ contract('MarginFlowProtocolConfig', accounts => {
     });
 
     it('retrieves current swap rate plus pool markup', async () => {
-      const newStoredSwapRateLong = await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
-        liquidityPool.address,
-        { base: usd.address, quote: eur },
-        LONG,
-      );
-      const newStoredSwapRateShort = await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
-        liquidityPool.address,
-        { base: usd.address, quote: eur },
-        SHORT,
-      );
+      const newStoredSwapRateLong = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          LONG,
+        )
+      ).value;
+      const newStoredSwapRateShort = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          SHORT,
+        )
+      ).value;
       expect(newStoredSwapRateLong).to.be.bignumber.equals(
         newSwapRateLong.add(additionalPoolMarkup),
       );
