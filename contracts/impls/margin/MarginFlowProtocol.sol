@@ -172,6 +172,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         _moneyMarket.baseToken().safeApprove(address(_moneyMarket), MAX_UINT);
 
         market = MarginMarketLib.MarketData(
+            this,
             _moneyMarket,
             _oracle,
             _protocolConfig,
@@ -255,9 +256,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         require(market.config.tradingPairWhitelist(address(_base), address(_quote)), "TP1");
         require(!traderIsMarginCalled[_pool][msg.sender], "OP2");
         require(!market.liquidityPoolRegistry.isMarginCalled(_pool), "OP3");
-        require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) >= market.config.minLeverage(), "OP4");
-        require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) <= market.config.maxLeverage(), "OP5");
-        require(_leveragedHeld >= market.config.minLeverageAmount(), "OP6");
+        require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) >= _pool.minLeverage(), "OP4");
+        require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) <= _pool.maxLeverage(), "OP5");
         require(market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender), "OP7");
 
         Percentage.Percent memory debitsPrice = (_leverage > 0)
@@ -320,7 +320,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             position.leveragedHeld
         ).add(market.getAccumulatedSwapRateOfPositionUntilDate(
             position,
-            market.config.swapRateUnit(),
+            market.config.currentSwapUnits(position.pair.base, position.pair.quote),
             storedLiquidatedPoolClosingTimes[position.pool],
             Percentage.Percent(position.leverage > 0 ?  marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)),
             usdPairPrice
@@ -473,6 +473,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
                 .div(_leverage)
         ));
 
+        require(leveragedDebitsInUsd >= _pool.minLeverageAmount(), "OP6");
+
         if (_leverage > 0) {
             poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
                 .add(_leveragedHeld);
@@ -539,12 +541,10 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             int256(_leveragedDebits).mul(heldSignum.mul(-1)),
             int256(_leveragedHeldInUsd).mul(heldSignum.mul(-1)),
             _marginHeld,
-            Percentage.SignedPercent(
-                market.config.currentSwapRates(
-                    _pair.base,
-                    _pair.quote,
-                    _leverage > 0 ? MarginFlowProtocolConfig.PositionType.LONG : MarginFlowProtocolConfig.PositionType.SHORT
-                )
+            market.config.getCurrentTotalSwapRateForPoolAndPair(
+                _pool,
+                _pair,
+                _leverage > 0 ? MarginFlowProtocolConfig.PositionType.LONG : MarginFlowProtocolConfig.PositionType.SHORT
             ),
             now
         );

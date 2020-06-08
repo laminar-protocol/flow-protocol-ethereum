@@ -53,12 +53,24 @@ contract('MarginLiquidityPool', accounts => {
     await liquidityPool.approveToProtocol(constants.MAX_UINT256, {
       from: liquidityProvider,
     });
-    await liquidityPool.enableToken(usd.address, fToken, helper.fromPip(10), {
-      from: liquidityProvider,
-    });
-    await liquidityPool.enableToken(fToken, usd.address, helper.fromPip(10), {
-      from: liquidityProvider,
-    });
+    await liquidityPool.enableToken(
+      usd.address,
+      fToken,
+      helper.fromPip(10),
+      0,
+      {
+        from: liquidityProvider,
+      },
+    );
+    await liquidityPool.enableToken(
+      fToken,
+      usd.address,
+      helper.fromPip(10),
+      0,
+      {
+        from: liquidityProvider,
+      },
+    );
 
     usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
   });
@@ -129,6 +141,7 @@ contract('MarginLiquidityPool', accounts => {
         usd.address,
         fTokenTwo,
         helper.fromPip(10),
+        0,
         {
           from: liquidityProvider,
         },
@@ -165,9 +178,15 @@ contract('MarginLiquidityPool', accounts => {
 
     it('requires owner to enable token', async () => {
       await expectRevert(
-        liquidityPool.enableToken(usd.address, fTokenTwo, helper.fromPip(10), {
-          from: badAddress,
-        }),
+        liquidityPool.enableToken(
+          usd.address,
+          fTokenTwo,
+          helper.fromPip(10),
+          0,
+          {
+            from: badAddress,
+          },
+        ),
         helper.messages.onlyOwner,
       );
     });
@@ -221,13 +240,11 @@ contract('MarginLiquidityPool', accounts => {
       beforeEach(async () => {
         const mockedProtocol = await MockPoolIsSafeMarginProtocol.new();
         liquidityPool = await MarginLiquidityPool.new();
-        await (liquidityPool as any).methods['initialize(address,address)'](
-          moneyMarket.address,
-          mockedProtocol.address,
-          {
-            from: liquidityProvider,
-          },
-        );
+        await (liquidityPool as any).methods[
+          'initialize(address,address,uint256,uint256,uint256)'
+        ](moneyMarket.address, mockedProtocol.address, 1, 50, 1000, {
+          from: liquidityProvider,
+        });
         await moneyMarket.mintTo(liquidityPool.address, 1000, {
           from: liquidityProvider,
         });
@@ -250,13 +267,11 @@ contract('MarginLiquidityPool', accounts => {
       beforeEach(async () => {
         const mockedProtocol = await MockPoolIsNotSafeMarginProtocol.new();
         liquidityPool = await MarginLiquidityPool.new();
-        await (liquidityPool as any).methods['initialize(address,address)'](
-          moneyMarket.address,
-          mockedProtocol.address,
-          {
-            from: liquidityProvider,
-          },
-        );
+        await (liquidityPool as any).methods[
+          'initialize(address,address,uint256,uint256,uint256)'
+        ](moneyMarket.address, mockedProtocol.address, 1, 50, 1000, {
+          from: liquidityProvider,
+        });
         await moneyMarket.mintTo(liquidityPool.address, 1000, {
           from: liquidityProvider,
         });

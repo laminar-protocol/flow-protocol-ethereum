@@ -6,8 +6,8 @@ import "../../impls/margin/MarginFlowProtocolSafety.sol";
 contract MockPoolIsSafeMarginProtocol {
     event FakeWithdrew(address sender, uint256 amount);
 
-    function market() public view returns (uint,uint,uint,MarginFlowProtocolSafety,uint,uint) {
-        return (0,0,0,MarginFlowProtocolSafety(address(this)),0,0);
+    function market() public view returns (uint,uint,uint,uint,MarginFlowProtocolSafety,uint,uint) {
+        return (0,0,0,0,MarginFlowProtocolSafety(address(this)),0,0);
     }
 
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public pure returns (bool) {
@@ -28,8 +28,8 @@ contract MockPoolIsSafeMarginProtocol {
 contract MockPoolIsNotSafeMarginProtocol {
     event FakeWithdrew(address sender, uint256 amount);
 
-    function market() public view returns (uint,uint,uint,MarginFlowProtocolSafety,uint,uint) {
-        return (0,0,0,MarginFlowProtocolSafety(address(this)),0,0);
+    function market() public view returns (uint,uint,uint,uint,MarginFlowProtocolSafety,uint,uint) {
+        return (0,0,0,0,MarginFlowProtocolSafety(address(this)),0,0);
     }
 
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public pure returns (bool) {

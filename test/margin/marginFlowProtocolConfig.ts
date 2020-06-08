@@ -126,13 +126,10 @@ contract('MarginFlowProtocolConfig', accounts => {
       protocolSafety.address,
       liquidityPoolRegistry.address,
     );
-    await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
+    const market = await protocol.market();
+    await (protocolSafety as any).initialize(market, laminarTreasury);
     await (protocolConfig as any).initialize(
       dollar('0.1'),
-      1,
-      50,
-      2,
-      60 * 60 * 8, // 8 hours
       fromPercent(5),
       fromPercent(2),
       fromPercent(50),
@@ -141,10 +138,9 @@ contract('MarginFlowProtocolConfig', accounts => {
       fromPercent(2),
     );
 
-    await (liquidityPoolRegistry as any).initialize(
-      moneyMarket.address,
-      protocol.address,
-    );
+    await (liquidityPoolRegistry as any).methods[
+      'initialize((address,address,address,address,address,address,address))'
+    ](market);
 
     const liquidityPoolImpl = await MarginLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
@@ -153,6 +149,9 @@ contract('MarginFlowProtocolConfig', accounts => {
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address,
+      1,
+      50,
+      2,
     );
 
     await usd.approve(liquidityPool.address, dollar(20000), {
@@ -162,9 +161,9 @@ contract('MarginFlowProtocolConfig', accounts => {
       from: liquidityProvider,
     });
 
-    const feeSum = (
-      await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
-    ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+    const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
+      await protocolConfig.poolMarginCallDeposit(),
+    );
     await usd.approve(liquidityPoolRegistry.address, feeSum, {
       from: liquidityProvider,
     });
@@ -225,6 +224,7 @@ contract('MarginFlowProtocolConfig', accounts => {
       await protocolConfig.addTradingPair(
         eur,
         jpy,
+        60 * 60 * 8, // 8 hours
         initialSwapRateLong,
         initialSwapRateShort,
       );
@@ -236,6 +236,7 @@ contract('MarginFlowProtocolConfig', accounts => {
       await protocolConfig.addTradingPair(
         eur,
         jpy,
+        60 * 60 * 8, // 8 hours
         initialSwapRateLong,
         initialSwapRateShort,
       );
@@ -244,6 +245,7 @@ contract('MarginFlowProtocolConfig', accounts => {
         protocolConfig.addTradingPair(
           eur,
           jpy,
+          60 * 60 * 8, // 8 hours
           initialSwapRateLong,
           initialSwapRateShort,
         ),
@@ -256,6 +258,7 @@ contract('MarginFlowProtocolConfig', accounts => {
         protocolConfig.addTradingPair(
           eur,
           eur,
+          60 * 60 * 8, // 8 hours
           initialSwapRateLong,
           initialSwapRateShort,
         ),
@@ -268,6 +271,7 @@ contract('MarginFlowProtocolConfig', accounts => {
         protocolConfig.addTradingPair(
           eur,
           jpy,
+          60 * 60 * 8, // 8 hours
           initialSwapRateLong,
           initialSwapRateShort,
           {
@@ -297,16 +301,20 @@ contract('MarginFlowProtocolConfig', accounts => {
         newSwapRateLong,
         newSwapRateShort,
       );
-      const newStoredSwapRateLong = await protocolConfig.currentSwapRates(
-        usd.address,
-        eur,
-        LONG,
-      );
-      const newStoredSwapRateShort = await protocolConfig.currentSwapRates(
-        usd.address,
-        eur,
-        SHORT,
-      );
+      const newStoredSwapRateLong = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          LONG,
+        )
+      ).value;
+      const newStoredSwapRateShort = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          SHORT,
+        )
+      ).value;
       expect(newStoredSwapRateLong).to.be.bignumber.equals(newSwapRateLong);
       expect(newStoredSwapRateShort).to.be.bignumber.equals(newSwapRateShort);
     });
@@ -343,6 +351,55 @@ contract('MarginFlowProtocolConfig', accounts => {
           0,
         ),
         messages.settingZeroValueNotAllowed,
+      );
+    });
+  });
+
+  describe('when getting total swap rate for pair', () => {
+    const LONG = '0';
+    const SHORT = '1';
+    let newSwapRateLong: BN;
+    let newSwapRateShort: BN;
+    let additionalPoolMarkup: BN;
+
+    beforeEach(async () => {
+      newSwapRateLong = bn(123);
+      newSwapRateShort = bn(456);
+      additionalPoolMarkup = bn(333);
+
+      await protocolConfig.setCurrentSwapRateForPair(
+        usd.address,
+        eur,
+        newSwapRateLong,
+        newSwapRateShort,
+      );
+      await liquidityPool.setCurrentSwapRateMarkupForPair(
+        usd.address,
+        eur,
+        additionalPoolMarkup,
+      );
+    });
+
+    it('retrieves current swap rate plus pool markup', async () => {
+      const newStoredSwapRateLong = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          LONG,
+        )
+      ).value;
+      const newStoredSwapRateShort = (
+        await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
+          liquidityPool.address,
+          { base: usd.address, quote: eur },
+          SHORT,
+        )
+      ).value;
+      expect(newStoredSwapRateLong).to.be.bignumber.equals(
+        newSwapRateLong.add(additionalPoolMarkup),
+      );
+      expect(newStoredSwapRateShort).to.be.bignumber.equals(
+        newSwapRateShort.add(additionalPoolMarkup),
       );
     });
   });

@@ -1,68 +1,47 @@
 {
     "name": "General", 
     "initialDeposit": "20000$",
+    "minLeveragedAmount": "1$",
+    "minLeverage": "1x",
+    "maxLeverage": "50x",
     "tradingPairs": [
         {
             "name": "EUR/USD",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "USD/EUR",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "JPY/USD",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "USD/JPY",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "JPY/EUR",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "EUR/JPY",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "XAU/USD",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         },
         {
             "name": "USD/XAU",
-            "minLeveragedAmount": "1$",
-            "minLeverage": "1x",
-            "maxLeverage": "50x",
             "spread": "0.000028152",
             "additionalSwap": "0%"
         }

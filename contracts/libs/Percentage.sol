@@ -57,6 +57,10 @@ library Percentage {
         return Percent(a.value.add(b.value));
     }
 
+    function signedAddPercent(SignedPercent memory a, SignedPercent memory b) internal pure returns (SignedPercent memory) {
+        return SignedPercent(a.value.add(b.value));
+    }
+
     function subPercent(Percent memory a, Percent memory b) internal pure returns (Percent memory) {
         return Percent(a.value.sub(b.value));
     }
