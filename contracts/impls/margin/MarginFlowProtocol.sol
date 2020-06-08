@@ -301,7 +301,6 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         // allow anyone to close positions with loss
 
         require(stoppedPools[position.pool], "CPL1");
-        require(getTotalPoolLiquidity(position.pool) > 0, "CPL2");
 
         uint256 bidSpread = storedLiquidatedPoolBidSpreads[position.pool][position.pair.base][position.pair.quote];
         uint256 askSpread = storedLiquidatedPoolAskSpreads[position.pool][position.pair.base][position.pair.quote];
