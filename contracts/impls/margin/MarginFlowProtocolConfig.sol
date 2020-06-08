@@ -2,12 +2,16 @@ pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2; // not experimental anymore
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts/math/SignedSafeMath.sol";
 
 import "../../libs/Percentage.sol";
 import "../../libs/upgrades/UpgradeOwnable.sol";
+import "../../interfaces/MarginLiquidityPoolInterface.sol";
 import "./MarginFlowProtocol.sol";
 
 contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
+    using SignedSafeMath for int256;
+
     enum PositionType {
         LONG,
         SHORT
@@ -20,13 +24,14 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      */
     event NewTradingPair(address indexed base, address indexed quote);
 
+    uint256 public traderMarginCallDeposit;
+    uint256 public traderLiquidationDeposit;
+    uint256 public poolMarginCallDeposit;
+    uint256 public poolLiquidationDeposit;
     uint256 public maxSpread;
-    uint256 public minLeverage;
-    uint256 public maxLeverage;
-    uint256 public minLeverageAmount;
-    uint256 public swapRateUnit;
 
-    mapping (address => mapping(address => mapping (PositionType => Percentage.SignedPercent))) public currentSwapRates;
+    mapping (address => mapping(address => uint256)) public currentSwapUnits;
+    mapping (address => mapping(address => mapping (PositionType => int256))) private currentSwapRates;
     mapping(address => mapping (address => bool)) public tradingPairWhitelist;
 
     MarginFlowProtocol.TradingPair[] private tradingPairs;
@@ -40,10 +45,6 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
 
     function initialize(
         uint256 _maxSpread,
-        uint256 _initialMinLeverage,
-        uint256 _initialMaxLeverage,
-        uint256 _initialMinLeverageAmount,
-        uint256 _swapRateUnit,
         uint256 _initialTraderRiskMarginCallThreshold,
         uint256 _initialTraderRiskLiquidateThreshold,
         uint256 _initialLiquidityPoolENPMarginThreshold,
@@ -54,10 +55,6 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
         UpgradeOwnable.initialize(msg.sender);
 
         maxSpread = _maxSpread;
-        minLeverage = _initialMinLeverage;
-        maxLeverage = _initialMaxLeverage;
-        minLeverageAmount = _initialMinLeverageAmount;
-        swapRateUnit = _swapRateUnit;
 
         liquidityPoolENPMarginThreshold = _initialLiquidityPoolENPMarginThreshold;
         liquidityPoolELLMarginThreshold = _initialLiquidityPoolELLMarginThreshold;
@@ -80,35 +77,8 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      */
     function setCurrentSwapRateForPair(address _base, address _quote, int256 _newSwapRateLong, int256 _newSwapRateShort) external onlyOwner {
         require(_newSwapRateLong != 0 && _newSwapRateShort != 0, "0");
-        currentSwapRates[_base][_quote][PositionType.LONG] = Percentage.SignedPercent(_newSwapRateLong);
-        currentSwapRates[_base][_quote][PositionType.SHORT] = Percentage.SignedPercent(_newSwapRateShort);
-    }
-
-    /**
-     * @dev Set new minimum leverage, only for the owner.
-     * @param _newMinLeverage The new minimum leverage.
-     */
-    function setMinLeverage(uint256 _newMinLeverage) external onlyOwner {
-        require(_newMinLeverage > 0, "0");
-        minLeverage = _newMinLeverage;
-    }
-
-    /**
-     * @dev Set new maximum leverage, only for the owner.
-     * @param _newMaxLeverage The new maximum leverage.
-     */
-    function setMaxLeverage(uint256 _newMaxLeverage) external onlyOwner {
-        require(_newMaxLeverage > 0, "0");
-        maxLeverage = _newMaxLeverage;
-    }
-
-    /**
-     * @dev Set new minimum leverage amount, only for the owner.
-     * @param _newMinLeverageAmount The new minimum leverage amount.
-     */
-    function setMinLeverageAmount(uint256 _newMinLeverageAmount) external onlyOwner {
-        require(_newMinLeverageAmount > 0, "0");
-        minLeverageAmount = _newMinLeverageAmount;
+        currentSwapRates[_base][_quote][PositionType.LONG] = _newSwapRateLong;
+        currentSwapRates[_base][_quote][PositionType.SHORT] = _newSwapRateShort;
     }
 
     function setMaxSpread(uint256 _maxSpread) external onlyOwner {
@@ -119,16 +89,18 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      * @dev Add new trading pair, only for the owner.
      * @param _base The base token.
      * @param _quote The quote token.
+     * @param _swapUnit The swap unit.
      * @param _swapRateLong The swap rate as percentage for longs.
      * @param _swapRateShort The swap rate as percentage for shorts.
      */
-    function addTradingPair(address _base, address _quote, int256 _swapRateLong, int256 _swapRateShort) external onlyOwner {
-        require(_base != address(0) && _quote != address(0) && _swapRateLong != 0 && _swapRateShort != 0, "0");
+    function addTradingPair(address _base, address _quote, uint256 _swapUnit, int256 _swapRateLong, int256 _swapRateShort) external onlyOwner {
+        require(_base != address(0) && _quote != address(0) && _swapUnit != 0 && _swapRateLong != 0 && _swapRateShort != 0, "0");
         require(!tradingPairWhitelist[_base][_quote], "TP2");
         require(_base != _quote, "TP3");
 
-        currentSwapRates[_base][_quote][PositionType.LONG] = Percentage.SignedPercent(_swapRateLong);
-        currentSwapRates[_base][_quote][PositionType.SHORT] = Percentage.SignedPercent(_swapRateShort);
+        currentSwapUnits[_base][_quote] = _swapUnit;
+        currentSwapRates[_base][_quote][PositionType.LONG] = _swapRateLong;
+        currentSwapRates[_base][_quote][PositionType.SHORT] = _swapRateShort;
         tradingPairWhitelist[_base][_quote] = true;
 
         tradingPairs.push(MarginFlowProtocol.TradingPair(_base, _quote));
@@ -210,5 +182,16 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
 
     function getTradingPairs() external view returns (MarginFlowProtocol.TradingPair[] memory) {
         return tradingPairs;
+    }
+
+    function getCurrentTotalSwapRateForPoolAndPair(
+        MarginLiquidityPoolInterface _pool,
+        MarginFlowProtocol.TradingPair calldata _pair,
+        PositionType _type
+    ) external view returns (Percentage.SignedPercent memory) {
+        int256 baseSwapRate = currentSwapRates[_pair.base][_pair.quote][_type];
+        int256 poolMarkup = _pool.getSwapRateMarkupForPair(_pair.base, _pair.quote);
+
+        return Percentage.SignedPercent(baseSwapRate.add(poolMarkup));
     }
 }

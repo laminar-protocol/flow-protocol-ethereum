@@ -1,4 +1,5 @@
 pragma solidity ^0.6.4;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/upgrades/contracts/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -6,9 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
-import "../../interfaces/MoneyMarketInterface.sol";
 import "../../libs/upgrades/UpgradeReentrancyGuard.sol";
 import "../../libs/upgrades/UpgradeOwnable.sol";
+
+import "./MarginMarketLib.sol";
 
 // TODOs:
 // - discovery liquidity pool
@@ -18,8 +20,7 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    MoneyMarketInterface private moneyMarket;
-    address private protocolSafety;
+    MarginMarketLib.MarketData private market;
 
     mapping (MarginLiquidityPoolInterface => bool) public isVerifiedPool;
     mapping (MarginLiquidityPoolInterface => bool) public poolHasPaidDeposits;
@@ -27,15 +28,11 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     mapping (MarginLiquidityPoolInterface => uint256) public poolMarginCallITokens;
     mapping (MarginLiquidityPoolInterface => uint256) public poolLiquidationITokens;
 
-    uint256 constant public LIQUIDITY_POOL_MARGIN_CALL_FEE = 1000 ether; // TODO
-    uint256 constant public LIQUIDITY_POOL_LIQUIDATION_FEE = 3000 ether; // TODO
-
-    function initialize(MoneyMarketInterface _moneyMarket, address _protocolSafety) public initializer {
+    function initialize(MarginMarketLib.MarketData memory _market) public initializer {
         UpgradeOwnable.initialize(msg.sender);
         UpgradeReentrancyGuard.initialize();
 
-        moneyMarket = _moneyMarket;
-        protocolSafety = _protocolSafety;
+        market = _market;
     }
 
     /**
@@ -46,12 +43,14 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
         require(address(_pool) != address(0), "0");
         require(!poolHasPaidDeposits[_pool], "PR1");
 
-        uint256 feeSum = LIQUIDITY_POOL_MARGIN_CALL_FEE.add(LIQUIDITY_POOL_LIQUIDATION_FEE);
-        moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), feeSum);
-        moneyMarket.baseToken().safeApprove(address(moneyMarket), feeSum);
+        uint256 poolMarginCallDeposit = market.config.poolMarginCallDeposit();
+        uint256 poolLiquidationDeposit = market.config.poolLiquidationDeposit();
+        uint256 feeSum = poolMarginCallDeposit.add(poolLiquidationDeposit);
+        market.moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), feeSum);
+        market.moneyMarket.baseToken().safeApprove(address(market.moneyMarket), feeSum);
 
-        poolMarginCallITokens[_pool] = moneyMarket.mintTo(protocolSafety, LIQUIDITY_POOL_MARGIN_CALL_FEE);
-        poolLiquidationITokens[_pool] = moneyMarket.mintTo(protocolSafety, LIQUIDITY_POOL_LIQUIDATION_FEE);
+        poolMarginCallITokens[_pool] = market.moneyMarket.mintTo(address(market.protocolSafety), poolMarginCallDeposit);
+        poolLiquidationITokens[_pool] = market.moneyMarket.mintTo(address(market.protocolSafety), poolLiquidationDeposit);
         poolHasPaidDeposits[_pool] = true;
     }
 
@@ -75,11 +74,11 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     }
 
     /**
-     * @dev Margin call a pool, only used by the protocolSafety.
+     * @dev Margin call a pool, only used by the address(market.protocolSafety).
      * @param _pool The MarginLiquidityPool.
      */
-    function marginCallPool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
-        require(msg.sender == protocolSafety, "Only safety protocol can call this function");
+    function marginCallPool(MarginLiquidityPoolInterface _pool) external returns (uint256) {
+        require(msg.sender == address(market.protocolSafety), "Only safety protocol can call this function");
         require(!isMarginCalled[_pool], "PM1");
 
         uint256 marginCallITokens = poolMarginCallITokens[_pool];
@@ -91,11 +90,11 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     }
 
     /**
-     * @dev Margin call a pool, only used by the protocolSafety.
+     * @dev Margin call a pool, only used by the address(market.protocolSafety).
      * @param _pool The MarginLiquidityPool.
      */
-    function liquidatePool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
-        require(msg.sender == protocolSafety, "Only safety protocol can call this function");
+    function liquidatePool(MarginLiquidityPoolInterface _pool) external returns (uint256) {
+        require(msg.sender == address(market.protocolSafety), "Only safety protocol can call this function");
         require(isMarginCalled[_pool], "PM1");
 
         uint256 liquidationCallITokens = poolLiquidationITokens[_pool];
@@ -107,13 +106,18 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     }
 
     /**
-     * @dev Make pool safe, only used by protocolSafety.
+     * @dev Make pool safe, only used by address(market.protocolSafety).
      * @param _pool The MarginLiquidityPool.
      */
-    function makePoolSafe(MarginLiquidityPoolInterface _pool) public {
-        require(msg.sender == protocolSafety, "Only safety protocol can call this function");
+    function makePoolSafe(MarginLiquidityPoolInterface _pool) external {
+        require(msg.sender == address(market.protocolSafety), "Only safety protocol can call this function");
         require(isMarginCalled[_pool], "PS1");
 
+        uint256 poolMarginCallDeposit = market.config.poolMarginCallDeposit();
+        market.moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), poolMarginCallDeposit);
+        market.moneyMarket.baseToken().safeApprove(address(market.moneyMarket), poolMarginCallDeposit);
+
+        poolMarginCallITokens[_pool] = market.moneyMarket.mintTo(address(market.protocolSafety), poolMarginCallDeposit);
         isMarginCalled[_pool] = false;
     }
 }

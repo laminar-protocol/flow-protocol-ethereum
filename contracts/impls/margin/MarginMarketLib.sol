@@ -21,6 +21,7 @@ library MarginMarketLib {
     using SignedSafeMath for int256;
 
     struct MarketData {
+        MarginFlowProtocol marginProtocol;
         MoneyMarketInterface moneyMarket;
         PriceOracleInterface oracle;
         MarginFlowProtocolConfig config;
@@ -191,7 +192,15 @@ library MarginMarketLib {
             : getBidPrice(self, position.pool, position.pair, 0);
         Percentage.Percent memory usdPairPrice = getPriceForPair(self, position.pair.quote, self.marketBaseToken);
 
-        return getAccumulatedSwapRateOfPositionUntilDate(self, position, self.config.swapRateUnit(), now, price, usdPairPrice);
+
+        return getAccumulatedSwapRateOfPositionUntilDate(
+            self,
+            position,
+            self.config.currentSwapUnits(position.pair.base, position.pair.quote),
+            now,
+            price,
+            usdPairPrice
+        );
     }
 
     function getAccumulatedSwapRateOfPositionUntilDate(
