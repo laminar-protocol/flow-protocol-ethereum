@@ -446,18 +446,15 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       marginProtocolSafety.address,
       marginLiquidityPoolRegistry.address,
     );
+    const market = await marginProtocol.market();
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolSafety as any).initialize(
-      marginProtocol.address,
+      market,
       marginConfig.treasuryAddress,
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolConfig as any).initialize(
       floatUsdToWei(marginConfig.maxSpread),
-      1,
-      50,
-      2,
-      network === 'development' ? 60 * 60 * 24 * 3650 : 60 * 60 * 8, // 8 hours
       percentageToWei(marginConfig.traderMarginCall),
       percentageToWei(marginConfig.traderStopOut),
       percentageToWei(marginConfig.enpMarginCall),
@@ -466,10 +463,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       percentageToWei(marginConfig.ellStopOut),
     );
 
-    await (marginLiquidityPoolRegistry as any).initialize(
-      moneyMarket.address,
-      marginProtocolSafety.address,
-    );
+    await (marginLiquidityPoolRegistry as any).methods[
+      'initialize((address,address,address,address,address,address,address))'
+    ](market);
     await baseToken.approve(
       marginLiquidityPoolRegistry.address,
       web3.utils.toWei('8000', 'ether'),
@@ -504,9 +500,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
             : fTokensMapping[`f${quoteSymbol}`].address;
 
         await marginProtocolConfig.addTradingPair(
-          // TODO swapRateUnit,
           base,
           quote,
+          swapRateUnit,
           parsedSwapLong,
           parsedSwapShort,
         );
@@ -572,9 +568,25 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         marginliquidityPoolProxy.address,
       );
 
+      const minLeveragedAmount = usdToWei(
+        (marginPoolConfig as any).minLeveragedAmount,
+        web3,
+      );
+      const minLeverage = (marginPoolConfig as any).minLeverage.replace(
+        'x',
+        '',
+      );
+      const maxLeverage = (marginPoolConfig as any).maxLeverage.replace(
+        'x',
+        '',
+      );
+
       await (marginPool as any).initialize(
         moneyMarket.address,
         marginProtocol.address,
+        minLeverage,
+        maxLeverage,
+        minLeveragedAmount,
       );
       await moneyMarket.mintTo(marginPool.address, initialDeposit);
       await marginPool.approveToProtocol(initialDeposit);
@@ -594,14 +606,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
             : fTokensMapping[`f${quoteSymbol}`].address;
 
         const spread = floatUsdToWei(pair.spread);
-        const minLeveragedAmount = usdToWei(pair.minLeveragedAmount, web3);
-        const minLeverage = pair.minLeverage.replace('x', '');
-        const maxLeverage = pair.maxLeverage.replace('x', '');
         const additionalSwap = percentageToWei(pair.additionalSwap);
 
-        // TODO minLeveragedAmount, minLeverage, maxLeverage, additionalSwap
-
-        await marginPool.enableToken(base, quote, spread);
+        await marginPool.enableToken(base, quote, spread, additionalSwap);
       }
 
       (marginPool as any).poolName = (marginPoolConfig as any).name;

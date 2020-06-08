@@ -149,13 +149,10 @@ contract('MarginFlowProtocol', accounts => {
       protocolSafety.address,
       liquidityPoolRegistry.address,
     );
-    await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
+    const market = await protocol.market();
+    await (protocolSafety as any).initialize(market, laminarTreasury);
     await (protocolConfig as any).initialize(
       dollar('0.1'),
-      1,
-      50,
-      2,
-      60 * 60 * 8, // 8 hours
       fromPercent(5),
       fromPercent(2),
       fromPercent(50),
@@ -164,10 +161,9 @@ contract('MarginFlowProtocol', accounts => {
       fromPercent(2),
     );
 
-    await (liquidityPoolRegistry as any).initialize(
-      moneyMarket.address,
-      protocol.address,
-    );
+    await (liquidityPoolRegistry as any).methods[
+      'initialize((address,address,address,address,address,address,address))'
+    ](market);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, {
       from: alice,
@@ -186,14 +182,17 @@ contract('MarginFlowProtocol', accounts => {
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address, // need 3 pools or only use first one for withdraw tests
+      1,
+      50,
+      2,
     );
 
     await liquidityPool.approveToProtocol(constants.MAX_UINT256);
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
-    await liquidityPool.enableToken(usd.address, eur, initialSpread);
-    await liquidityPool.enableToken(eur, usd.address, initialSpread);
-    await liquidityPool.enableToken(eur, jpy, initialSpread);
-    await liquidityPool.enableToken(jpy, eur, initialSpread);
+    await liquidityPool.enableToken(usd.address, eur, initialSpread, 0);
+    await liquidityPool.enableToken(eur, usd.address, initialSpread, 0);
+    await liquidityPool.enableToken(eur, jpy, initialSpread, 0);
+    await liquidityPool.enableToken(jpy, eur, initialSpread, 0);
 
     await usd.approve(liquidityPool.address, dollar(20000), {
       from: liquidityProvider,
@@ -215,9 +214,9 @@ contract('MarginFlowProtocol', accounts => {
       from: bob,
     });
 
-    const feeSum = (
-      await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
-    ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+    const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
+      await protocolConfig.poolMarginCallDeposit(),
+    );
     await usd.approve(liquidityPoolRegistry.address, feeSum, {
       from: liquidityProvider,
     });
@@ -228,12 +227,14 @@ contract('MarginFlowProtocol', accounts => {
     await protocolConfig.addTradingPair(
       jpy,
       eur,
+      60 * 60 * 8, // 8 hours
       initialSwapRateLong,
       initialSwapRateShort,
     );
     await protocolConfig.addTradingPair(
       usd.address,
       eur,
+      60 * 60 * 8, // 8 hours
       initialSwapRateLong,
       initialSwapRateShort,
     );
@@ -663,17 +664,20 @@ contract('MarginFlowProtocol', accounts => {
         await (liquidityPool2 as any).initialize(
           moneyMarket.address,
           protocol.address,
+          1,
+          50,
+          2,
         );
         await liquidityPool2.approveToProtocol(constants.MAX_UINT256);
         await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
-        await liquidityPool2.enableToken(usd.address, eur, initialSpread);
-        await liquidityPool2.enableToken(eur, usd.address, initialSpread);
-        await liquidityPool2.enableToken(eur, jpy, initialSpread);
-        await liquidityPool2.enableToken(jpy, eur, initialSpread);
+        await liquidityPool2.enableToken(usd.address, eur, initialSpread, 0);
+        await liquidityPool2.enableToken(eur, usd.address, initialSpread, 0);
+        await liquidityPool2.enableToken(eur, jpy, initialSpread, 0);
+        await liquidityPool2.enableToken(jpy, eur, initialSpread, 0);
 
-        const feeSum = (
-          await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
-        ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+        const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
+          await protocolConfig.poolMarginCallDeposit(),
+        );
         await usd.approve(liquidityPoolRegistry.address, feeSum, {
           from: liquidityProvider,
         });
@@ -780,7 +784,7 @@ contract('MarginFlowProtocol', accounts => {
     describe('when the leverage is too small', () => {
       beforeEach(async () => {
         leveragedHeldInEuro = bn(100);
-        await protocolConfig.setMinLeverage(5);
+        await liquidityPool.setMinLeverage(5);
       });
 
       describe('when given a short', () => {
@@ -829,7 +833,7 @@ contract('MarginFlowProtocol', accounts => {
     describe('when the leverage is too big', () => {
       beforeEach(async () => {
         leveragedHeldInEuro = bn(100);
-        await protocolConfig.setMaxLeverage(10);
+        await liquidityPool.setMaxLeverage(10);
       });
 
       describe('when given a short', () => {
@@ -1309,17 +1313,20 @@ contract('MarginFlowProtocol', accounts => {
         await (liquidityPool2 as any).initialize(
           moneyMarket.address,
           protocol.address,
+          1,
+          50,
+          2,
         );
         await liquidityPool2.approveToProtocol(constants.MAX_UINT256);
         await usd.approve(liquidityPool2.address, constants.MAX_UINT256);
-        await liquidityPool2.enableToken(usd.address, eur, initialSpread);
-        await liquidityPool2.enableToken(eur, usd.address, initialSpread);
-        await liquidityPool2.enableToken(eur, jpy, initialSpread);
-        await liquidityPool2.enableToken(jpy, eur, initialSpread);
+        await liquidityPool2.enableToken(usd.address, eur, initialSpread, 0);
+        await liquidityPool2.enableToken(eur, usd.address, initialSpread, 0);
+        await liquidityPool2.enableToken(eur, jpy, initialSpread, 0);
+        await liquidityPool2.enableToken(jpy, eur, initialSpread, 0);
 
-        const feeSum = (
-          await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
-        ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+        const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
+          await protocolConfig.poolMarginCallDeposit(),
+        );
         await usd.approve(liquidityPoolRegistry.address, feeSum, {
           from: liquidityProvider,
         });
@@ -1459,7 +1466,7 @@ contract('MarginFlowProtocol', accounts => {
 
       describe('when the loss covered by another position', () => {
         beforeEach(async () => {
-          await protocolConfig.setMaxLeverage(leverage.mul(bn(4)));
+          await liquidityPool.setMaxLeverage(leverage.mul(bn(4)));
           await protocol.openPosition(
             liquidityPool.address,
             usd.address,

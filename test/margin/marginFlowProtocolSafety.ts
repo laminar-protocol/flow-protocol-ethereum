@@ -165,13 +165,10 @@ contract('MarginFlowProtocolSafety', accounts => {
       protocolSafety.address,
       liquidityPoolRegistry.address,
     );
-    await (protocolSafety as any).initialize(protocol.address, laminarTreasury);
+    const market = await protocol.market();
+    await (protocolSafety as any).initialize(market, laminarTreasury);
     await (protocolConfig as any).initialize(
       dollar('0.1'),
-      1,
-      50,
-      2,
-      60 * 60 * 8, // 8 hours
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -180,10 +177,9 @@ contract('MarginFlowProtocolSafety', accounts => {
       initialLiquidityPoolELLLiquidateThreshold,
     );
 
-    await (liquidityPoolRegistry as any).initialize(
-      moneyMarket.address,
-      protocolSafety.address,
-    );
+    await (liquidityPoolRegistry as any).methods[
+      'initialize((address,address,address,address,address,address,address))'
+    ](market);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, {
       from: alice,
@@ -208,12 +204,15 @@ contract('MarginFlowProtocolSafety', accounts => {
     await (liquidityPool as any).initialize(
       moneyMarket.address,
       protocol.address, // need 3 pools or only use first one for withdraw tests
+      1,
+      50,
+      2,
     );
 
     await liquidityPool.approveToProtocol(constants.MAX_UINT256);
     await usd.approve(liquidityPool.address, constants.MAX_UINT256);
-    await liquidityPool.enableToken(usd.address, eur, initialSpread);
-    await liquidityPool.enableToken(eur, usd.address, initialSpread);
+    await liquidityPool.enableToken(usd.address, eur, initialSpread, 0);
+    await liquidityPool.enableToken(eur, usd.address, initialSpread, 0);
 
     await usd.approve(liquidityPool.address, dollar(20000), {
       from: liquidityProvider,
@@ -222,9 +221,9 @@ contract('MarginFlowProtocolSafety', accounts => {
       from: liquidityProvider,
     });
 
-    const feeSum = (
-      await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE()
-    ).add(await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE());
+    const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
+      await protocolConfig.poolMarginCallDeposit(),
+    );
     await usd.approve(liquidityPoolRegistry.address, feeSum, {
       from: liquidityProvider,
     });
@@ -235,6 +234,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     await protocolConfig.addTradingPair(
       usd.address,
       eur,
+      60 * 60 * 8, // 8 hours
       fromPercent(-2),
       fromPercent(-2),
     );
@@ -253,13 +253,14 @@ contract('MarginFlowProtocolSafety', accounts => {
   });
 
   const setUpMultipleTradingPairPositions = async () => {
-    await liquidityPool.enableToken(eur, jpy, initialSpread);
-    await liquidityPool.enableToken(jpy, eur, initialSpread);
+    await liquidityPool.enableToken(eur, jpy, initialSpread, 0);
+    await liquidityPool.enableToken(jpy, eur, initialSpread, 0);
     await oracle.feedPrice(jpy, fromPercent(200), { from: owner });
 
     await protocolConfig.addTradingPair(
       eur,
       jpy,
+      60 * 60 * 8, // 8 hours
       fromPercent(1),
       fromPercent(-1),
     );
@@ -339,8 +340,8 @@ contract('MarginFlowProtocolSafety', accounts => {
 
   describe('when trader pays the fees', () => {
     it('transfers fees to the protocol', async () => {
-      const marginCallFee = await protocolSafety.TRADER_MARGIN_CALL_FEE();
-      const liquidationFee = await protocolSafety.TRADER_LIQUIDATION_FEE();
+      const marginCallFee = await protocolConfig.traderMarginCallDeposit();
+      const liquidationFee = await protocolConfig.traderLiquidationDeposit();
 
       const traderBalanceBefore = await usd.balanceOf(charlie);
 
@@ -369,8 +370,8 @@ contract('MarginFlowProtocolSafety', accounts => {
 
   describe('when trader withdraws the fees', () => {
     it('transfers fees back to trader', async () => {
-      const marginCallFee = await protocolSafety.TRADER_MARGIN_CALL_FEE();
-      const liquidationFee = await protocolSafety.TRADER_LIQUIDATION_FEE();
+      const marginCallFee = await protocolConfig.traderMarginCallDeposit();
+      const liquidationFee = await protocolConfig.traderLiquidationDeposit();
 
       const traderBalanceBefore = await usd.balanceOf(alice);
 
@@ -404,7 +405,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      TRADER_MARGIN_CALL_FEE = await protocolSafety.TRADER_MARGIN_CALL_FEE();
+      TRADER_MARGIN_CALL_FEE = await protocolConfig.traderMarginCallDeposit();
 
       await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
@@ -572,7 +573,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      TRADER_LIQUIDATION_FEE = await protocolSafety.TRADER_LIQUIDATION_FEE();
+      TRADER_LIQUIDATION_FEE = await protocolConfig.traderLiquidationDeposit();
 
       await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
@@ -659,7 +660,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       depositInUsd = dollar(80);
       leveragedHeldInEuro = euro(100);
       price = bn(0); // accept all
-      LIQUIDITY_POOL_MARGIN_CALL_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_MARGIN_CALL_FEE();
+      LIQUIDITY_POOL_MARGIN_CALL_FEE = await protocolConfig.poolMarginCallDeposit();
 
       await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
@@ -839,7 +840,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       depositInUsd = dollar(340);
       leveragedHeldInEuro = euro(200);
       price = bn(0); // accept all
-      LIQUIDITY_POOL_LIQUIDATION_FEE = await liquidityPoolRegistry.LIQUIDITY_POOL_LIQUIDATION_FEE();
+      LIQUIDITY_POOL_LIQUIDATION_FEE = await protocolConfig.poolLiquidationDeposit();
 
       await protocol.deposit(liquidityPool.address, depositInUsd, {
         from: alice,
