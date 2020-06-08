@@ -20,7 +20,7 @@ import {
 } from '../helpers';
 
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
-const MarginMarketLib = artifacts.require('MarginMarketLib');
+const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
 const MarginLiquidityPoolRegistry = artifacts.require(
