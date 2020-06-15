@@ -87,6 +87,14 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         return MarginMarketLib.getUnrealizedPlOfTrader(market, positions);
     }
 
+    function getEstimatedFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
+        return _getEstimatedFreeMargin(_pool, _trader);
+    }
+
+    function getEstimatedEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
+        return _getEstimatedEquityOfTrader(_pool, _trader);
+    }
+
     function getAccumulatedSwapRateFromParameters(
         MarginLiquidityPoolInterface _pool, address base, address quote, int256 _leveragedHeld, int256 _swapRate, uint256 _timeWhenOpened
     ) public returns (int256) {

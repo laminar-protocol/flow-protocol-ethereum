@@ -125,7 +125,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     MarginMarketLib.MarketData public market;
 
     // positions
-    mapping (uint256 => Position) public positionsById;
+    mapping (uint256 => Position) internal positionsById;
     mapping (MarginLiquidityPoolInterface => mapping (address => Position[])) public positionsByPoolAndTrader;
     mapping (MarginLiquidityPoolInterface => Position[]) public positionsByPool;
 
@@ -133,15 +133,11 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     mapping (MarginLiquidityPoolInterface => mapping(address => int256)) public balances;
     mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) public poolLongPositionAccPerPair;
     mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) public poolShortPositionAccPerPair;
+    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderPositionAccUsd;
+    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderPositionAccMarginHeld;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping (address => mapping (CurrencyType => uint256))))) public traderLongPositionAccPerPair;
+    mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping (address => mapping (CurrencyType => uint256))))) public traderShortPositionAccPerPair;
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
-
-    // stopped pools
-    mapping (MarginLiquidityPoolInterface => bool) public stoppedPools;
-    mapping (MarginLiquidityPoolInterface => uint256) private storedLiquidatedPoolClosingTimes;
-    mapping (MarginLiquidityPoolInterface => uint256) public storedLiquidatedPoolBasePrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) private storedLiquidatedPoolPairPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolBidSpreads;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public storedLiquidatedPoolAskSpreads;
 
     uint256 public nextPositionId;
     int256 constant MAX_INT = 2**256 / 2 - 1;
@@ -149,7 +145,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
     modifier poolIsVerifiedAndRunning(MarginLiquidityPoolInterface _pool) {
         require(market.liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
-        require(!stoppedPools[_pool], "LR2");
+        require(!market.protocolLiquidated.stoppedPools(_pool), "LR2");
 
         _;
     }
@@ -166,6 +162,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         MoneyMarketInterface _moneyMarket,
         MarginFlowProtocolConfig _protocolConfig,
         MarginFlowProtocolSafety _protocolSafety,
+        MarginFlowProtocolLiquidated _protocolLiquidated,
         MarginLiquidityPoolRegistry _liquidityPoolRegistry
     ) external initializer {
         UpgradeReentrancyGuard.initialize();
@@ -177,6 +174,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             _oracle,
             _protocolConfig,
             _protocolSafety,
+            _protocolLiquidated,
             _liquidityPoolRegistry,
             address(_moneyMarket.baseToken())
         );
@@ -206,11 +204,19 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         require(market.liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
         uint256 baseTokenAmount = market.moneyMarket.redeemTo(msg.sender, _iTokenAmount);
 
-        if (stoppedPools[_pool]) {
+        if (market.protocolLiquidated.stoppedPools(_pool) || market.protocolLiquidated.stoppedTradersInPool(_pool, msg.sender)) {
             require(positionsByPoolAndTrader[_pool][msg.sender].length == 0, "W2");
         }
 
-        require(getFreeMargin(_pool, msg.sender) >= baseTokenAmount, "W1");
+        require(
+            market.getEstimatedFreeMargin(
+                _pool,
+                msg.sender,
+                traderPositionAccMarginHeld[_pool][msg.sender],
+                balances[_pool][msg.sender]
+            ) >= baseTokenAmount,
+            "W1"
+        );
         require(baseTokenAmount > 0, "0");
 
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
@@ -227,7 +233,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         MarginLiquidityPoolInterface pool = MarginLiquidityPoolInterface(msg.sender);
 
         require(market.liquidityPoolRegistry.isVerifiedPool(pool), "LR1");
-        require(!stoppedPools[pool] || positionsByPool[pool].length == 0, "LR2");
+        require(!market.protocolLiquidated.stoppedPools(pool) || positionsByPool[pool].length == 0, "LR2");
 
         require(int256(_iTokenAmount) <= balances[pool][msg.sender], "WP1");
 
@@ -258,7 +264,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         require(!market.liquidityPoolRegistry.isMarginCalled(_pool), "OP3");
         require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) >= _pool.minLeverage(), "OP4");
         require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) <= _pool.maxLeverage(), "OP5");
-        require(market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender), "OP7");
+        require(!market.protocolLiquidated.stoppedTradersInPool(_pool, msg.sender), "OP7");
+        require(market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender), "OP8");
 
         Percentage.Percent memory debitsPrice = (_leverage > 0)
             ? market.getAskPrice(_pool, TradingPair(_base, _quote), _price)
@@ -280,7 +287,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
      */
     function closePosition(uint256 _positionId, uint256 _price) external nonReentrant {
         Position memory position = positionsById[_positionId];
-        require(msg.sender == position.owner || msg.sender == address(market.protocolSafety), "CP1");
+        require(msg.sender == position.owner, "CP1");
+        require(!market.protocolLiquidated.stoppedTradersInPool(position.pool, msg.sender), "CP2");
 
         (int256 unrealizedPl, Percentage.Percent memory marketPrice) = market.getUnrealizedPlAndMarketPriceOfPosition(
             position,
@@ -294,59 +302,36 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     }
 
     /**
-     * @dev Force close all positions for trader for liquidated pool.
-     */
-    function closePositionForLiquidatedPool(uint256 _positionId) external nonReentrant {
-        Position memory position = positionsById[_positionId];
-        // allow anyone to close positions with loss
-
-        require(stoppedPools[position.pool], "CPL1");
-
-        uint256 bidSpread = storedLiquidatedPoolBidSpreads[position.pool][position.pair.base][position.pair.quote];
-        uint256 askSpread = storedLiquidatedPoolAskSpreads[position.pool][position.pair.base][position.pair.quote];
-        Percentage.Percent memory usdPairPrice = Percentage.fromFraction(
-            storedLiquidatedPoolPairPrices[position.pool][position.pair.quote],
-            storedLiquidatedPoolBasePrices[position.pool]
-        );
-        Percentage.Percent memory marketStopPrice = Percentage.fromFraction(
-            storedLiquidatedPoolPairPrices[position.pool][position.pair.base],
-            storedLiquidatedPoolPairPrices[position.pool][position.pair.quote]
-        );
-
-        int256 totalUnrealized = market.getUnrealizedPlForStoppedPool(
-            usdPairPrice,
-            Percentage.Percent(position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)),
-            position.leveragedDebits,
-            position.leveragedHeld
-        ).add(market.getAccumulatedSwapRateOfPositionUntilDate(
-            position,
-            market.config.currentSwapUnits(position.pair.base, position.pair.quote),
-            storedLiquidatedPoolClosingTimes[position.pool],
-            Percentage.Percent(position.leverage > 0 ?  marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)),
-            usdPairPrice
-        ));
-
-        if (totalUnrealized > 0) {
-            require(msg.sender == position.owner, "CPL2");
-        }
-
-        _transferUnrealized(position.pool, position.owner, totalUnrealized);
-        _removePosition(position, totalUnrealized, marketStopPrice);
-    }
-
-    /**
     * @dev Get the free margin: the free margin of the trader.
     * @param _pool The MarginLiquidityPool.
     * @param _trader The trader address.
     * @return The free margin amount (int256).
     */
-    function getFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
-        return market.getFreeMargin(positionsByPoolAndTrader[_pool][_trader], balances[_pool][_trader]);
+    function getExactFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
+        return market.getExactFreeMargin(
+            positionsByPoolAndTrader[_pool][_trader],
+            traderPositionAccMarginHeld[_pool][_trader],
+            balances[_pool][_trader]
+        );
+    }
+
+    function _getEstimatedFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) internal returns (uint256) {
+        return market.getEstimatedFreeMargin(
+            _pool,
+            _trader,
+            traderPositionAccMarginHeld[_pool][_trader],
+            balances[_pool][_trader]
+        );
     }
 
     // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-    function getEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
-        return market.getEquityOfTrader(positionsByPoolAndTrader[_pool][_trader], balances[_pool][_trader]);
+    function getExactEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
+        return market.getExactEquityOfTrader(positionsByPoolAndTrader[_pool][_trader], balances[_pool][_trader]);
+    }
+
+    // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
+    function _getEstimatedEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (int256) {
+        return market.getEstimatedEquityOfTrader(_pool, _trader, balances[_pool][_trader]);
     }
 
     // Unrealized profit and loss of a position(USD value), based on current market price.
@@ -365,8 +350,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         return market.getAccumulatedSwapRateOfPosition(positionsById[_positionId]);
     }
 
-    function getPairSafetyInfo(MarginLiquidityPoolInterface _pool, TradingPair calldata _pair) external returns (uint256, uint256, int256) {        
-        return market.getPairSafetyInfo(
+    function getPairPoolSafetyInfo(MarginLiquidityPoolInterface _pool, TradingPair calldata _pair) external returns (uint256, uint256, int256) {        
+        return market.getPairPoolSafetyInfo(
             _pool,
             _pair,
             [
@@ -380,6 +365,23 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         );
     }
 
+    function getPairTraderUnrealized(
+        MarginLiquidityPoolInterface _pool,
+        address _trader,
+        TradingPair calldata _pair
+    ) external returns (int256) {
+        return market.getUnrealizedForPair(
+            _pool,
+            _pair,
+            [
+                traderLongPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.BASE],
+                traderShortPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.BASE],
+                traderLongPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.QUOTE],
+                traderShortPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.QUOTE]
+            ]
+        );
+    }
+
     /// View functions
 
     /**
@@ -388,20 +390,24 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     * @param _trader The trader address.
     * @return The margin held sum.
     */
-    function getMarginHeld(MarginLiquidityPoolInterface _pool, address _trader) external view returns (uint256) {
-        return MarginMarketLib.getMarginHeld(positionsByPoolAndTrader[_pool][_trader]);
+    function getExactMarginHeld(MarginLiquidityPoolInterface _pool, address _trader) external returns (uint256) {
+        return market.getExactMarginHeld(
+            positionsByPoolAndTrader[_pool][_trader],
+            traderPositionAccMarginHeld[_pool][_trader],
+            balances[_pool][_trader]
+        );
     }
 
     function getPositionsByPoolLength(MarginLiquidityPoolInterface _pool) external view returns (uint256) {
         return positionsByPool[_pool].length;
     }
 
-    function getPositionIdByPoolAndIndex(MarginLiquidityPoolInterface _pool, uint256 _index) external view returns (uint256) {
-        return positionsByPool[_pool][_index].id;
+    function getPositionById(uint256 _positionId) external view returns (Position memory) {
+        return positionsById[_positionId];
     }
 
-    function getLeveragedDebitsByPoolAndIndex(MarginLiquidityPoolInterface _pool, uint256 _index) external view returns (int256) {
-        return positionsByPool[_pool][_index].leveragedDebitsInUsd;
+    function getPositionIdByPoolAndIndex(MarginLiquidityPoolInterface _pool, uint256 _index) external view returns (uint256) {
+        return positionsByPool[_pool][_index].id;
     }
 
     function getPositionsByPoolAndTraderLength(MarginLiquidityPoolInterface _pool, address _trader) external view returns (uint256) {
@@ -427,31 +433,24 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         return poolLiquidity.add(poolProtocolBalance);
     }
 
-    /// Safety protocol functions
+    /// Only for protocolSafety
 
-    function stopPool(MarginLiquidityPoolInterface _pool) external {
-        require(msg.sender == address(market.protocolSafety), "SP1");
-        stoppedPools[_pool] = true;
-
-        storedLiquidatedPoolClosingTimes[_pool] = now;
-        storedLiquidatedPoolBasePrices[_pool] = market.getPrice(address(market.moneyMarket.baseToken()));
-
-        TradingPair[] memory tradingPairs = market.config.getTradingPairs();
-
-        for (uint256 i = 0; i < tradingPairs.length; i++) {
-            address base = tradingPairs[i].base;
-            address quote = tradingPairs[i].quote;
-            storedLiquidatedPoolPairPrices[_pool][base] = market.getPrice(base);
-            storedLiquidatedPoolPairPrices[_pool][quote] = market.getPrice(quote);
-            storedLiquidatedPoolBidSpreads[_pool][base][quote] = market.getBidSpread(_pool, base, quote);
-            storedLiquidatedPoolAskSpreads[_pool][base][quote] = market.getAskSpread(_pool, base, quote);
-        }
-    }
-
-    function setTraderIsMarginCalled(MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled) external {
+    function __setTraderIsMarginCalled(MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled) external {
         require(msg.sender == address(market.protocolSafety), "SP1");
         traderIsMarginCalled[_pool][_trader] = _isMarginCalled;
-    }    
+    }
+
+    /// Only for protocolLiquidated
+
+    function __removePosition(Position calldata _position, int256 _unrealizedPosition, Percentage.Percent calldata _marketStopPrice) external {
+        require(msg.sender == address(market.protocolLiquidated), 'T1');
+        _removePosition(_position, _unrealizedPosition, _marketStopPrice);
+    }
+
+    function __transferUnrealized(MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized, int256 _storedTraderEquity) external {
+        require(msg.sender == address(market.protocolLiquidated), 'T1');
+        _transferUnrealized(_pool, _owner, _unrealized, _storedTraderEquity);
+    } 
     
     /// Internal functions
 
@@ -475,21 +474,10 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
         require(leveragedDebitsInUsd >= _pool.minLeverageAmount(), "OP6");
 
-        if (_leverage > 0) {
-            poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
-                .add(_leveragedHeld);
-            poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE]
-                .add(leveragedDebits);
-            poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD] = poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
-                .add(leveragedDebitsInUsd);
-        } else {
-            poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
-                .add(_leveragedHeld);
-            poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE]
-                .add(leveragedDebits);
-            poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD] = poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
-                .add(leveragedDebitsInUsd);
-        }
+        require(
+            _getEstimatedFreeMargin(_pool, msg.sender) >= marginHeld,
+            "OP1"
+        );
 
         Position memory position = _createPosition(
             _pool,
@@ -500,8 +488,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             leveragedDebitsInUsd,
             marginHeld
         );
-
-        require(getFreeMargin(_pool, msg.sender) >= marginHeld, "OP1");
+        
+        _updateAccumulatedPositions(position, true);
 
         positionsById[position.id] = position;
         positionsByPoolAndTrader[_pool][msg.sender].push(position);
@@ -526,7 +514,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         int256 _leverage,
         uint256 _leveragedHeld,
         uint256 _leveragedDebits,
-        uint256 _leveragedHeldInUsd,
+        uint256 _leveragedDebitsInUsd,
         uint256 _marginHeld
     ) private view returns (Position memory) {
         int256 heldSignum = _leverage > 0 ? int256(1) :  int256(-1);
@@ -539,7 +527,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
             _leverage,
             int256(_leveragedHeld).mul(heldSignum),
             int256(_leveragedDebits).mul(heldSignum.mul(-1)),
-            int256(_leveragedHeldInUsd).mul(heldSignum.mul(-1)),
+            int256(_leveragedDebitsInUsd).mul(heldSignum.mul(-1)),
             _marginHeld,
             market.config.getCurrentTotalSwapRateForPoolAndPair(
                 _pool,
@@ -561,26 +549,74 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         }
     }
 
-    function _removePosition(Position memory _position, int256 _unrealizedPosition, Percentage.Percent memory _marketStopPrice) private {
+    function _updateAccumulatedPositions(Position memory _position, bool _isAddition) private {
         MarginLiquidityPoolInterface pool = _position.pool;
+        address owner = _position.owner;
         address base = _position.pair.base;
         address quote = _position.pair.quote;
 
-        if (_position.leverage > 0) {
-            poolLongPositionAccPerPair[pool][base][quote][CurrencyType.QUOTE] = poolLongPositionAccPerPair[pool][base][quote][CurrencyType.QUOTE]
-                .sub(uint256(_position.leveragedHeld));
-            poolLongPositionAccPerPair[pool][base][quote][CurrencyType.BASE] = poolLongPositionAccPerPair[pool][base][quote][CurrencyType.BASE]
-                .sub(uint256(-_position.leveragedDebits));
-            poolLongPositionAccPerPair[pool][base][quote][CurrencyType.USD] = poolLongPositionAccPerPair[pool][base][quote][CurrencyType.USD]
-                .sub(uint256(-_position.leveragedDebitsInUsd));
+        uint256 leveragedHeld = _position.leverage > 0 ? uint256(_position.leveragedHeld) : uint256(-_position.leveragedHeld);
+        uint256 leveragedDebits = _position.leverage > 0 ? uint256(-_position.leveragedDebits)  : uint256(_position.leveragedDebits);
+        uint256 leveragedDebitsInUsd = _position.leverage > 0 ? uint256(-_position.leveragedDebitsInUsd) : uint256(_position.leveragedDebitsInUsd);
+
+        traderPositionAccMarginHeld[pool][owner] = _isAddition
+            ? traderPositionAccMarginHeld[pool][owner].add(_position.marginHeld)
+            : traderPositionAccMarginHeld[pool][owner].sub(_position.marginHeld);
+        traderPositionAccUsd[pool][owner] = _isAddition
+            ? traderPositionAccUsd[pool][owner].add(leveragedDebitsInUsd)
+            : traderPositionAccUsd[pool][owner].sub(leveragedDebitsInUsd);
+
+        if (_isAddition && _position.leverage > 0) {
+            _addToAccPositions(poolLongPositionAccPerPair, traderLongPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits, leveragedDebitsInUsd);
+        } else if (_isAddition) {
+            _addToAccPositions(poolShortPositionAccPerPair, traderShortPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits, leveragedDebitsInUsd);
+        } else if (_position.leverage > 0) {
+            _subFromAccPositions(poolLongPositionAccPerPair, traderLongPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits, leveragedDebitsInUsd);
         } else {
-            poolShortPositionAccPerPair[pool][base][quote][CurrencyType.QUOTE] = poolShortPositionAccPerPair[pool][base][quote][CurrencyType.QUOTE]
-                .sub(uint256(-_position.leveragedHeld));
-            poolShortPositionAccPerPair[pool][base][quote][CurrencyType.BASE] = poolShortPositionAccPerPair[pool][base][quote][CurrencyType.BASE]
-                .sub(uint256(_position.leveragedDebits));
-            poolShortPositionAccPerPair[pool][base][quote][CurrencyType.USD] = poolShortPositionAccPerPair[pool][base][quote][CurrencyType.USD]
-                .sub(uint256(_position.leveragedDebitsInUsd));
+            _subFromAccPositions(poolShortPositionAccPerPair, traderShortPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits, leveragedDebitsInUsd);
         }
+    }
+
+    function _addToAccPositions(
+        mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) storage _poolPositions,
+        mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping (address => mapping (CurrencyType => uint256))))) storage _traderPositions,
+        MarginLiquidityPoolInterface _pool,
+        address _owner,
+        address _base,
+        address _quote,
+        uint256 _leveragedHeld,
+        uint256 _leveragedDebits,
+        uint256 _leveragedDebitsInUsd
+    ) private {
+        _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE] = _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE].add(_leveragedHeld);
+        _poolPositions[_pool][_base][_quote][CurrencyType.BASE] = _poolPositions[_pool][_base][_quote][CurrencyType.BASE].add(_leveragedDebits);
+        _poolPositions[_pool][_base][_quote][CurrencyType.USD] = _poolPositions[_pool][_base][_quote][CurrencyType.USD].add(_leveragedDebitsInUsd);
+
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE].add(_leveragedHeld);
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].add(_leveragedDebits);
+    }
+
+    function _subFromAccPositions(
+        mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => mapping (CurrencyType => uint256)))) storage _poolPositions,
+        mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping (address => mapping (CurrencyType => uint256))))) storage _traderPositions,
+        MarginLiquidityPoolInterface _pool,
+        address _owner,
+        address _base,
+        address _quote,
+        uint256 _leveragedHeld,
+        uint256 _leveragedDebits,
+        uint256 _leveragedDebitsInUsd
+    ) private {
+        _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE] = _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE].sub(_leveragedHeld);
+        _poolPositions[_pool][_base][_quote][CurrencyType.BASE] = _poolPositions[_pool][_base][_quote][CurrencyType.BASE].sub(_leveragedDebits);
+        _poolPositions[_pool][_base][_quote][CurrencyType.USD] = _poolPositions[_pool][_base][_quote][CurrencyType.USD].sub(_leveragedDebitsInUsd);
+
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE].sub(_leveragedHeld);
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].sub(_leveragedDebits);
+    }
+
+    function _removePosition(Position memory _position, int256 _unrealizedPosition, Percentage.Percent memory _marketStopPrice) private {
+        _updateAccumulatedPositions(_position, false);
 
         _removePositionFromList(positionsByPoolAndTrader[_position.pool][_position.owner], _position.id);
         _removePositionFromList(positionsByPool[_position.pool], _position.id);
@@ -589,15 +625,19 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         emit PositionClosed(
             _position.id,
             _position.owner,
-            address(pool),
-            base,
-            quote,
+            address(_position.pool),
+            _position.pair.base,
+            _position.pair.quote,
             _unrealizedPosition,
             _marketStopPrice.value
         );
     }
 
     function _transferUnrealized(MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized) private {
+        _transferUnrealized(_pool, _owner, _unrealized, 0);
+    }
+    
+    function _transferUnrealized(MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized, int256 _storedTraderEquity) private {
         if (_unrealized >= 0) { // trader has profit, max realizable is the pool's liquidity
             int256 poolLiquidityIToken = getTotalPoolLiquidity(_pool);
             uint256 realized = poolLiquidityIToken > 0 ? Math.min(uint256(poolLiquidityIToken), uint256(_unrealized)) : 0;
@@ -607,9 +647,14 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         }
 
         // trader has loss, max realizable is the trader's equity without the given position
-        int256 equity = getEquityOfTrader(_pool, _owner);
+        int256 equity = _storedTraderEquity == 0 ? _getEstimatedEquityOfTrader(_pool, _owner) : _storedTraderEquity;
         uint256 unrealizedAbs = uint256(-_unrealized);
         int256 maxRealizable = equity.add(int256(unrealizedAbs));
+
+        console.log("equity", uint256(equity));
+        console.log("unrealizedAbs", uint256(unrealizedAbs));
+        console.log("maxRealizable", uint256(maxRealizable));
+        console.log("realized", uint256(Math.min(uint256(maxRealizable), unrealizedAbs)));
 
         if (maxRealizable > 0) { // pool gets nothing if no realizable from traders
             uint256 realized = Math.min(uint256(maxRealizable), unrealizedAbs);
@@ -617,12 +662,12 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         }
     }
 
-    function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address owner, uint256 amount) private {
-        _transferItokenBalance(_pool, owner, address(_pool), amount);
+    function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address _owner, uint256 _amount) private {
+        _transferItokenBalance(_pool, _owner, address(_pool), _amount);
     }
 
-    function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address owner, uint256 amount) private {
-        _transferItokenBalance(_pool, address(_pool), owner, amount);
+    function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address _owner, uint256 _amount) private {
+        _transferItokenBalance(_pool, address(_pool), _owner, _amount);
 
         int256 poolBalance = balances[_pool][address(_pool)];
 
@@ -636,8 +681,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         }
     }
 
-    function _transferItokenBalance(MarginLiquidityPoolInterface _pool, address from, address to, uint256 amount) private {
-        balances[_pool][from] = balances[_pool][from].sub(int256(amount));
-        balances[_pool][to] = balances[_pool][to].add(int256(amount));
+    function _transferItokenBalance(MarginLiquidityPoolInterface _pool, address _from, address _to, uint256 _amount) private {
+        balances[_pool][_from] = balances[_pool][_from].sub(int256(_amount));
+        balances[_pool][_to] = balances[_pool][_to].add(int256(_amount));
     }
 }

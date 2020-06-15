@@ -11,6 +11,7 @@ import "../../libs/Percentage.sol";
 
 import "./MarginFlowProtocol.sol";
 import "./MarginFlowProtocolConfig.sol";
+import "./MarginFlowProtocolLiquidated.sol";
 import "./MarginFlowProtocolSafety.sol";
 import "./MarginLiquidityPoolRegistry.sol";
 
@@ -26,6 +27,7 @@ library MarginMarketLib {
         PriceOracleInterface oracle;
         MarginFlowProtocolConfig config;
         MarginFlowProtocolSafety protocolSafety;
+        MarginFlowProtocolLiquidated protocolLiquidated;
         MarginLiquidityPoolRegistry liquidityPoolRegistry;
         address marketBaseToken;
     }
@@ -114,18 +116,8 @@ library MarginMarketLib {
         return Math.min(_spread, self.config.maxSpread());
     }
 
-    function getMarginHeld(MarginFlowProtocol.Position[] memory _positions) public pure returns (uint256) {
-        uint256 accumulatedMarginHeld = 0;
-
-        for (uint256 i = 0; i < _positions.length; i++) {
-            accumulatedMarginHeld = accumulatedMarginHeld.add(_positions[i].marginHeld);
-        }
-
-        return accumulatedMarginHeld;
-    }
-
-    // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-    function getEquityOfTrader(
+    // equity = balance + unrealizedPl + accumulatedSwapRate
+    function getExactEquityOfTrader(
         MarketData storage self,
         MarginFlowProtocol.Position[] memory _positions,
         int256 _traderBalance
@@ -137,20 +129,71 @@ library MarginMarketLib {
         return totalBalance.add(accumulatedSwapRates);
     }
 
-    function getFreeMargin(
+    // estimated equity = balance + unrealizedPl
+    function getEstimatedEquityOfTrader(
+        MarketData storage self,
+        MarginLiquidityPoolInterface _pool,
+        address _trader,
+        int256 _traderBalance
+    ) public returns (int256) {
+        MarginFlowProtocol.TradingPair[] memory pairs = self.config.getTradingPairs();
+        int256 unrealized = 0;
+
+        for (uint256 i = 0; i < pairs.length; i++) {
+            int256 unrealizedPair = self.marginProtocol.getPairTraderUnrealized(_pool, _trader, pairs[i]);
+            unrealized = unrealized.add(unrealizedPair);
+        }
+
+        return _traderBalance.add(unrealized);
+    }
+
+    function getExactFreeMargin(
         MarketData storage self,
         MarginFlowProtocol.Position[] memory _positions,
+        uint256 _marginHeld,
         int256 _traderBalance
     ) public returns (uint256) {
-        int256 equity = getEquityOfTrader(self, _positions, _traderBalance);
-        uint256 marginHeld = getMarginHeld(_positions);
+        int256 equity = getExactEquityOfTrader(self, _positions, _traderBalance);
 
-        if (equity <= int256(marginHeld)) {
+        if (equity <= int256(_marginHeld)) {
             return 0;
         }
 
         // freeMargin = equity - marginHeld
-        return uint256(equity).sub(marginHeld);
+        return uint256(equity).sub(_marginHeld);
+    }
+
+    function getEstimatedFreeMargin(
+        MarketData storage self,
+        MarginLiquidityPoolInterface _pool,
+        address _trader,
+        uint256 _marginHeld,
+        int256 _traderBalance
+    ) public returns (uint256) {
+        int256 equity = getEstimatedEquityOfTrader(self, _pool, _trader, _traderBalance);
+
+        if (equity <= int256(_marginHeld)) {
+            return 0;
+        }
+
+        // freeMargin = equity - marginHeld
+        return uint256(equity).sub(_marginHeld);
+    }
+
+    function getExactMarginHeld(
+        MarketData storage self,
+        MarginFlowProtocol.Position[] memory _positions,
+        uint256 _marginHeld,
+        int256 _traderBalance
+    ) public returns (uint256) {
+        int256 equity = getExactEquityOfTrader(self, _positions, _traderBalance);
+
+        if (equity <= int256(_marginHeld)) {
+            return 0;
+        }
+
+        // freeMargin = equity - marginHeld
+        return uint256(equity).sub(_marginHeld);
     }
 
     // Unrealized profit and loss of a given trader(USD value). It is the sum of unrealized profit and loss of all positions
@@ -300,7 +343,7 @@ library MarginMarketLib {
         return longUnrealized.add(shortUnrealized);
     }
 
-    function getUnrealizedPlForStoppedPool(
+    function getUnrealizedPlForStoppedPoolOrTrader(
         MarketData storage self,
         Percentage.Percent memory _usdPairPrice,
         Percentage.Percent memory _closePrice,
@@ -316,7 +359,7 @@ library MarginMarketLib {
         return self.moneyMarket.convertAmountFromBase(unrealizedUsd);
     }
 
-    function getPairSafetyInfo(
+    function getPairPoolSafetyInfo(
         MarketData storage self,
         MarginLiquidityPoolInterface _pool,
         MarginFlowProtocol.TradingPair memory _pair,
