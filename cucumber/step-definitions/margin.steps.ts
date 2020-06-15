@@ -221,14 +221,19 @@ const emptyAccount = async (name: string): Promise<any> => {
       to: flowMarginProtocolAddress,
     });
 
-  await sendTx({
-    from,
-    contractMethod: flowMarginProtocolLiquidatedContract.methods.restoreTraderInPool(
-      poolAddress,
-      from.address,
-    ),
-    to: flowMarginProtocolLiquidatedAddress,
-  });
+  if (
+    await flowMarginProtocolLiquidatedContract.methods
+      .stoppedTradersInPool(poolAddress, from.address)
+      .call()
+  )
+    await sendTx({
+      from,
+      contractMethod: flowMarginProtocolLiquidatedContract.methods.restoreTraderInPool(
+        poolAddress,
+        from.address,
+      ),
+      to: flowMarginProtocolLiquidatedAddress,
+    });
 
   const currentBalance = await baseTokenContract.methods
     .balanceOf(from.address)
