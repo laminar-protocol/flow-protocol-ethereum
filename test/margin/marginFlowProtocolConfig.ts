@@ -6,6 +6,7 @@ import {
   SimplePriceOracleInstance,
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
+  MarginFlowProtocolLiquidatedInstance,
   MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
@@ -27,6 +28,9 @@ const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
+const MarginFlowProtocolLiquidated = artifacts.require(
+  'MarginFlowProtocolLiquidated',
+);
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
   'MarginLiquidityPoolRegistry',
@@ -45,6 +49,7 @@ contract('MarginFlowProtocolConfig', accounts => {
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
+  let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
@@ -59,9 +64,13 @@ contract('MarginFlowProtocolConfig', accounts => {
 
     try {
       TestMarginFlowProtocol.link(MarginMarketLib);
+      MarginFlowProtocolLiquidated.link(MarginMarketLib);
+      MarginFlowProtocolSafety.link(MarginMarketLib);
     } catch (error) {
       // running in buidler, use instance
       TestMarginFlowProtocol.link(marketLib);
+      MarginFlowProtocolLiquidated.link(marketLib);
+      MarginFlowProtocolSafety.link(marketLib);
     }
   });
 
@@ -101,6 +110,15 @@ contract('MarginFlowProtocolConfig', accounts => {
       flowMarginProtocolSafetyProxy.address,
     );
 
+    const flowMarginProtocolLiquidatedImpl = await MarginFlowProtocolLiquidated.new();
+    const flowMarginProtocolLiquidatedProxy = await Proxy.new();
+    await flowMarginProtocolLiquidatedProxy.upgradeTo(
+      flowMarginProtocolLiquidatedImpl.address,
+    );
+    protocolLiquidated = await MarginFlowProtocolLiquidated.at(
+      flowMarginProtocolLiquidatedProxy.address,
+    );
+
     const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
     const flowMarginProtocolConfigProxy = await Proxy.new();
     await flowMarginProtocolConfigProxy.upgradeTo(
@@ -124,6 +142,7 @@ contract('MarginFlowProtocolConfig', accounts => {
       moneyMarket.address,
       protocolConfig.address,
       protocolSafety.address,
+      protocolLiquidated.address,
       liquidityPoolRegistry.address,
     );
     const market = await protocol.market();
@@ -138,8 +157,11 @@ contract('MarginFlowProtocolConfig', accounts => {
       fromPercent(2),
     );
 
+    await (protocolLiquidated as any).methods[
+      'initialize((address,address,address,address,address,address,address,address))'
+    ](market);
     await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address))'
     ](market);
 
     const liquidityPoolImpl = await MarginLiquidityPool.new();
