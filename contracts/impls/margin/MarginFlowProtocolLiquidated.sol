@@ -338,15 +338,13 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
             return _handleProfit(_position, totalUnrealized, _usdPairPrice, _marketStopPrice, _closePrice);
         }
 
-        return _handleLoss(_position, totalUnrealized, _usdPairPrice, _marketStopPrice, _closePrice);
+        return _handleLoss(_position, totalUnrealized, _marketStopPrice);
     }
 
     function _handleLoss(
         MarginFlowProtocol.Position memory _position,
         int256 _unrealized,
-        Percentage.Percent memory _usdPairPrice,
-        Percentage.Percent memory _marketStopPrice,
-        Percentage.Percent memory _closePrice
+        Percentage.Percent memory _marketStopPrice
     ) private returns (int256) {
         int256 unrealized = _unrealized;
         int256 traderBalance = market.marginProtocol.balances(_position.pool, _position.owner);
@@ -356,9 +354,7 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
             return _closePositionWithoutTransfer(_position, _marketStopPrice);
         }
 
-        int256 storedTraderEquity = getEstimatedEquityOfTrader(_position.pool, _position.owner, _usdPairPrice, _closePrice);
-
-        if (storedTraderEquity.add(unrealized) < traderBalance) {
+        if (traderBalance.add(unrealized) < 0) {
             // dont allow negative resulting balances
             unrealized = -traderBalance;
         }
