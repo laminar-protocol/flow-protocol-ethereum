@@ -651,11 +651,6 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         uint256 unrealizedAbs = uint256(-_unrealized);
         int256 maxRealizable = equity.add(int256(unrealizedAbs));
 
-        console.log("equity", uint256(equity));
-        console.log("unrealizedAbs", uint256(unrealizedAbs));
-        console.log("maxRealizable", uint256(maxRealizable));
-        console.log("realized", uint256(Math.min(uint256(maxRealizable), unrealizedAbs)));
-
         if (maxRealizable > 0) { // pool gets nothing if no realizable from traders
             uint256 realized = Math.min(uint256(maxRealizable), unrealizedAbs);
             _transferItokenBalanceToPool(_pool, _owner, realized);

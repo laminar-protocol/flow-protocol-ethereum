@@ -352,7 +352,6 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
         int256 traderBalance = market.marginProtocol.balances(_position.pool, _position.owner);
 
         if (traderBalance <= 0) {
-            console.log("Send 0 instead of negative");
             // dont allow negative resulting balances
             return _closePositionWithoutTransfer(_position, _marketStopPrice);
         }
@@ -363,8 +362,6 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
             // dont allow negative resulting balances
             unrealized = -traderBalance;
         }
-
-        console.log("Send negative", uint256(unrealized));
 
         hasClosedLossPosition[_position.pool][msg.sender] = true;
 
@@ -381,11 +378,8 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
     ) private returns (int256) {
         if (hasClosedLossPosition[_position.pool][msg.sender]) {
             // enforce closing profit positions first
-            console.log("Send 0 instead of positive");
             return _closePositionWithoutTransfer(_position, _marketStopPrice);
         }
-
-        console.log("Send positive", uint256(_unrealized));
 
         int256 storedTraderEquity = getEstimatedEquityOfTrader(_position.pool, _position.owner, _usdPairPrice, _closePrice);
         return _closePositionWithTransfer(_unrealized, storedTraderEquity, _position, _marketStopPrice);
