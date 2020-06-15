@@ -735,7 +735,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         });
       });
 
-      it.only('allows trader to close positions after liquidation', async () => {
+      it('allows trader to close positions after liquidation', async () => {
         const poolLiquidityBefore = await liquidityPool.getLiquidity();
         const poolBalanceBefore = await protocol.balances(
           liquidityPool.address,
@@ -803,10 +803,12 @@ contract('MarginFlowProtocolSafety', accounts => {
             from: bob,
           },
         );
-        await oracle.feedPrice(eur, fromPercent(300), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(180), { from: owner });
+        await protocolConfig.setTraderRiskLiquidateThreshold(fromPercent(90));
         await protocolSafety.liquidateTrader(liquidityPool.address, bob, {
           from: alice,
         });
+
         await protocolLiquidated.closePositionForLiquidatedTrader(9, {
           from: bob,
         });

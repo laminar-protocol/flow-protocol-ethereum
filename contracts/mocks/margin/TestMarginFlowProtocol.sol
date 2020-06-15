@@ -114,6 +114,6 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
 
         positionsById[12] = position;
 
-        return getAccumulatedSwapRateOfPosition(12);
+        return market.getAccumulatedSwapRateOfPosition(positionsById[12]);
     }
 }

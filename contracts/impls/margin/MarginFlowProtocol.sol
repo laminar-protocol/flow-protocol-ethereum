@@ -140,8 +140,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderIsMarginCalled;
 
     uint256 public nextPositionId;
-    int256 constant MAX_INT = 2**256 / 2 - 1;
-    uint256 constant MAX_UINT = 2**256 - 1;
+    int256 constant private MAX_INT = 2**256 / 2 - 1;
+    uint256 constant private MAX_UINT = 2**256 - 1;
 
     modifier poolIsVerifiedAndRunning(MarginLiquidityPoolInterface _pool) {
         require(market.liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
@@ -221,6 +221,10 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
 
+        if (positionsByPoolAndTrader[_pool][msg.sender].length == 0 && balances[_pool][msg.sender] == 0) {
+            market.protocolSafety.__withdrawTraderDeposits(_pool, msg.sender);
+        }
+
         emit Withdrew(_pool, msg.sender, baseTokenAmount);
     }
 
@@ -265,7 +269,18 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) >= _pool.minLeverage(), "OP4");
         require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) <= _pool.maxLeverage(), "OP5");
         require(!market.protocolLiquidated.stoppedTradersInPool(_pool, msg.sender), "OP7");
-        require(market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender), "OP8");
+
+        if (!market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender)) {
+            uint256 traderMarginCallDeposit = market.moneyMarket.convertAmountFromBase(market.config.traderMarginCallDeposit());
+            uint256 traderLiquidationCallDeposit = market.moneyMarket.convertAmountFromBase(market.config.traderLiquidationDeposit());
+            uint256 traderLiquidationFees = traderMarginCallDeposit.add(traderLiquidationCallDeposit);
+
+            require(balances[_pool][msg.sender] > int256(traderLiquidationFees), "OP8");
+
+            market.moneyMarket.iToken().transfer(address(market.protocolSafety), traderLiquidationFees);
+            balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(traderLiquidationFees));
+            market.protocolSafety.__markTraderDepositsAsPaid(_pool, msg.sender, traderMarginCallDeposit, traderLiquidationCallDeposit);
+        }
 
         Percentage.Percent memory debitsPrice = (_leverage > 0)
             ? market.getAskPrice(_pool, TradingPair(_base, _quote), _price)
@@ -297,7 +312,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         int256 accumulatedSwapRate = getAccumulatedSwapRateOfPosition(_positionId);
         int256 totalUnrealized = unrealizedPl.add(accumulatedSwapRate);
 
-        _transferUnrealized(position.pool, position.owner, totalUnrealized);
+        _transferUnrealized(position.pool, position.owner, totalUnrealized, 0);
         _removePosition(position, totalUnrealized, marketPrice);
     }
 
@@ -307,7 +322,7 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     * @param _trader The trader address.
     * @return The free margin amount (int256).
     */
-    function getExactFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) public returns (uint256) {
+    function getExactFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) external returns (uint256) {
         return market.getExactFreeMargin(
             positionsByPoolAndTrader[_pool][_trader],
             traderPositionAccMarginHeld[_pool][_trader],
@@ -316,13 +331,13 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     }
 
     // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-    function getExactEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
+    function getExactEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) external returns (int256) {
         return market.getExactEquityOfTrader(positionsByPoolAndTrader[_pool][_trader], balances[_pool][_trader]);
     }
 
     // Unrealized profit and loss of a position(USD value), based on current market price.
     // unrealizedPlOfPosition = (currentPrice - openPrice) * leveragedHeld * to_usd_price
-    function getUnrealizedPlOfPosition(uint256 _positionId) public returns (int256) {
+    function getUnrealizedPlOfPosition(uint256 _positionId) external returns (int256) {
         (int256 unrealizedPl,) = market.getUnrealizedPlAndMarketPriceOfPosition(
             positionsById[_positionId],
             0
@@ -533,17 +548,6 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         );
     }
 
-    function _removePositionFromList(Position[] storage positions, uint256 _positionId) internal {
-        for (uint256 i = 0; i < positions.length; i++) { // TODO pass correct index to minimise gas
-            if (positions[i].id == _positionId) {
-                positions[i] = positions[positions.length.sub(1)];
-                positions.pop();
-
-                return;
-            }
-        }
-    }
-
     function _updateAccumulatedPositions(Position memory _position, bool _isAddition) private {
         MarginLiquidityPoolInterface pool = _position.pool;
         address owner = _position.owner;
@@ -610,6 +614,17 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].sub(_leveragedDebits);
     }
 
+    function _removePositionFromList(Position[] storage positions, uint256 _positionId) internal {
+        for (uint256 i = 0; i < positions.length; i++) { // TODO pass correct index to minimise gas
+            if (positions[i].id == _positionId) {
+                positions[i] = positions[positions.length.sub(1)];
+                positions.pop();
+
+                return;
+            }
+        }
+    }
+
     function _removePosition(Position memory _position, int256 _unrealizedPosition, Percentage.Percent memory _marketStopPrice) private {
         _updateAccumulatedPositions(_position, false);
 
@@ -628,10 +643,6 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         );
     }
 
-    function _transferUnrealized(MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized) private {
-        _transferUnrealized(_pool, _owner, _unrealized, 0);
-    }
-    
     function _transferUnrealized(MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized, int256 _storedTraderEquity) private {
         if (_unrealized >= 0) { // trader has profit, max realizable is the pool's liquidity
             int256 poolLiquidityIToken = getTotalPoolLiquidity(_pool);
@@ -648,12 +659,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
         if (maxRealizable > 0) { // pool gets nothing if no realizable from traders
             uint256 realized = Math.min(uint256(maxRealizable), unrealizedAbs);
-            _transferItokenBalanceToPool(_pool, _owner, realized);
+            _transferItokenBalance(_pool, _owner, address(_pool), realized); // transfer to pool
         }
-    }
-
-    function _transferItokenBalanceToPool(MarginLiquidityPoolInterface _pool, address _owner, uint256 _amount) private {
-        _transferItokenBalance(_pool, _owner, address(_pool), _amount);
     }
 
     function _transferItokenBalanceFromPool(MarginLiquidityPoolInterface _pool, address _owner, uint256 _amount) private {

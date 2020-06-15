@@ -438,6 +438,42 @@ contract('MarginFlowProtocol', accounts => {
           amount: withdrawInUsd,
         });
       });
+
+      describe('when no positions are open and trader withdraws all', () => {
+        it('returns trader deposits', async () => {
+          const marginCallFee = await protocolConfig.traderMarginCallDeposit();
+          const liquidationFee = await protocolConfig.traderLiquidationDeposit();
+
+          const traderBalanceBefore = await usd.balanceOf(alice);
+          const traderBalanceProtocol = await protocol.balances(
+            liquidityPool.address,
+            alice,
+          );
+
+          await protocol.withdraw(
+            liquidityPool.address,
+            traderBalanceProtocol,
+            {
+              from: alice,
+            },
+          );
+
+          const traderBalanceAfter = await usd.balanceOf(alice);
+
+          expect(
+            await protocolSafety.traderHasPaidDeposits(
+              liquidityPool.address,
+              alice,
+            ),
+          ).to.be.false;
+          expect(traderBalanceAfter).to.be.bignumber.equal(
+            traderBalanceBefore
+              .add(convertToBaseToken(traderBalanceProtocol))
+              .add(marginCallFee)
+              .add(liquidationFee),
+          );
+        });
+      });
     });
   });
 
@@ -609,19 +645,82 @@ contract('MarginFlowProtocol', accounts => {
         });
       });
 
-      it('reverts the transaction', async () => {
-        await expectRevert(
-          protocol.openPosition(
+      describe('when there is not enough balance to pay deposits', () => {
+        beforeEach(async () => {
+          await protocol.withdraw(
             liquidityPool.address,
-            usd.address,
-            eur,
-            leverage,
-            leveragedHeldInEuro,
-            price,
-            { from: alice },
-          ),
-          messages.traderNotPaidDeposits,
+            await protocol.balances(liquidityPool.address, alice),
+            {
+              from: alice,
+            },
+          );
+        });
+
+        it('reverts the transaction', async () => {
+          await expectRevert(
+            protocol.openPosition(
+              liquidityPool.address,
+              usd.address,
+              eur,
+              leverage,
+              leveragedHeldInEuro,
+              price,
+              { from: alice },
+            ),
+            messages.notEnoughBalanceToPayDeposits,
+          );
+        });
+      });
+
+      it('pays the trader deposits', async () => {
+        const marginCallFee = await protocolConfig.traderMarginCallDeposit();
+        const liquidationFee = await protocolConfig.traderLiquidationDeposit();
+
+        const iUsdProtocolBefore = await iUsd.balanceOf(protocol.address);
+        const iUsdProtocolSafetyBefore = await iUsd.balanceOf(
+          protocolSafety.address,
         );
+        const aliceBalanceBefore = await protocol.balances(
+          liquidityPool.address,
+          alice,
+        );
+        const hasPaidDepositsBefore = await protocolSafety.traderHasPaidDeposits(
+          liquidityPool.address,
+          alice,
+        );
+        await protocol.openPosition(
+          liquidityPool.address,
+          usd.address,
+          eur,
+          leverage,
+          leveragedHeldInEuro,
+          price,
+          { from: alice },
+        );
+        const iUsdProtocolAfter = await iUsd.balanceOf(protocol.address);
+        const iUsdProtocolSafetyAfter = await iUsd.balanceOf(
+          protocolSafety.address,
+        );
+        const aliceBalanceAfter = await protocol.balances(
+          liquidityPool.address,
+          alice,
+        );
+        const hasPaidDepositsAfter = await protocolSafety.traderHasPaidDeposits(
+          liquidityPool.address,
+          alice,
+        );
+
+        expect(iUsdProtocolAfter).to.be.bignumber.equals(
+          iUsdProtocolBefore.sub(marginCallFee.add(liquidationFee)),
+        );
+        expect(iUsdProtocolSafetyAfter).to.be.bignumber.equals(
+          iUsdProtocolSafetyBefore.add(marginCallFee.add(liquidationFee)),
+        );
+        expect(aliceBalanceAfter).to.be.bignumber.equals(
+          aliceBalanceBefore.sub(marginCallFee.add(liquidationFee)),
+        );
+        expect(hasPaidDepositsBefore).to.be.false;
+        expect(hasPaidDepositsAfter).to.be.true;
       });
     });
 

@@ -106,7 +106,7 @@ export const messages = {
   leverageTooBig: 'OP5',
   leverageAmountTooSmall: 'OP6',
   traderLiquidated: 'OP7',
-  traderNotPaidDeposits: 'OP8',
+  notEnoughBalanceToPayDeposits: 'OP8',
   incorrectOwnerClosePosition: 'CP1',
   poolHasNotPaidFees: 'PF1',
   poolAlreadyVerified: 'PF2',
