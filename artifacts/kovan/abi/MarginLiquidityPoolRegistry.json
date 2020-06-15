@@ -20,36 +20,6 @@
     "signature": "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0"
   },
   {
-    "inputs": [],
-    "name": "LIQUIDITY_POOL_LIQUIDATION_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xaf000f81"
-  },
-  {
-    "inputs": [],
-    "name": "LIQUIDITY_POOL_MARGIN_CALL_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xb8a05b9c"
-  },
-  {
     "inputs": [
       {
         "internalType": "contract MarginLiquidityPoolInterface",
@@ -207,25 +177,6 @@
     "signature": "0xf2fde38b"
   },
   {
-    "inputs": [
-      {
-        "internalType": "contract MoneyMarketInterface",
-        "name": "_moneyMarket",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_protocolSafety",
-        "type": "address"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x485cc955"
-  },
-  {
     "inputs": [],
     "name": "initialize",
     "outputs": [],
@@ -246,6 +197,62 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xc4d66de8"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "contract MarginFlowProtocol",
+            "name": "marginProtocol",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MoneyMarketInterface",
+            "name": "moneyMarket",
+            "type": "address"
+          },
+          {
+            "internalType": "contract PriceOracleInterface",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginFlowProtocolConfig",
+            "name": "config",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginFlowProtocolSafety",
+            "name": "protocolSafety",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginFlowProtocolLiquidated",
+            "name": "protocolLiquidated",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginLiquidityPoolRegistry",
+            "name": "liquidityPoolRegistry",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "marketBaseToken",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct MarginMarketLib.MarketData",
+        "name": "_market",
+        "type": "tuple"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xf2da6d6c"
   },
   {
     "inputs": [
