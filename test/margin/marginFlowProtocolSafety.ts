@@ -323,7 +323,7 @@ contract('MarginFlowProtocolSafety', accounts => {
     leveragesEur = [bn(20), bn(-20), bn(20), bn(5)];
     leveragedHeldsJpy = [yen(10), yen(1), yen(2), yen(20)];
     leveragesJpy = [bn(20), bn(-50), bn(1), bn(5)];
-    leveragedHeldBob = euro(3);
+    leveragedHeldBob = euro(30);
     leverageBob = bn(30);
 
     for (let i = 0; i < leveragedHeldsEur.length; i += 1) {
