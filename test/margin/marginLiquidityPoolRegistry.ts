@@ -8,6 +8,7 @@ import {
   MoneyMarketInstance,
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
+  MarginFlowProtocolLiquidatedInstance,
   MarginFlowProtocolConfigInstance,
 } from 'types/truffle-contracts';
 import {
@@ -23,6 +24,9 @@ const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
 const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
+const MarginFlowProtocolLiquidated = artifacts.require(
+  'MarginFlowProtocolLiquidated',
+);
 const MarginLiquidityPoolRegistry = artifacts.require(
   'MarginLiquidityPoolRegistry',
 );
@@ -43,6 +47,7 @@ contract('MarginLiquidityPoolRegistry', accounts => {
 
   let protocolContract: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
+  let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
 
   before(async () => {
@@ -50,9 +55,13 @@ contract('MarginLiquidityPoolRegistry', accounts => {
 
     try {
       TestMarginFlowProtocol.link(MarginMarketLib);
+      MarginFlowProtocolLiquidated.link(MarginMarketLib);
+      MarginFlowProtocolSafety.link(MarginMarketLib);
     } catch (error) {
       // running in buidler, use instance
       TestMarginFlowProtocol.link(marketLib);
+      MarginFlowProtocolLiquidated.link(marketLib);
+      MarginFlowProtocolSafety.link(marketLib);
     }
   });
 
@@ -80,6 +89,15 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       flowMarginProtocolSafetyProxy.address,
     );
 
+    const flowMarginProtocolLiquidatedImpl = await MarginFlowProtocolLiquidated.new();
+    const flowMarginProtocolLiquidatedProxy = await Proxy.new();
+    await flowMarginProtocolLiquidatedProxy.upgradeTo(
+      flowMarginProtocolLiquidatedImpl.address,
+    );
+    protocolLiquidated = await MarginFlowProtocolLiquidated.at(
+      flowMarginProtocolLiquidatedProxy.address,
+    );
+
     const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
     const flowMarginProtocolConfigProxy = await Proxy.new();
     await flowMarginProtocolConfigProxy.upgradeTo(
@@ -103,6 +121,7 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       moneyMarket.address,
       protocolConfig.address,
       protocolSafety.address,
+      protocolLiquidated.address,
       liquidityPoolRegistry.address,
     );
     const market = await protocolContract.market();
@@ -119,8 +138,11 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       fromPercent(2),
     );
 
+    await (protocolLiquidated as any).methods[
+      'initialize((address,address,address,address,address,address,address,address))'
+    ](market);
     await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address))'
     ](market);
   });
 

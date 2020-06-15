@@ -8,6 +8,7 @@ import erc20Abi from '../../artifacts/development/abi/ERC20Detailed.json';
 import flowMarginProtocolAbi from '../../artifacts/development/abi/MarginFlowProtocol.json';
 import flowMarginProtocolConfigAbi from '../../artifacts/development/abi/MarginFlowProtocolConfig.json';
 import flowMarginProtocolSafetyAbi from '../../artifacts/development/abi/MarginFlowProtocolSafety.json';
+import flowMarginProtocolLiquidatedAbi from '../../artifacts/development/abi/MarginFlowProtocolLiquidated.json';
 import poolAbi from '../../artifacts/development/abi/MarginLiquidityPoolInterface.json';
 import priceOracleAbi from '../../artifacts/development/abi/SimplePriceOracle.json';
 import deployment from '../../artifacts/development/deployment.json';
@@ -44,6 +45,11 @@ const flowMarginProtocolSafetyAddress = deployment.marginProtocolSafety;
 const flowMarginProtocolSafetyContract = new web3.eth.Contract(
   flowMarginProtocolSafetyAbi as any,
   flowMarginProtocolSafetyAddress,
+);
+const flowMarginProtocolLiquidatedAddress = deployment.marginProtocolLiquidated;
+const flowMarginProtocolLiquidatedContract = new web3.eth.Contract(
+  flowMarginProtocolLiquidatedAbi as any,
+  flowMarginProtocolLiquidatedAddress,
 );
 
 const poolAddress = deployment.marginPoolGeneral;
@@ -215,6 +221,15 @@ const emptyAccount = async (name: string): Promise<any> => {
       to: flowMarginProtocolAddress,
     });
 
+  await sendTx({
+    from,
+    contractMethod: flowMarginProtocolLiquidatedContract.methods.restoreTraderInPool(
+      poolAddress,
+      from.address,
+    ),
+    to: flowMarginProtocolLiquidatedAddress,
+  });
+
   const currentBalance = await baseTokenContract.methods
     .balanceOf(from.address)
     .call();
@@ -277,6 +292,32 @@ const forceCloseForPool = async (
         i + totalOffset,
       ),
       to: flowMarginProtocolAddress,
+    });
+  }
+
+  return positionsCount;
+};
+
+const forceCloseForTrader = async (
+  from: Account,
+  offset: number,
+): Promise<number> => {
+  const positionsCount = parseInt(
+    await flowMarginProtocolContract.methods
+      .getPositionsByPoolAndTraderLength(poolAddress, from.address)
+      .call(),
+    10,
+  );
+
+  const totalOffset = parseInt(firstPositionId, 10) + offset;
+
+  for (let i = 0; i < positionsCount; i += 1) {
+    await sendTx({
+      from,
+      contractMethod: flowMarginProtocolLiquidatedContract.methods.closePositionForLiquidatedTrader(
+        i + totalOffset,
+      ),
+      to: flowMarginProtocolLiquidatedAddress,
     });
   }
 
@@ -750,7 +791,6 @@ Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
         expect.fail(`Pool liquidation call should have reverted, but didnt!`);
 
       const alicePositionCount = await forceCloseForPool(alice, 0);
-
       await forceCloseForPool(bob, alicePositionCount);
     } catch (error) {
       if (result === 'Ok')
@@ -775,6 +815,9 @@ Given('margin trader liquidate', async (table: TableDefinition) => {
       });
       if (result !== 'Ok')
         expect.fail(`Trader liquidation should have reverted, but didnt!`);
+
+      const alicePositionCount = await forceCloseForTrader(alice, 0);
+      await forceCloseForTrader(bob, alicePositionCount);
     } catch (error) {
       if (result === 'Ok')
         expect.fail(`Trader liquidation should not have reverted: ${error}`);

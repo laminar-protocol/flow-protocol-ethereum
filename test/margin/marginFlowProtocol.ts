@@ -11,6 +11,7 @@ import {
   SimplePriceOracleInstance,
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
+  MarginFlowProtocolLiquidatedInstance,
   MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
@@ -37,6 +38,9 @@ const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
+const MarginFlowProtocolLiquidated = artifacts.require(
+  'MarginFlowProtocolLiquidated',
+);
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
   'MarginLiquidityPoolRegistry',
@@ -55,6 +59,7 @@ contract('MarginFlowProtocol', accounts => {
   let oracle: SimplePriceOracleInstance;
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
+  let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
@@ -75,9 +80,13 @@ contract('MarginFlowProtocol', accounts => {
 
     try {
       TestMarginFlowProtocol.link(MarginMarketLib);
+      MarginFlowProtocolLiquidated.link(MarginMarketLib);
+      MarginFlowProtocolSafety.link(MarginMarketLib);
     } catch (error) {
       // running in buidler, use instance
       TestMarginFlowProtocol.link(marketLib);
+      MarginFlowProtocolLiquidated.link(marketLib);
+      MarginFlowProtocolSafety.link(marketLib);
     }
   });
 
@@ -124,6 +133,15 @@ contract('MarginFlowProtocol', accounts => {
       flowMarginProtocolSafetyProxy.address,
     );
 
+    const flowMarginProtocolLiquidatedImpl = await MarginFlowProtocolLiquidated.new();
+    const flowMarginProtocolLiquidatedProxy = await Proxy.new();
+    await flowMarginProtocolLiquidatedProxy.upgradeTo(
+      flowMarginProtocolLiquidatedImpl.address,
+    );
+    protocolLiquidated = await MarginFlowProtocolLiquidated.at(
+      flowMarginProtocolLiquidatedProxy.address,
+    );
+
     const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
     const flowMarginProtocolConfigProxy = await Proxy.new();
     await flowMarginProtocolConfigProxy.upgradeTo(
@@ -147,6 +165,7 @@ contract('MarginFlowProtocol', accounts => {
       moneyMarket.address,
       protocolConfig.address,
       protocolSafety.address,
+      protocolLiquidated.address,
       liquidityPoolRegistry.address,
     );
     const market = await protocol.market();
@@ -161,8 +180,11 @@ contract('MarginFlowProtocol', accounts => {
       fromPercent(2),
     );
 
+    await (protocolLiquidated as any).methods[
+      'initialize((address,address,address,address,address,address,address,address))'
+    ](market);
     await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address))'
     ](market);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, {
@@ -271,7 +293,12 @@ contract('MarginFlowProtocol', accounts => {
 
   const getLastPositionByPool = async (pool: string) => {
     const positionsLength = await protocol.getPositionsByPoolLength(pool);
-    return protocol.positionsByPool(pool, positionsLength.sub(bn(1)));
+    const position = await protocol.positionsByPool(
+      pool,
+      positionsLength.sub(bn(1)),
+    );
+
+    return protocol.getPositionById(position['0']);
   };
 
   const getLastPositionByPoolAndTrader = async ({
@@ -285,11 +312,13 @@ contract('MarginFlowProtocol', accounts => {
       pool,
       trader,
     );
-    return protocol.positionsByPoolAndTrader(
+    const position = await protocol.positionsByPoolAndTrader(
       pool,
       trader,
       positionsLength.sub(bn(1)),
     );
+
+    return protocol.getPositionById(position['0']);
   };
 
   describe('when handling funds', () => {
@@ -435,11 +464,11 @@ contract('MarginFlowProtocol', accounts => {
     quoteToken?: string;
     receipt: Truffle.TransactionResponse<Truffle.AnyEvent>;
   }) => {
-    const position = await protocol.positionsById(id);
-    const positionId = position['0'];
-    const positionOwner = position['1'];
-    const pool = position['2'];
-    const { base } = position['3'];
+    const position = await protocol.getPositionById(id);
+    /* const positionId = position.id;
+    const positionOwner = position.owner;
+    const pool = position.pool;
+    const { base } = position.pair.base;
     const { quote } = position['3'];
     const leverage = position['4'];
     const leveragedHeld = position['5'];
@@ -447,7 +476,7 @@ contract('MarginFlowProtocol', accounts => {
     const leveragedDebitsInUsd = position['7'];
     const marginHeld = position['8'];
     const swapRate = position['9'].value;
-    const timeWhenOpened = position['10'];
+    const timeWhenOpened = position['10']; */
 
     const basePrice = await oracle.getPrice.call(baseToken);
     const quotePrice = await oracle.getPrice.call(quoteToken);
@@ -460,7 +489,9 @@ contract('MarginFlowProtocol', accounts => {
       ? leveragedHeldInQuote.mul(bn(-1))
       : leveragedHeldInQuote;
     const expectedLeveragedDebits = leveragedHeldInQuote.mul(
-      leverage.isNeg() ? bidPrice : askPrice.mul(bn(-1)),
+      bn(position.leverage.toString()).isNeg()
+        ? bidPrice
+        : askPrice.mul(bn(-1)),
     );
 
     const usdPrice = await oracle.getPrice.call(usd.address);
@@ -471,36 +502,46 @@ contract('MarginFlowProtocol', accounts => {
       .div(bn(1e18));
 
     const expectedMarginHeld = convertFromBaseToken(
-      expectedLeveragedDebitsInUsd.div(leverage).abs(),
+      expectedLeveragedDebitsInUsd.div(bn(position.leverage.toString())).abs(),
     );
 
-    expect(positionId).to.be.bignumber.equal(id);
-    expect(positionOwner).to.be.bignumber.equal(expectedOwner);
-    expect(pool).to.be.bignumber.equal(expectedPool);
-    expect(base).to.be.bignumber.equal(baseToken);
-    expect(quote).to.be.bignumber.equal(quoteToken);
-    expect(leverage).to.be.bignumber.equal(expectedLeverage);
-    expect(leveragedHeld).to.be.bignumber.equal(expectedLeveragedHeld);
-    expect(leveragedDebits).to.be.bignumber.equal(
+    expect(position.id).to.be.bignumber.equal(id);
+    expect(position.owner).to.be.bignumber.equal(expectedOwner);
+    expect(position.pool).to.be.bignumber.equal(expectedPool);
+    expect(position.pair.base).to.be.bignumber.equal(baseToken);
+    expect(position.pair.quote).to.be.bignumber.equal(quoteToken);
+    expect(bn(position.leverage.toString())).to.be.bignumber.equal(
+      expectedLeverage,
+    );
+    expect(bn(position.leveragedHeld.toString())).to.be.bignumber.equal(
+      expectedLeveragedHeld,
+    );
+    expect(bn(position.leveragedDebits.toString())).to.be.bignumber.equal(
       fromEth(expectedLeveragedDebits),
     );
 
-    expect(leveragedDebitsInUsd).to.be.bignumber.equal(
+    expect(bn(position.leveragedDebitsInUsd.toString())).to.be.bignumber.equal(
       fromEth(expectedLeveragedDebitsInUsd),
     );
-    expect(marginHeld).to.be.bignumber.equal(fromEth(expectedMarginHeld));
-    expect(swapRate).to.be.bignumber.equal(expectedSwapRate);
-    expect(timeWhenOpened).to.be.bignumber.equal(expectedTimeWhenOpened);
+    expect(bn(position.marginHeld.toString())).to.be.bignumber.equal(
+      fromEth(expectedMarginHeld),
+    );
+    expect(bn(position.swapRate.toString())).to.be.bignumber.equal(
+      expectedSwapRate,
+    );
+    expect(bn(position.timeWhenOpened.toString())).to.be.bignumber.equal(
+      expectedTimeWhenOpened,
+    );
 
     await expectEvent(receipt, 'PositionOpened', {
-      positionId,
+      positionId: position.id,
       sender: expectedOwner,
       liquidityPool: expectedPool,
       baseToken,
       quoteToken,
       leverage: expectedLeverage,
-      leveragedDebitsInUsd,
-      price: leverage.isNeg() ? bidPrice : askPrice,
+      leveragedDebitsInUsd: position.leveragedDebitsInUsd,
+      price: bn(position.leverage.toString()).isNeg() ? bidPrice : askPrice,
     });
 
     expect(
@@ -974,7 +1015,7 @@ contract('MarginFlowProtocol', accounts => {
     quoteToken?: string;
     useMaxRealizable?: boolean;
   }) => {
-    const position = await protocol.positionsById(id);
+    const position = await protocol.getPositionById(id);
 
     const basePrice = await oracle.getPrice.call(baseToken);
     const quotePrice = await oracle.getPrice.call(quoteToken);
@@ -1069,7 +1110,7 @@ contract('MarginFlowProtocol', accounts => {
       );
     }
 
-    expect(position['0']).to.be.bignumber.equal(bn(0));
+    expect(position.id).to.be.bignumber.equal(bn(0));
   };
 
   describe('when closing a position', () => {
@@ -1714,11 +1755,11 @@ contract('MarginFlowProtocol', accounts => {
 
     describe('when getting accumulated margin held of a trader', () => {
       it('should return the correct value', async () => {
-        const marginHeldAlice = await protocol.getMarginHeld(
+        const marginHeldAlice = await protocol.traderPositionAccMarginHeld(
           liquidityPool.address,
           alice,
         );
-        const marginHeldBob = await protocol.getMarginHeld(
+        const marginHeldBob = await protocol.traderPositionAccMarginHeld(
           liquidityPool.address,
           bob,
         );
@@ -1758,28 +1799,28 @@ contract('MarginFlowProtocol', accounts => {
 
     describe('when getting the free margin of a trader', () => {
       it('should return the correct value', async () => {
-        const freeMarginAlice = await protocol.getFreeMargin.call(
+        const freeMarginAlice = await protocol.getEstimatedFreeMargin.call(
           liquidityPool.address,
           alice,
         );
-        const freeMarginBob = await protocol.getFreeMargin.call(
+        const freeMarginBob = await protocol.getEstimatedFreeMargin.call(
           liquidityPool.address,
           bob,
         );
 
-        const marginHeldAlice = await protocol.getMarginHeld(
+        const marginHeldAlice = await protocol.traderPositionAccMarginHeld(
           liquidityPool.address,
           alice,
         );
-        const marginHeldBob = await protocol.getMarginHeld(
+        const marginHeldBob = await protocol.traderPositionAccMarginHeld(
           liquidityPool.address,
           bob,
         );
-        const equityAlice = await protocol.getEquityOfTrader.call(
+        const equityAlice = await protocol.getExactEquityOfTrader.call(
           liquidityPool.address,
           alice,
         );
-        const equityBob = await protocol.getEquityOfTrader.call(
+        const equityBob = await protocol.getExactEquityOfTrader.call(
           liquidityPool.address,
           bob,
         );
@@ -1807,7 +1848,7 @@ contract('MarginFlowProtocol', accounts => {
         });
 
         it('should return 0', async () => {
-          const freeMarginAlice = await protocol.getFreeMargin.call(
+          const freeMarginAlice = await protocol.getEstimatedFreeMargin.call(
             liquidityPool.address,
             alice,
           );
@@ -2238,11 +2279,19 @@ contract('MarginFlowProtocol', accounts => {
 
     describe('when computing equity of trader', () => {
       it('should return the correct equity', async () => {
-        const aliceEquity = await protocol.getEquityOfTrader.call(
+        const aliceEquity = await protocol.getEstimatedEquityOfTrader.call(
           liquidityPool.address,
           alice,
         );
-        const bobEquity = await protocol.getEquityOfTrader.call(
+        const bobEquity = await protocol.getEstimatedEquityOfTrader.call(
+          liquidityPool.address,
+          bob,
+        );
+        const aliceEquityExact = await protocol.getExactEquityOfTrader.call(
+          liquidityPool.address,
+          alice,
+        );
+        const bobEquityExact = await protocol.getExactEquityOfTrader.call(
           liquidityPool.address,
           bob,
         );
@@ -2278,7 +2327,9 @@ contract('MarginFlowProtocol', accounts => {
           .sub(bobSwapRates);
 
         expect(aliceEquity).to.be.bignumber.equal(aliceExpectedEquity);
+        expect(aliceEquityExact).to.be.bignumber.equal(aliceExpectedEquity);
         expect(bobEquity).to.be.bignumber.equal(bobExpectedEquity);
+        expect(bobEquityExact).to.be.bignumber.equal(bobExpectedEquity);
       });
 
       describe('when trader has negative balance', () => {
@@ -2307,7 +2358,7 @@ contract('MarginFlowProtocol', accounts => {
         });
 
         it('should return the correct equity', async () => {
-          const bobEquity = await protocol.getEquityOfTrader.call(
+          const bobEquity = await protocol.getEstimatedEquityOfTrader.call(
             liquidityPool.address,
             bob,
           );

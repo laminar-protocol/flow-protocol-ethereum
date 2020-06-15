@@ -10,6 +10,9 @@ const MarginLiquidityPoolRegistry = artifacts.require(
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 const MarginFlowProtocol = artifacts.require('MarginFlowProtocol');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
+const MarginFlowProtocolLiquidated = artifacts.require(
+  'MarginFlowProtocolLiquidated',
+);
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginMarketLib = artifacts.require('MarginMarketLib');
 
@@ -36,6 +39,8 @@ module.exports = async () => {
 
   try {
     MarginFlowProtocol.link(marginMarketLib);
+    MarginFlowProtocolLiquidated.link(marginMarketLib);
+    MarginFlowProtocolSafety.link(marginMarketLib);
   } catch (e) {
     // ignore
   }
@@ -44,6 +49,8 @@ module.exports = async () => {
   MarginFlowProtocol.setAsDeployed(marginFlowProtocol);
   const marginFlowProtocolSafety = await MarginFlowProtocolSafety.new();
   MarginFlowProtocolSafety.setAsDeployed(marginFlowProtocolSafety);
+  const marginFlowProtocolLiquidated = await MarginFlowProtocolLiquidated.new();
+  MarginFlowProtocolLiquidated.setAsDeployed(marginFlowProtocolLiquidated);
   const marginFlowProtocolConfig = await MarginFlowProtocolConfig.new();
   MarginFlowProtocolConfig.setAsDeployed(marginFlowProtocolConfig);
 };
