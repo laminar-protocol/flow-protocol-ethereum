@@ -221,6 +221,10 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
 
         balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
 
+        if (positionsByPoolAndTrader[_pool][msg.sender].length == 0 && balances[_pool][msg.sender] == 0) {
+            market.protocolSafety.__withdrawTraderDeposits(_pool, msg.sender);
+        }
+
         emit Withdrew(_pool, msg.sender, baseTokenAmount);
     }
 

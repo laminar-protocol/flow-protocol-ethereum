@@ -438,6 +438,42 @@ contract('MarginFlowProtocol', accounts => {
           amount: withdrawInUsd,
         });
       });
+
+      describe('when no positions are open and trader withdraws all', () => {
+        it('returns trader deposits', async () => {
+          const marginCallFee = await protocolConfig.traderMarginCallDeposit();
+          const liquidationFee = await protocolConfig.traderLiquidationDeposit();
+
+          const traderBalanceBefore = await usd.balanceOf(alice);
+          const traderBalanceProtocol = await protocol.balances(
+            liquidityPool.address,
+            alice,
+          );
+
+          await protocol.withdraw(
+            liquidityPool.address,
+            traderBalanceProtocol,
+            {
+              from: alice,
+            },
+          );
+
+          const traderBalanceAfter = await usd.balanceOf(alice);
+
+          expect(
+            await protocolSafety.traderHasPaidDeposits(
+              liquidityPool.address,
+              alice,
+            ),
+          ).to.be.false;
+          expect(traderBalanceAfter).to.be.bignumber.equal(
+            traderBalanceBefore
+              .add(convertToBaseToken(traderBalanceProtocol))
+              .add(marginCallFee)
+              .add(liquidationFee),
+          );
+        });
+      });
     });
   });
 
