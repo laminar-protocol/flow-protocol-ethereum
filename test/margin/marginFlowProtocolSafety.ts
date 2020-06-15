@@ -735,7 +735,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         });
       });
 
-      it.only('allows trader to close positions after liquidation', async () => {
+      it('allows trader to close positions after liquidation', async () => {
         const poolLiquidityBefore = await liquidityPool.getLiquidity();
         const poolBalanceBefore = await protocol.balances(
           liquidityPool.address,

@@ -104,7 +104,6 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
      */
     function payTraderDeposits(MarginLiquidityPoolInterface _pool)
         public
-        virtual
         nonReentrant
         returns (bool)
     {
@@ -115,9 +114,12 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
         market.moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), lockedFeesAmount);
         market.moneyMarket.baseToken().approve(address(market.moneyMarket), lockedFeesAmount);
 
-        traderMarginCallITokens[_pool][msg.sender] = market.moneyMarket.mint(traderMarginCallDeposit);
-        traderLiquidationITokens[_pool][msg.sender] = market.moneyMarket.mint(traderLiquidationDeposit);        
-        traderHasPaidDeposits[_pool][msg.sender] = true;
+        _markTraderDepositsAsPaid(
+            _pool,
+            msg.sender,
+            market.moneyMarket.mint(traderMarginCallDeposit),
+            market.moneyMarket.mint(traderLiquidationDeposit)
+        );
     }
 
     /**
@@ -406,6 +408,39 @@ contract MarginFlowProtocolSafety is Initializable, UpgradeReentrancyGuard {
         }
 
         return market.marginProtocol.getTotalPoolLiquidity(_pool).sub(unrealized);
+    }
+
+    // Protocol functions
+
+    function __markTraderDepositsAsPaid(
+        MarginLiquidityPoolInterface _pool,
+        address _trader,
+        uint256 _paidMarginITokens,
+        uint256 _paidLiquidationITokens
+    )
+        external
+        nonReentrant
+        returns (bool)
+    {
+        require(msg.sender == address(market.marginProtocol), "P1");
+        _markTraderDepositsAsPaid(_pool, _trader, _paidMarginITokens, _paidLiquidationITokens);
+    }
+
+    // Internal functions
+
+    function _markTraderDepositsAsPaid(
+        MarginLiquidityPoolInterface _pool,
+        address _trader,
+        uint256 _paidMarginITokens,
+        uint256 _paidLiquidationITokens
+    )
+        private
+        returns (bool)
+    {
+
+        traderMarginCallITokens[_pool][_trader] = _paidMarginITokens;
+        traderLiquidationITokens[_pool][_trader] = _paidLiquidationITokens;        
+        traderHasPaidDeposits[_pool][_trader] = true;
     }
 
     function _getPairPenalty(

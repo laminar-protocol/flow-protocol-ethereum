@@ -265,7 +265,18 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) >= _pool.minLeverage(), "OP4");
         require((_leverage >= 0 ? uint256(_leverage) : uint256(-_leverage)) <= _pool.maxLeverage(), "OP5");
         require(!market.protocolLiquidated.stoppedTradersInPool(_pool, msg.sender), "OP7");
-        require(market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender), "OP8");
+
+        if (!market.protocolSafety.traderHasPaidDeposits(_pool, msg.sender)) {
+            uint256 traderMarginCallDeposit = market.moneyMarket.convertAmountFromBase(market.config.traderMarginCallDeposit());
+            uint256 traderLiquidationCallDeposit = market.moneyMarket.convertAmountFromBase(market.config.traderLiquidationDeposit());
+            uint256 traderLiquidationFees = traderMarginCallDeposit.add(traderLiquidationCallDeposit);
+
+            require(balances[_pool][msg.sender] > int256(traderLiquidationFees), "OP8");
+
+            market.moneyMarket.iToken().transfer(address(market.protocolSafety), traderLiquidationFees);
+            balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(traderLiquidationFees));
+            market.protocolSafety.__markTraderDepositsAsPaid(_pool, msg.sender, traderMarginCallDeposit, traderLiquidationCallDeposit);
+        }
 
         Percentage.Percent memory debitsPrice = (_leverage > 0)
             ? market.getAskPrice(_pool, TradingPair(_base, _quote), _price)
