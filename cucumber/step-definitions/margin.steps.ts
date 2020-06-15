@@ -15,7 +15,7 @@ import deployment from '../../artifacts/development/deployment.json';
 
 const web3 = new Web3('http://localhost:8545');
 
-setDefaultTimeout(10000);
+setDefaultTimeout(20000);
 
 const ONE_DAY = 86400;
 const PRICE_EXPIRE_TIME = ONE_DAY * 2;
@@ -357,7 +357,7 @@ Given(/accounts/, async (table: TableDefinition) => {
     .call();
 
   await Promise.all(
-    table.rows().map(row => transfer(row[0], parseAmount('$0.1'))),
+    table.rows().map(row => transfer(row[0], parseAmount('$0.4'))),
   );
 
   await emptyAccount('Alice');
@@ -674,10 +674,10 @@ Then('trader margin positions are', async (table: TableDefinition) => {
       .toString();
 
     const equity = await flowMarginProtocolContract.methods
-      .getEquityOfTrader(poolAddress, from.address)
+      .getExactEquityOfTrader(poolAddress, from.address)
       .call();
     const freeMargin = await flowMarginProtocolContract.methods
-      .getFreeMargin(poolAddress, from.address)
+      .getExactFreeMargin(poolAddress, from.address)
       .call();
     const marginHeld = await flowMarginProtocolContract.methods
       .getMarginHeld(poolAddress, from.address)

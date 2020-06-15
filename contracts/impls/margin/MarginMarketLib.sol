@@ -180,22 +180,6 @@ library MarginMarketLib {
         return uint256(equity).sub(_marginHeld);
     }
 
-    function getExactMarginHeld(
-        MarketData storage self,
-        MarginFlowProtocol.Position[] memory _positions,
-        uint256 _marginHeld,
-        int256 _traderBalance
-    ) public returns (uint256) {
-        int256 equity = getExactEquityOfTrader(self, _positions, _traderBalance);
-
-        if (equity <= int256(_marginHeld)) {
-            return 0;
-        }
-
-        // freeMargin = equity - marginHeld
-        return uint256(equity).sub(_marginHeld);
-    }
-
     // Unrealized profit and loss of a given trader(USD value). It is the sum of unrealized profit and loss of all positions
 	// opened by a trader.
     function getUnrealizedPlOfTrader(

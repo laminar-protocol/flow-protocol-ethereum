@@ -315,23 +315,9 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
         );
     }
 
-    function _getEstimatedFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) internal returns (uint256) {
-        return market.getEstimatedFreeMargin(
-            _pool,
-            _trader,
-            traderPositionAccMarginHeld[_pool][_trader],
-            balances[_pool][_trader]
-        );
-    }
-
     // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
     function getExactEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public returns (int256) {
         return market.getExactEquityOfTrader(positionsByPoolAndTrader[_pool][_trader], balances[_pool][_trader]);
-    }
-
-    // equityOfTrader = balance + unrealizedPl - accumulatedSwapRate
-    function _getEstimatedEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (int256) {
-        return market.getEstimatedEquityOfTrader(_pool, _trader, balances[_pool][_trader]);
     }
 
     // Unrealized profit and loss of a position(USD value), based on current market price.
@@ -390,12 +376,8 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
     * @param _trader The trader address.
     * @return The margin held sum.
     */
-    function getExactMarginHeld(MarginLiquidityPoolInterface _pool, address _trader) external returns (uint256) {
-        return market.getExactMarginHeld(
-            positionsByPoolAndTrader[_pool][_trader],
-            traderPositionAccMarginHeld[_pool][_trader],
-            balances[_pool][_trader]
-        );
+    function getMarginHeld(MarginLiquidityPoolInterface _pool, address _trader) external view returns (uint256) {
+        return traderPositionAccMarginHeld[_pool][_trader];
     }
 
     function getPositionsByPoolLength(MarginLiquidityPoolInterface _pool) external view returns (uint256) {
@@ -535,6 +517,19 @@ contract MarginFlowProtocol is Initializable, UpgradeReentrancyGuard {
                 _leverage > 0 ? MarginFlowProtocolConfig.PositionType.LONG : MarginFlowProtocolConfig.PositionType.SHORT
             ),
             now
+        );
+    }
+
+    function _getEstimatedEquityOfTrader(MarginLiquidityPoolInterface _pool, address _trader) internal returns (int256) {
+        return market.getEstimatedEquityOfTrader(_pool, _trader, balances[_pool][_trader]);
+    }
+
+    function _getEstimatedFreeMargin(MarginLiquidityPoolInterface _pool, address _trader) internal returns (uint256) {
+        return market.getEstimatedFreeMargin(
+            _pool,
+            _trader,
+            traderPositionAccMarginHeld[_pool][_trader],
+            balances[_pool][_trader]
         );
     }
 
