@@ -747,10 +747,15 @@
     strip-indent "^2.0.0"
     super-split "^1.1.0"
 
-"@typechain/truffle-v5@2.0.2":
+"@typechain/truffle-v5@^2.0.2":
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/@typechain/truffle-v5/-/truffle-v5-2.0.2.tgz#709a78ffb120f52c693818fea72e0b0d146c3454"
   integrity sha512-g4N2kfol1S3g/QUkmpzukCGZiKWUdXsSms1be/+W4+R0DPMz1Q/76tY+C6bD7G/KeLhkiDKcnZFmNVNcAgjIfQ==
+
+"@typechain/web3-v1@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@typechain/web3-v1/-/web3-v1-1.0.0.tgz#842f925e45bdfb0d28e08c0e355f1c8efed7ea91"
+  integrity sha512-MM8PmsblePaxy5BCYEuPtR4ajigPf504VRQzZgFYqs6KuFnJxbOjF8jNYT12P6UvUX7us75Wc78QdbvOHbb4hA==
 
 "@types/bignumber.js@^5.0.0":
   version "5.0.0"
@@ -777,11 +782,6 @@
   version "4.2.11"
   resolved "https://registry.yarnpkg.com/@types/chai/-/chai-4.2.11.tgz#d3614d6c5f500142358e6ed24e1bf16657536c50"
   integrity sha512-t7uW6eFafjO+qJ3BIV2gGUyZs27egcNRkUdalkud+Qa3+kg//f129iuOFivHDXQ+vnU3fDXuwgv0cqMCbcE8sw==
-
-"@types/chai@^4.1.4":
-  version "4.2.10"
-  resolved "https://registry.yarnpkg.com/@types/chai/-/chai-4.2.10.tgz#1122da40faabb81795580dc9f06c1e71e2ebbbe4"
-  integrity sha512-TlWWgb21+0LdkuFqEqfmy7NEgfB/7Jjux15fWQAh3P93gbmXuwTM/vxEdzW89APIcI2BgKR48yjeAkdeH+4qvQ==
 
 "@types/color-name@^1.1.1":
   version "1.1.1"
@@ -833,11 +833,6 @@
   integrity sha512-U5icWpv7YnZYGsN4/cmh3WD2onMY0aJIiTE6+51TwJCttdHvtCYmkBNOobHlXwrJRL0nkH9jH4kD+1FAdMN4Tg==
   dependencies:
     "@types/node" "*"
-
-"@types/mocha@^5.2.5":
-  version "5.2.7"
-  resolved "https://registry.yarnpkg.com/@types/mocha/-/mocha-5.2.7.tgz#315d570ccb56c53452ff8638738df60726d5b6ea"
-  integrity sha512-NYrtPht0wGzhwe9+/idPaBB+TqkY9AhTvOLMkThm0IoEfLaiVQZwBwyJ5puCkO3AUCWrmcoePjp2mbFocKy4SQ==
 
 "@types/mocha@^7.0.2":
   version "7.0.2"
@@ -899,13 +894,6 @@
   integrity sha512-+ZjSA8ELlOp8SlKi0YLB2tz9d5iPNEmOBd+8Rz21wTMdaXQIa9b6TEnD6l5qKOCypE7FSyPyck12qZJxSDNoog==
   dependencies:
     "@types/node" "*"
-
-"@types/web3@^1.0.18":
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/@types/web3/-/web3-1.2.2.tgz#d95a101547ce625c5ebd0470baa5dbd4b9f3c015"
-  integrity sha512-eFiYJKggNrOl0nsD+9cMh2MLk4zVBfXfGnVeRFbpiZzBE20eet4KLA3fXcjSuHaBn0RnQzwLAGdgzgzdet4C0A==
-  dependencies:
-    web3 "*"
 
 "@typescript-eslint/eslint-plugin@3.3.0":
   version "3.3.0"
@@ -8689,15 +8677,6 @@ truffle-plugin-verify@0.3.11:
     querystring "0.2.0"
     sol-merger "3.0.1"
 
-truffle-typings@1.0.8:
-  version "1.0.8"
-  resolved "https://registry.yarnpkg.com/truffle-typings/-/truffle-typings-1.0.8.tgz#0b92d86a86a77c43771cdbce2544b67a25e3f2e2"
-  integrity sha512-75yFYNt0ws1TTehrGxhOqH3tutvBCAs+RG2SrhVIqQvU72kLAb4ercl32dES8yKbXBVHjzv3OXNg5gsbak+3Dg==
-  dependencies:
-    "@types/chai" "^4.1.4"
-    "@types/mocha" "^5.2.5"
-    "@types/web3" "^1.0.18"
-
 truffle@5.1.30:
   version "5.1.30"
   resolved "https://registry.yarnpkg.com/truffle/-/truffle-5.1.30.tgz#93d8fadfaf9ae58c05081569a026676d5f425364"
@@ -8859,14 +8838,6 @@ type@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/type/-/type-2.0.0.tgz#5f16ff6ef2eb44f260494dae271033b29c09a9c3"
   integrity sha512-KBt58xCHry4Cejnc2ISQAF7QY+ORngsWfxezO68+12hKV6lQY8P/psIkcbjeHWn7MqcgciWJyCCevFMJdIXpow==
-
-typechain-target-web3-v1@^1.0.4:
-  version "1.0.4"
-  resolved "https://registry.yarnpkg.com/typechain-target-web3-v1/-/typechain-target-web3-v1-1.0.4.tgz#0157359e534737c07fc62529d5d8570a2047a2da"
-  integrity sha512-jQ6eCfY7QorBq6kQDjSy5LMuImZGkp6IXR6FXZp7/ulITIxAfb6Dxh+yvh0NN/zboLnMPvvSJi6tHWCqlwfSDA==
-  dependencies:
-    lodash "^4.17.15"
-    web3 "^1.2.4"
 
 typechain@2.0.0:
   version "2.0.0"
@@ -9986,19 +9957,6 @@ web3-utils@1.2.9:
     underscore "1.9.1"
     utf8 "3.0.0"
 
-web3@*, web3@1.2.9:
-  version "1.2.9"
-  resolved "https://registry.yarnpkg.com/web3/-/web3-1.2.9.tgz#cbcf1c0fba5e213a6dfb1f2c1f4b37062e4ce337"
-  integrity sha512-Mo5aBRm0JrcNpN/g4VOrDzudymfOnHRC3s2VarhYxRA8aWgF5rnhQ0ziySaugpic1gksbXPe105pUWyRqw8HUA==
-  dependencies:
-    web3-bzz "1.2.9"
-    web3-core "1.2.9"
-    web3-eth "1.2.9"
-    web3-eth-personal "1.2.9"
-    web3-net "1.2.9"
-    web3-shh "1.2.9"
-    web3-utils "1.2.9"
-
 web3@1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/web3/-/web3-1.2.1.tgz#5d8158bcca47838ab8c2b784a2dee4c3ceb4179b"
@@ -10026,7 +9984,20 @@ web3@1.2.2:
     web3-shh "1.2.2"
     web3-utils "1.2.2"
 
-web3@^1.0.0-beta.34, web3@^1.2.1, web3@^1.2.4:
+web3@1.2.9:
+  version "1.2.9"
+  resolved "https://registry.yarnpkg.com/web3/-/web3-1.2.9.tgz#cbcf1c0fba5e213a6dfb1f2c1f4b37062e4ce337"
+  integrity sha512-Mo5aBRm0JrcNpN/g4VOrDzudymfOnHRC3s2VarhYxRA8aWgF5rnhQ0ziySaugpic1gksbXPe105pUWyRqw8HUA==
+  dependencies:
+    web3-bzz "1.2.9"
+    web3-core "1.2.9"
+    web3-eth "1.2.9"
+    web3-eth-personal "1.2.9"
+    web3-net "1.2.9"
+    web3-shh "1.2.9"
+    web3-utils "1.2.9"
+
+web3@^1.0.0-beta.34, web3@^1.2.1:
   version "1.2.6"
   resolved "https://registry.yarnpkg.com/web3/-/web3-1.2.6.tgz#c497dcb14cdd8d6d9fb6b445b3b68ff83f8ccf68"
   integrity sha512-tpu9fLIComgxGrFsD8LUtA4s4aCZk7px8UfcdEy6kS2uDi/ZfR07KJqpXZMij7Jvlq+cQrTAhsPSiBVvoMaivA==
