@@ -1,19 +1,19 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "../libs/Percentage.sol";
-import "../libs/upgrades/UpgradeOwnable.sol";
-import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 
-contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGuard {
+contract FlowProtocolBase is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -26,8 +26,8 @@ contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGua
     uint256 public maxSpread;
 
     function initialize(PriceOracleInterface _oracle, MoneyMarketInterface _moneyMarket) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
-        UpgradeReentrancyGuard.initialize();
+        OwnableUpgradeSafe.__Ownable_init();
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
 
         oracle = _oracle;
         moneyMarket = _moneyMarket;

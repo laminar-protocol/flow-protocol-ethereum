@@ -1,17 +1,16 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 
 import "../../interfaces/MoneyMarketInterface.sol";
 import "../../roles/ProtocolOwnable.sol";
 import "../../libs/Percentage.sol";
-import "../../libs/upgrades/ERC20DetailedUpgradable.sol";
 
-contract SyntheticFlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
+contract SyntheticFlowToken is ProtocolOwnable, ERC20UpgradeSafe {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
     using Percentage for uint256;
@@ -47,7 +46,7 @@ contract SyntheticFlowToken is ProtocolOwnable, ERC20, ERC20DetailedUpgradable {
         uint _defaultCollateralRatio
     ) public initializer {
         ProtocolOwnable.initialize(_protocol);
-        ERC20DetailedUpgradable.initialize(_name, _symbol, 18);
+        ERC20UpgradeSafe.__ERC20_init(_name, _symbol);
 
         moneyMarket = _moneyMarket;
 

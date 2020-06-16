@@ -440,7 +440,7 @@ contract('MarginFlowProtocol', accounts => {
       });
 
       describe('when no positions are open and trader withdraws all', () => {
-        it('returns trader deposits', async () => {
+        it.only('returns trader deposits', async () => {
           const marginCallFee = await protocolConfig.traderMarginCallDeposit();
           const liquidationFee = await protocolConfig.traderLiquidationDeposit();
 

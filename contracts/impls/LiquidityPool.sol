@@ -1,21 +1,21 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
-import "../libs/upgrades/UpgradeOwnable.sol";
 import "../interfaces/LiquidityPoolInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 
-abstract contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolInterface {
+abstract contract LiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPoolInterface {
     using SafeERC20 for IERC20;
 
     MoneyMarketInterface public override moneyMarket;
     address public override protocol;
 
     function initialize(MoneyMarketInterface _moneyMarket, address _protocol) public virtual initializer {
-        UpgradeOwnable.initialize(msg.sender);
+        OwnableUpgradeSafe.__Ownable_init();
 
         moneyMarket = _moneyMarket;
         protocol = _protocol;
@@ -25,7 +25,7 @@ abstract contract LiquidityPool is Initializable, UpgradeOwnable, LiquidityPoolI
         moneyMarket.iToken().safeApprove(protocol, _amount);
     }
 
-    function owner() public view virtual override(UpgradeOwnable,LiquidityPoolInterface) returns (address) {
-        return UpgradeOwnable.owner();
+    function getOwner() public view override returns (address) {
+        return OwnableUpgradeSafe.owner();
     }
 }

@@ -1,12 +1,12 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
-import "../../libs/upgrades/UpgradeOwnable.sol";
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
 
 import "../LiquidityPool.sol";
@@ -14,7 +14,7 @@ import "./MarginFlowProtocol.sol";
 import "./MarginFlowProtocolConfig.sol";
 import "./MarginFlowProtocolSafety.sol";
 
-contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, MarginLiquidityPoolInterface {
+contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool, MarginLiquidityPoolInterface {
     using SignedSafeMath for int256;
 
     mapping (address => mapping (address => bool)) public override allowedTokens;
@@ -57,10 +57,6 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         spreadsPerTokenPair[_baseToken][_quoteToken] = _value;
 
         emit SpreadUpdated(_baseToken, _quoteToken, _value);
-    }
-
-    function owner() public view override(UpgradeOwnable,LiquidityPool,LiquidityPoolInterface) returns (address) {
-        return UpgradeOwnable.owner();
     }
 
     function depositLiquidity(uint256 _baseTokenAmount) external override returns (uint256) {

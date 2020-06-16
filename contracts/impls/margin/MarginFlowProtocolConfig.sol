@@ -1,15 +1,15 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2; // not experimental anymore
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 import "../../libs/Percentage.sol";
-import "../../libs/upgrades/UpgradeOwnable.sol";
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
 import "./MarginFlowProtocol.sol";
 
-contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
+contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
     using SignedSafeMath for int256;
 
     enum PositionType {
@@ -52,7 +52,7 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
         uint256 _initialLiquidityPoolENPLiquidateThreshold,
         uint256 _initialLiquidityPoolELLLiquidateThreshold
     ) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
+        OwnableUpgradeSafe.__Ownable_init();
 
         maxSpread = _maxSpread;
 

@@ -1,14 +1,14 @@
 pragma solidity ^0.6.4;
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 
 // TODO: simpify this
-contract MintableToken is Ownable, ERC20, ERC20Detailed {
-    constructor(
+contract MintableToken is OwnableUpgradeSafe, ERC20UpgradeSafe {
+    function initialize(
         string memory name,
         string memory symbol
-    ) ERC20Detailed(name, symbol, 18) public {
+    ) public initializer {
+        ERC20UpgradeSafe.__ERC20_init(name, symbol);
     }
 
     function mint(address account, uint256 amount) public onlyOwner {

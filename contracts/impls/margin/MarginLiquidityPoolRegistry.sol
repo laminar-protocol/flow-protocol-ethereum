@@ -1,14 +1,14 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
-import "../../libs/upgrades/UpgradeReentrancyGuard.sol";
-import "../../libs/upgrades/UpgradeOwnable.sol";
 
 import "./MarginMarketLib.sol";
 
@@ -16,7 +16,7 @@ import "./MarginMarketLib.sol";
 // - discovery liquidity pool
 // - find best spread liquidity pool
 
-contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeReentrancyGuard {
+contract MarginLiquidityPoolRegistry is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -29,8 +29,8 @@ contract MarginLiquidityPoolRegistry is Initializable, UpgradeOwnable, UpgradeRe
     mapping (MarginLiquidityPoolInterface => uint256) public poolLiquidationITokens;
 
     function initialize(MarginMarketLib.MarketData memory _market) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
-        UpgradeReentrancyGuard.initialize();
+        OwnableUpgradeSafe.__Ownable_init();
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
 
         market = _market;
     }

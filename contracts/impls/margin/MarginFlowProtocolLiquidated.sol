@@ -1,18 +1,18 @@
 pragma solidity ^0.6.4;
 pragma experimental ABIEncoderV2; // not experimental anymore
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
 import "../../libs/Percentage.sol";
-import "../../libs/upgrades/UpgradeOwnable.sol";
-import "../../libs/upgrades/UpgradeReentrancyGuard.sol";
 
 import "../../interfaces/PriceOracleInterface.sol";
 import "../../interfaces/MoneyMarketInterface.sol";
@@ -23,7 +23,7 @@ import "./MarginFlowProtocolConfig.sol";
 import "./MarginFlowProtocolSafety.sol";
 import "./MarginMarketLib.sol";
 
-contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
+contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSafe {
     using Percentage for uint256;
     using Percentage for int256;
     using SafeERC20 for IERC20;
@@ -58,7 +58,7 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
     function initialize(
         MarginMarketLib.MarketData memory _market
     ) public initializer {
-        UpgradeReentrancyGuard.initialize();
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
         market = _market;
     }
 

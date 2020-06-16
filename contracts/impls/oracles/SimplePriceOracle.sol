@@ -88,7 +88,7 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function readPrice(address key) external view returns (uint) {
+    function readPrice(address key) external view override returns (uint) {
         if (hasUpdate[key]) {
             uint price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {

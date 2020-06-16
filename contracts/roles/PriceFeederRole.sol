@@ -1,12 +1,11 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-
-import "../libs/upgrades/UpgradeAccessControl.sol";
-import "../libs/upgrades/UpgradeOwnable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 // TODO: change Ownable to Admin to ensure always must be a valid admin
-contract PriceFeederRole is Initializable, UpgradeOwnable, AccessControl {
+contract PriceFeederRole is Initializable, OwnableUpgradeSafe, AccessControlUpgradeSafe {
     event PriceFeederAdded(address indexed _account);
     event PriceFeederRemoved(address indexed _account);
 
@@ -23,7 +22,8 @@ contract PriceFeederRole is Initializable, UpgradeOwnable, AccessControl {
     }
 
     function initialize() public virtual initializer {
-        UpgradeOwnable.initialize(msg.sender);
+        OwnableUpgradeSafe.__Ownable_init();
+        AccessControlUpgradeSafe.__AccessControl_init();
     }
 
     function isPriceFeeder(address _account) public view returns (bool) {
@@ -44,7 +44,7 @@ contract PriceFeederRole is Initializable, UpgradeOwnable, AccessControl {
 
     function _addPriceFeeder(address _account) internal {
         // role
-        _grantRole(PRICE_FEEDER_ROLE, _account);
+        grantRole(PRICE_FEEDER_ROLE, _account);
 
         // push and record index
         priceFeeders.push(_account);
@@ -55,7 +55,7 @@ contract PriceFeederRole is Initializable, UpgradeOwnable, AccessControl {
 
     function _removePriceFeeder(address _account) internal {
         // role
-        _revokeRole(PRICE_FEEDER_ROLE, _account);
+        revokeRole(PRICE_FEEDER_ROLE, _account);
 
         // if not last index, swap with last element
         uint index = priceFeederIndices[_account];

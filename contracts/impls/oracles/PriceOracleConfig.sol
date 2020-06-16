@@ -1,11 +1,11 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
-import "../../libs/upgrades/UpgradeOwnable.sol";
 import "../../libs/Percentage.sol";
 
-contract PriceOracleConfig is Initializable, UpgradeOwnable {
+contract PriceOracleConfig is Initializable, OwnableUpgradeSafe {
     // max price diff since last input
     Percentage.Percent public oracleDeltaLastLimit;
     // max price diff since last snapshot
@@ -16,7 +16,7 @@ contract PriceOracleConfig is Initializable, UpgradeOwnable {
     uint public expireIn;
 
     function initialize() public virtual initializer {
-        UpgradeOwnable.initialize(msg.sender);
+        OwnableUpgradeSafe.__Ownable_init();
 
         // TODO: all those values should be from constructor parameter
         oracleDeltaLastLimit = Percentage.fromFraction(10, 100);

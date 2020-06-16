@@ -3,13 +3,12 @@
 pragma solidity ^0.6.4;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
-contract TestCToken is ERC20, ERC20Detailed {
+contract TestCToken is ERC20 {
     IERC20 public baseToken;
     uint public totalBorrows;
 
-    constructor(IERC20 baseToken_) ERC20Detailed("Test cToken", "cTEST", 18) public {
+    constructor(IERC20 baseToken_) ERC20("Test cToken", "cTEST") public {
         baseToken = baseToken_;
     }
 

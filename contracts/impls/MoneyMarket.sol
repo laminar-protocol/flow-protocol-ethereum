@@ -1,23 +1,23 @@
 pragma solidity ^0.6.4;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
 import "../interfaces/CErc20Interface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";
-import "../libs/upgrades/UpgradeOwnable.sol";
-import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 
 import "./MintableToken.sol";
 
-contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, MoneyMarketInterface {
+contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe, MoneyMarketInterface {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
     using SafeERC20 for IERC20;
@@ -37,11 +37,13 @@ contract MoneyMarket is Initializable, UpgradeOwnable, UpgradeReentrancyGuard, M
         string memory _iTokenSymbol,
         uint256 _minLiquidity
     ) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
-        UpgradeReentrancyGuard.initialize();
+        OwnableUpgradeSafe.__Ownable_init();
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
 
         _baseToken = IERC20(_cToken.underlying());
-        _iToken = IERC20(new MintableToken(_iTokenName, _iTokenSymbol));
+        MintableToken iToken = new MintableToken();
+        iToken.initialize(_iTokenName, _iTokenSymbol);
+        _iToken = IERC20(iToken);
         cToken = _cToken;
 
         // TODO: do we need to make this configurable and what should be the default value?

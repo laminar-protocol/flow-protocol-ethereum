@@ -2,13 +2,12 @@ pragma solidity ^0.6.4;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorInterface.sol";
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 import "../../interfaces/PriceOracleInterface.sol";
-import "../../libs/upgrades/UpgradeOwnable.sol";
 
-contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable, UpgradeOwnable {
+contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable, OwnableUpgradeSafe {
     mapping (address => AggregatorInterface) public aggregators;
     address public usdToken;
 
@@ -18,7 +17,7 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
         address[] memory _currencyReferences,
         address[] memory _tokenReferences
     ) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
+        OwnableUpgradeSafe.__Ownable_init();
 
         require(_currencyReferences.length == _tokenReferences.length, "Token count must match oracle count");
 
@@ -40,6 +39,18 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
     }
 
     function getPrice(address _key) public override returns (uint256) {
+        return _getPrice(_key);
+    }
+
+    function readPrice(address _key) public view override returns (uint256) {
+        return _getPrice(_key);
+    }
+
+    function isPriceOracle() external pure override returns (bool) {
+        return true;
+    }
+
+    function _getPrice(address _key) private view returns (uint256) {
         if (_key == usdToken) {
             return 1e18;
         }
@@ -50,9 +61,5 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
         require(price > 0, "no price available");
 
         return uint256(price).mul(1e10);
-    }
-
-    function isPriceOracle() external pure override returns (bool) {
-        return true;
     }
 }
