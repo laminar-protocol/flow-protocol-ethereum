@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
@@ -23,7 +24,7 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
     using SafeERC20 for IERC20;
     using Percentage for uint256;
 
-    uint256 constant private MAX_UINT = 2**256 - 1;
+    uint256 private constant MAX_UINT = type(uint256).max;
 
     IERC20 public _baseToken;
     IERC20 public _iToken;
@@ -53,20 +54,20 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
         _baseToken.safeApprove(address(cToken), MAX_UINT);
     }
 
-    function baseToken() external view override returns (IERC20) {
+    function baseToken() external override view returns (IERC20) {
         return _baseToken;
     }
 
-    function iToken() external view override returns (IERC20) {
+    function iToken() external override view returns (IERC20) {
         return _iToken;
     }
 
-    function mint(uint _baseTokenAmount) external override returns (uint) {
+    function mint(uint256 _baseTokenAmount) external override returns (uint256) {
         return mintTo(msg.sender, _baseTokenAmount);
     }
 
-    function mintTo(address recipient, uint _baseTokenAmount) public nonReentrant override returns (uint) {
-        uint iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
+    function mintTo(address recipient, uint256 _baseTokenAmount) public override nonReentrant returns (uint256) {
+        uint256 iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
 
         _baseToken.safeTransferFrom(msg.sender, address(this), _baseTokenAmount);
         MintableToken(address(_iToken)).mint(recipient, iTokenAmount);
@@ -78,12 +79,12 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
         return iTokenAmount;
     }
 
-    function redeem(uint iTokenAmount) external override returns (uint) {
+    function redeem(uint256 iTokenAmount) external override returns (uint256) {
         return redeemTo(msg.sender, iTokenAmount);
     }
 
-    function redeemTo(address recipient, uint iTokenAmount) public nonReentrant override returns (uint) {
-        uint _baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
+    function redeemTo(address recipient, uint256 iTokenAmount) public override nonReentrant returns (uint256) {
+        uint256 _baseTokenAmount = convertAmountToBase(exchangeRate(), iTokenAmount);
 
         MintableToken(address(_iToken)).burn(msg.sender, iTokenAmount);
 
@@ -96,12 +97,12 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
         return _baseTokenAmount;
     }
 
-    function redeemBaseToken(uint _baseTokenAmount) external override returns (uint) {
+    function redeemBaseToken(uint256 _baseTokenAmount) external override returns (uint256) {
         return redeemBaseTokenTo(msg.sender, _baseTokenAmount);
     }
 
-    function redeemBaseTokenTo(address recipient, uint _baseTokenAmount) public nonReentrant override returns (uint) {
-        uint iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
+    function redeemBaseTokenTo(address recipient, uint256 _baseTokenAmount) public override nonReentrant returns (uint256) {
+        uint256 iTokenAmount = convertAmountFromBase(exchangeRate(), _baseTokenAmount);
 
         MintableToken(address(_iToken)).burn(msg.sender, iTokenAmount);
 
@@ -124,54 +125,58 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
         _rebalance(0);
     }
 
-    function _rebalance(uint extraLiquidity) private {
-        uint cTokenExchangeRate = cToken.exchangeRateStored();
-        uint currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
-        uint currentBaseToken = _baseToken.balanceOf(address(this));
-        uint totalBaseToken = currentCTokenValue.add(currentBaseToken);
+    function _rebalance(uint256 extraLiquidity) private {
+        uint256 cTokenExchangeRate = cToken.exchangeRateStored();
+        uint256 currentCTokenValue = cToken.balanceOf(address(this)).mul(cTokenExchangeRate).div(1 ether);
+        uint256 currentBaseToken = _baseToken.balanceOf(address(this));
+        uint256 totalBaseToken = currentCTokenValue.add(currentBaseToken);
 
-        uint cash = cToken.getCash();
-        uint borrows = cToken.totalBorrows();
-        uint desiredCTokenValue = calculateInvestAmount(cash, borrows, totalBaseToken);
+        uint256 cash = cToken.getCash();
+        uint256 borrows = cToken.totalBorrows();
+        uint256 desiredCTokenValue = calculateInvestAmount(cash, borrows, totalBaseToken);
         if (desiredCTokenValue > extraLiquidity) {
             desiredCTokenValue = desiredCTokenValue - extraLiquidity;
         } else {
             desiredCTokenValue = 0;
         }
 
-        uint insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
+        uint256 insignificantAmount = desiredCTokenValue.mulPercent(insignificantPercent);
 
         if (desiredCTokenValue > currentCTokenValue) {
-            uint toMint = desiredCTokenValue - currentCTokenValue;
+            uint256 toMint = desiredCTokenValue - currentCTokenValue;
             if (toMint > insignificantAmount) {
                 require(cToken.mint(toMint) == 0, "Failed to mint cToken");
             }
         } else {
-            uint toRedeem = currentCTokenValue - desiredCTokenValue;
+            uint256 toRedeem = currentCTokenValue - desiredCTokenValue;
             if (toRedeem > insignificantAmount || currentBaseToken < extraLiquidity) {
                 require(cToken.redeemUnderlying(toRedeem) == 0, "Failed to redeem cToken");
             }
         }
     }
 
-    function calculateInvestAmount(uint cTokenCash, uint cTokenBorrow, uint totalValue) public view returns (uint) {
+    function calculateInvestAmount(
+        uint256 cTokenCash,
+        uint256 cTokenBorrow,
+        uint256 totalValue
+    ) public view returns (uint256) {
         if (cTokenBorrow == 0) {
             // cToken is not been used? withdraw all
             return 0;
         }
 
         // targetLiquidityAmount = totalValue * minLiquidity
-        uint targetLiquidityAmount = totalValue.mulPercent(minLiquidity);
+        uint256 targetLiquidityAmount = totalValue.mulPercent(minLiquidity);
 
         // a = cTokenBorrow + targetLiquidityAmount
-        uint a = cTokenBorrow.add(targetLiquidityAmount);
+        uint256 a = cTokenBorrow.add(targetLiquidityAmount);
         if (a <= totalValue) {
             // already more than enough liquidity in cToken, deposit all
             return totalValue;
         }
 
         // invest = ((totalValue - targetLiquidityAmount) * (cTokenCash + cTokenBorrow)) / (a - totalValue)
-        uint invest = totalValue.sub(targetLiquidityAmount).mul(cTokenCash.add(cTokenBorrow)).div(a.sub(totalValue));
+        uint256 invest = totalValue.sub(targetLiquidityAmount).mul(cTokenCash.add(cTokenBorrow)).div(a.sub(totalValue));
         if (invest > totalValue) {
             // liquidity in cToken is more than enough after we deposit all
             return totalValue;
@@ -180,15 +185,15 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
         return invest;
     }
 
-    function exchangeRate() public view override returns (uint) {
-        uint totalSupply = _iToken.totalSupply();
+    function exchangeRate() public override view returns (uint256) {
+        uint256 totalSupply = _iToken.totalSupply();
         if (totalSupply == 0) {
             return 0.1 ether;
         }
         return totalHoldings().mul(1 ether).div(totalSupply);
     }
 
-    function totalHoldings() public view override returns (uint) {
+    function totalHoldings() public override view returns (uint256) {
         uint256 cTokenBalance = cToken.balanceOf(address(this));
         uint256 exchangedCTokenBalance = cTokenBalance.mul(cToken.exchangeRateStored()).div(1 ether);
         uint256 baseTokenBalance = _baseToken.balanceOf(address(this));
@@ -196,35 +201,35 @@ contract MoneyMarket is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgrad
         return exchangedCTokenBalance.add(baseTokenBalance);
     }
 
-    function convertAmountFromBase(uint _baseTokenAmount) public view override returns (uint) {
+    function convertAmountFromBase(uint256 _baseTokenAmount) public override view returns (uint256) {
         return convertAmountFromBase(exchangeRate(), _baseTokenAmount);
     }
 
-    function convertAmountFromBase(int _baseTokenAmount) public view override returns (int) {
-        return convertAmountFromBase(int(exchangeRate()), _baseTokenAmount);
+    function convertAmountFromBase(int256 _baseTokenAmount) public override view returns (int256) {
+        return convertAmountFromBase(int256(exchangeRate()), _baseTokenAmount);
     }
 
-    function convertAmountFromBase(uint rate, uint _baseTokenAmount) public pure override returns (uint) {
+    function convertAmountFromBase(uint256 rate, uint256 _baseTokenAmount) public override pure returns (uint256) {
         return _baseTokenAmount.mul(1 ether).div(rate);
     }
 
-    function convertAmountFromBase(int rate, int _baseTokenAmount) public pure override returns (int) {
-        return _baseTokenAmount.mul(int(1 ether)).div(rate);
+    function convertAmountFromBase(int256 rate, int256 _baseTokenAmount) public override pure returns (int256) {
+        return _baseTokenAmount.mul(int256(1 ether)).div(rate);
     }
 
-    function convertAmountToBase(uint iTokenAmount) public view override returns (uint) {
+    function convertAmountToBase(uint256 iTokenAmount) public override view returns (uint256) {
         return convertAmountToBase(exchangeRate(), iTokenAmount);
     }
 
-    function convertAmountToBase(int iTokenAmount) public view override returns (int) {
-        return convertAmountToBase(int(exchangeRate()), iTokenAmount);
+    function convertAmountToBase(int256 iTokenAmount) public override view returns (int256) {
+        return convertAmountToBase(int256(exchangeRate()), iTokenAmount);
     }
 
-    function convertAmountToBase(uint rate, uint iTokenAmount) public pure override returns (uint) {
+    function convertAmountToBase(uint256 rate, uint256 iTokenAmount) public override pure returns (uint256) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 
-    function convertAmountToBase(int rate, int iTokenAmount) public pure override returns (int) {
+    function convertAmountToBase(int256 rate, int256 iTokenAmount) public override pure returns (int256) {
         return iTokenAmount.mul(rate).div(1 ether);
     }
 }

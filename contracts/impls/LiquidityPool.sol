@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
@@ -25,7 +26,7 @@ abstract contract LiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityP
         moneyMarket.iToken().safeApprove(protocol, _amount);
     }
 
-    function getOwner() public view override returns (address) {
+    function getOwner() public override view returns (address) {
         return OwnableUpgradeSafe.owner();
     }
 }

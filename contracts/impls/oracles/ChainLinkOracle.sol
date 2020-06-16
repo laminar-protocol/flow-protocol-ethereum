@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "@chainlink/contracts/src/v0.6/interfaces/AggregatorInterface.sol";
 import "@chainlink/contracts/src/v0.6/ChainlinkClient.sol";
@@ -8,7 +9,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "../../interfaces/PriceOracleInterface.sol";
 
 contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable, OwnableUpgradeSafe {
-    mapping (address => AggregatorInterface) public aggregators;
+    mapping(address => AggregatorInterface) public aggregators;
     address public usdToken;
 
     function initialize(
@@ -21,7 +22,7 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
 
         require(_currencyReferences.length == _tokenReferences.length, "Token count must match oracle count");
 
-        if(_link == address(0)) {
+        if (_link == address(0)) {
             setPublicChainlinkToken();
         } else {
             setChainlinkToken(_link);
@@ -42,11 +43,11 @@ contract ChainLinkOracle is ChainlinkClient, PriceOracleInterface, Initializable
         return _getPrice(_key);
     }
 
-    function readPrice(address _key) public view override returns (uint256) {
+    function readPrice(address _key) public override view returns (uint256) {
         return _getPrice(_key);
     }
 
-    function isPriceOracle() external pure override returns (bool) {
+    function isPriceOracle() external override pure returns (bool) {
         return true;
     }
 

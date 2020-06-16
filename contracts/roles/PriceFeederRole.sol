@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/AccessControl.sol";
@@ -14,10 +15,10 @@ contract PriceFeederRole is Initializable, OwnableUpgradeSafe, AccessControlUpgr
     // store all price feeders to support traverse etc
     address[] internal priceFeeders;
     // addr => index in `priceFeeders`
-    mapping (address => uint) internal priceFeederIndices;
+    mapping(address => uint256) internal priceFeederIndices;
 
     modifier onlyPriceFeeder() {
-        require(isPriceFeeder(msg.sender), "PriceFeederRole: caller does not have the PriceFeeder role");
+        require(isPriceFeeder(msg.sender), "Caller doesnt have the PriceFeeder role");
         _;
     }
 
@@ -58,8 +59,8 @@ contract PriceFeederRole is Initializable, OwnableUpgradeSafe, AccessControlUpgr
         revokeRole(PRICE_FEEDER_ROLE, _account);
 
         // if not last index, swap with last element
-        uint index = priceFeederIndices[_account];
-        uint lastIndex = priceFeeders.length - 1;
+        uint256 index = priceFeederIndices[_account];
+        uint256 lastIndex = priceFeeders.length - 1;
         if (index != lastIndex) {
             priceFeeders[index] = priceFeeders[lastIndex];
         }

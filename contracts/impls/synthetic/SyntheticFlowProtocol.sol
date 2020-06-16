@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
@@ -18,8 +19,8 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
     using Percentage for uint256;
     using SafeERC20 for IERC20;
 
-    mapping (string => SyntheticFlowToken) public tokens;
-    mapping (address => bool) public tokenWhitelist;
+    mapping(string => SyntheticFlowToken) public tokens;
+    mapping(address => bool) public tokenWhitelist;
 
     event NewFlowToken(address indexed token);
     event Minted(address indexed sender, address indexed token, address indexed liquidityPool, uint256 baseTokenAmount, uint256 flowTokenAmount);
@@ -109,7 +110,11 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
         return baseTokenAmount;
     }
 
-    function addCollateral(SyntheticFlowToken token, address poolAddr, uint256 baseTokenAmount) external nonReentrant {
+    function addCollateral(
+        SyntheticFlowToken token,
+        address poolAddr,
+        uint256 baseTokenAmount
+    ) external nonReentrant {
         require(tokenWhitelist[address(token)], "FlowToken not in whitelist");
 
         uint256 iTokenAmount = moneyMarket.convertAmountFromBase(moneyMarket.exchangeRate(), baseTokenAmount);
@@ -162,22 +167,30 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
         emit FlowTokenWithdrew(msg.sender, address(token), baseTokenAmount, flowTokenAmount);
     }
 
-    function getAskSpread(SyntheticLiquidityPoolInterface _pool, address _flowToken) public view returns (uint) {
+    function getAskSpread(SyntheticLiquidityPoolInterface _pool, address _flowToken) public view returns (uint256) {
         uint256 spread = _pool.getAskSpread(_flowToken);
         return _getSpread(spread);
     }
 
-    function getBidSpread(SyntheticLiquidityPoolInterface _pool, address _flowToken) public view returns (uint) {
+    function getBidSpread(SyntheticLiquidityPoolInterface _pool, address _flowToken) public view returns (uint256) {
         uint256 spread = _pool.getBidSpread(_flowToken);
         return _getSpread(spread);
     }
 
-    function getAskPrice(SyntheticLiquidityPoolInterface _pool, address _flowToken, uint256 _price) internal view returns (uint256) {
+    function getAskPrice(
+        SyntheticLiquidityPoolInterface _pool,
+        address _flowToken,
+        uint256 _price
+    ) internal view returns (uint256) {
         uint256 spread = getAskSpread(_pool, _flowToken);
         return _price.add(spread);
     }
 
-    function getBidPrice(SyntheticLiquidityPoolInterface _pool, address _flowToken, uint256 _price) internal view returns (uint256) {
+    function getBidPrice(
+        SyntheticLiquidityPoolInterface _pool,
+        address _flowToken,
+        uint256 _price
+    ) internal view returns (uint256) {
         uint256 spread = getBidSpread(_pool, _flowToken);
         return _price.sub(spread);
     }
@@ -291,7 +304,15 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
         uint256 price,
         uint256 flowTokenAmount,
         uint256 baseTokenAmount
-    ) private view returns (uint256 collateralsToRemove, uint256 refundToPool, uint256 incentive) {
+    )
+        private
+        view
+        returns (
+            uint256 collateralsToRemove,
+            uint256 refundToPool,
+            uint256 incentive
+        )
+    {
         uint256 collaterals;
         uint256 minted;
         (collaterals, minted) = token.getPosition(address(pool));
@@ -323,7 +344,15 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
         uint256 collaterals,
         uint256 baseTokenAmount,
         Percentage.Percent memory currentRatio
-    ) private view returns (uint256, uint256, uint256) {
+    )
+        private
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
         uint256 newCollaterals = collaterals.sub(baseTokenAmount);
         uint256 withCurrentRatio = mintedAfter.mul(price).div(1 ether).mulPercent(currentRatio);
 
@@ -338,10 +367,11 @@ contract SyntheticFlowProtocol is FlowProtocolBase {
         return (baseTokenAmount, 0, 0);
     }
 
-    function _getAdditionalCollateralRatio(
-        SyntheticFlowToken token,
-        SyntheticLiquidityPoolInterface pool
-    ) private view returns (Percentage.Percent memory) {
+    function _getAdditionalCollateralRatio(SyntheticFlowToken token, SyntheticLiquidityPoolInterface pool)
+        private
+        view
+        returns (Percentage.Percent memory)
+    {
         uint256 ratio = pool.getAdditionalCollateralRatio(address(token));
         return Percentage.Percent(Math.max(ratio, token.defaultCollateralRatio()));
     }

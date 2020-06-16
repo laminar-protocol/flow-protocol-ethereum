@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
@@ -22,11 +23,11 @@ contract MarginLiquidityPoolRegistry is Initializable, OwnableUpgradeSafe, Reent
 
     MarginMarketLib.MarketData private market;
 
-    mapping (MarginLiquidityPoolInterface => bool) public isVerifiedPool;
-    mapping (MarginLiquidityPoolInterface => bool) public poolHasPaidDeposits;
-    mapping (MarginLiquidityPoolInterface => bool) public isMarginCalled;
-    mapping (MarginLiquidityPoolInterface => uint256) public poolMarginCallITokens;
-    mapping (MarginLiquidityPoolInterface => uint256) public poolLiquidationITokens;
+    mapping(MarginLiquidityPoolInterface => bool) public isVerifiedPool;
+    mapping(MarginLiquidityPoolInterface => bool) public poolHasPaidDeposits;
+    mapping(MarginLiquidityPoolInterface => bool) public isMarginCalled;
+    mapping(MarginLiquidityPoolInterface => uint256) public poolMarginCallITokens;
+    mapping(MarginLiquidityPoolInterface => uint256) public poolLiquidationITokens;
 
     function initialize(MarginMarketLib.MarketData memory _market) public initializer {
         OwnableUpgradeSafe.__Ownable_init();

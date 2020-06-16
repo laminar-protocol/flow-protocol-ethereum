@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
@@ -32,17 +33,11 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     using SignedSafeMath for int256;
     using MarginMarketLib for MarginMarketLib.MarketData;
 
-    uint256 constant MAX_UINT = 2**256 - 1;
-    int256 constant MAX_INT = 2**256 / 2 - 1;
+    uint256 private constant MAX_UINT = type(uint256).max;
+    int256 private constant MAX_INT = type(int256).max;
 
-    event TraderMarginCalled(
-        address indexed liquidityPool,
-        address indexed sender
-    );
-    event TraderBecameSafe(
-        address indexed liquidityPool,
-        address indexed sender
-    );
+    event TraderMarginCalled(address indexed liquidityPool, address indexed sender);
+    event TraderBecameSafe(address indexed liquidityPool, address indexed sender);
     event TraderLiquidated(address indexed sender);
     event LiquidityPoolMarginCalled(address indexed liquidityPool);
     event LiquidityPoolBecameSafe(address indexed liquidityPool);
@@ -51,15 +46,12 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     address public laminarTreasury;
     MarginMarketLib.MarketData private market;
 
-    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidDeposits;
-    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderLiquidationITokens;
-    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderMarginCallITokens;
+    mapping(MarginLiquidityPoolInterface => mapping(address => bool)) public traderHasPaidDeposits;
+    mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) public traderLiquidationITokens;
+    mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) public traderMarginCallITokens;
 
     modifier poolIsVerified(MarginLiquidityPoolInterface _pool) {
-        require(
-            market.liquidityPoolRegistry.isVerifiedPool(_pool),
-            "LR1"
-        );
+        require(market.liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
 
         _;
     }
@@ -69,10 +61,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @param _market The market data.
      * @param _laminarTreasury The laminarTreasury.
      */
-    function initialize(
-        MarginMarketLib.MarketData memory _market,
-        address _laminarTreasury
-    ) public initializer {
+    function initialize(MarginMarketLib.MarketData memory _market, address _laminarTreasury) public initializer {
         ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
         market = _market;
         laminarTreasury = _laminarTreasury;
@@ -83,17 +72,10 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @param _pool The MarginLiquidityPool.
      * @return Boolean: true if ensured safe or false if not.
      */
-    function isPoolSafe(MarginLiquidityPoolInterface _pool)
-        public
-        returns (bool)
-    {
-        (
-            Percentage.Percent memory enp,
-            Percentage.Percent memory ell
-        ) = getEnpAndEll(_pool);
+    function isPoolSafe(MarginLiquidityPoolInterface _pool) public returns (bool) {
+        (Percentage.Percent memory enp, Percentage.Percent memory ell) = getEnpAndEll(_pool);
 
-        bool isSafe = enp.value > market.config.liquidityPoolENPMarginThreshold() &&
-            ell.value > market.config.liquidityPoolELLMarginThreshold();
+        bool isSafe = enp.value > market.config.liquidityPoolENPMarginThreshold() && ell.value > market.config.liquidityPoolELLMarginThreshold();
 
         return isSafe;
     }
@@ -102,10 +84,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @dev Pay the trader deposits
      * @param _pool The MarginLiquidityPool.
      */
-    function payTraderDeposits(MarginLiquidityPoolInterface _pool)
-        public
-        nonReentrant
-    {
+    function payTraderDeposits(MarginLiquidityPoolInterface _pool) public nonReentrant {
         uint256 traderMarginCallDeposit = market.config.traderMarginCallDeposit();
         uint256 traderLiquidationDeposit = market.config.traderLiquidationDeposit();
         uint256 lockedFeesAmount = traderMarginCallDeposit.add(traderLiquidationDeposit);
@@ -125,10 +104,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @dev Withdraw the trader deposits, only possible when no positions are open.
      * @param _pool The MarginLiquidityPool.
      */
-    function withdrawTraderDeposits(MarginLiquidityPoolInterface _pool)
-        public
-        nonReentrant
-    {
+    function withdrawTraderDeposits(MarginLiquidityPoolInterface _pool) public nonReentrant {
         _withdrawTraderDeposits(_pool, msg.sender);
     }
 
@@ -137,21 +113,15 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @param _pool The MarginLiquidityPool.
      * @param _trader The Trader.
      */
-    function marginCallTrader(
-        MarginLiquidityPoolInterface _pool,
-        address _trader
-    ) external nonReentrant poolIsVerified(_pool) {
+    function marginCallTrader(MarginLiquidityPoolInterface _pool, address _trader) external nonReentrant poolIsVerified(_pool) {
         require(!market.marginProtocol.traderIsMarginCalled(_pool, _trader), "TM1");
         require(!isTraderSafe(_pool, _trader), "TM2");
 
-        uint256 marginCallFeeTraderITokens = traderMarginCallITokens[_pool][ _trader];
-        market.moneyMarket.redeemTo(
-            msg.sender,
-            marginCallFeeTraderITokens
-        );
+        uint256 marginCallFeeTraderITokens = traderMarginCallITokens[_pool][_trader];
+        market.moneyMarket.redeemTo(msg.sender, marginCallFeeTraderITokens);
 
         market.marginProtocol.__setTraderIsMarginCalled(_pool, _trader, true);
-        traderMarginCallITokens[_pool][ _trader] = 0;
+        traderMarginCallITokens[_pool][_trader] = 0;
 
         emit TraderMarginCalled(address(_pool), _trader);
     }
@@ -161,11 +131,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @param _pool The MarginLiquidityPool.
      * @param _trader The Trader.
      */
-    function makeTraderSafe(MarginLiquidityPoolInterface _pool, address _trader)
-        external
-        nonReentrant
-        poolIsVerified(_pool)
-    {
+    function makeTraderSafe(MarginLiquidityPoolInterface _pool, address _trader) external nonReentrant poolIsVerified(_pool) {
         require(market.marginProtocol.traderIsMarginCalled(_pool, _trader), "TS1");
         require(isTraderSafe(_pool, _trader), "TS2");
 
@@ -180,14 +146,11 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders send `LIQUIDITY_POOL_MARGIN_CALL_FEE` to caller..
+     * @dev Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders
+     * send `LIQUIDITY_POOL_MARGIN_CALL_FEE` to caller..
      * @param _pool The MarginLiquidityPool.
      */
-    function marginCallLiquidityPool(MarginLiquidityPoolInterface _pool)
-        external
-        nonReentrant
-        poolIsVerified(_pool)
-    {
+    function marginCallLiquidityPool(MarginLiquidityPoolInterface _pool) external nonReentrant poolIsVerified(_pool) {
         require(!isPoolSafe(_pool), "PM2");
 
         uint256 depositedITokens = market.liquidityPoolRegistry.marginCallPool(_pool);
@@ -200,20 +163,12 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @dev Enable full trading functionality for pool, undoing a previous `marginCallLiquidityPool`.
      * @param _pool The MarginLiquidityPool.
      */
-    function makeLiquidityPoolSafe(MarginLiquidityPoolInterface _pool)
-        external
-        nonReentrant
-        poolIsVerified(_pool)
-    {
+    function makeLiquidityPoolSafe(MarginLiquidityPoolInterface _pool) external nonReentrant poolIsVerified(_pool) {
         require(isPoolSafe(_pool), "PS2");
 
         uint256 poolMarginCallDeposit = market.config.poolMarginCallDeposit();
 
-        market.moneyMarket.baseToken().safeTransferFrom(
-            msg.sender,
-            address(this),
-            poolMarginCallDeposit
-        );
+        market.moneyMarket.baseToken().safeTransferFrom(msg.sender, address(this), poolMarginCallDeposit);
         market.moneyMarket.baseToken().approve(address(market.protocolSafety), poolMarginCallDeposit);
         market.liquidityPoolRegistry.makePoolSafe(_pool);
 
@@ -225,10 +180,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @param _pool The MarginLiquidityPool.
      * @param _trader The trader address.
      */
-    function liquidateTrader(
-        MarginLiquidityPoolInterface _pool,
-        address _trader
-    ) external nonReentrant poolIsVerified(_pool) {
+    function liquidateTrader(MarginLiquidityPoolInterface _pool, address _trader) external nonReentrant poolIsVerified(_pool) {
         Percentage.SignedPercent memory marginLevel = getMarginLevel(_pool, _trader);
 
         require(marginLevel.value <= int256(market.config.traderRiskLiquidateThreshold()), "TL1");
@@ -236,7 +188,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         require(!market.protocolLiquidated.stoppedPools(_pool), "TL3");
 
         market.protocolLiquidated.__stopTraderInPool(_pool, _trader);
-        market.moneyMarket.redeemTo(msg.sender, traderLiquidationITokens[_pool][ _trader]);
+        market.moneyMarket.redeemTo(msg.sender, traderLiquidationITokens[_pool][_trader]);
 
         market.marginProtocol.__setTraderIsMarginCalled(_pool, _trader, false);
         traderHasPaidDeposits[_pool][_trader] = false;
@@ -249,20 +201,12 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      * @dev Liquidate pool due to funds running too low, distribute funds to all users and send `LIQUIDITY_POOL_LIQUIDATION_FEE` to caller.
      * @param _pool The MarginLiquidityPool.
      */
-    function liquidateLiquidityPool(MarginLiquidityPoolInterface _pool)
-        external
-        nonReentrant
-        poolIsVerified(_pool)
-    {
+    function liquidateLiquidityPool(MarginLiquidityPoolInterface _pool) external nonReentrant poolIsVerified(_pool) {
         // close positions as much as possible, send fee back to caller
-        (
-            Percentage.Percent memory enp,
-            Percentage.Percent memory ell
-        ) = getEnpAndEll(_pool);
+        (Percentage.Percent memory enp, Percentage.Percent memory ell) = getEnpAndEll(_pool);
 
         require(
-            enp.value <= market.config.liquidityPoolENPLiquidateThreshold() ||
-                ell.value <= market.config.liquidityPoolELLLiquidateThreshold(),
+            enp.value <= market.config.liquidityPoolENPLiquidateThreshold() || ell.value <= market.config.liquidityPoolELLLiquidateThreshold(),
             "PL1"
         );
 
@@ -274,23 +218,17 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         Percentage.Percent memory usdBasePrice = Percentage.Percent(market.protocolLiquidated.poolBasePrices(_pool));
 
         for (uint256 i = 0; i < pairs.length; i++) {
-            penalty = penalty.add(
-                _getPairPenalty(
-                    _pool,
-                    pairs[i].base,
-                    pairs[i].quote,
-                    usdBasePrice
-                )
-            );
+            penalty = penalty.add(_getPairPenalty(_pool, pairs[i].base, pairs[i].quote, usdBasePrice));
         }
 
-        uint256 realizedPenalty = Math.min(
-            _pool.getLiquidity(),
-            market.moneyMarket.convertAmountFromBase(penalty.mul(2))
-        );
+        uint256 realizedPenalty = Math.min(_pool.getLiquidity(), market.moneyMarket.convertAmountFromBase(penalty.mul(2)));
 
         // approve might fail if MAX UINT is already approved
-        try _pool.increaseAllowanceForProtocolSafety(realizedPenalty) {} catch (bytes memory) {}
+        try _pool.increaseAllowanceForProtocolSafety(realizedPenalty)  {
+            this; // ignore empty code
+        } catch (bytes memory) {
+            this; // ignore empty code
+        }
         market.moneyMarket.iToken().safeTransferFrom(address(_pool), laminarTreasury, realizedPenalty);
 
         uint256 depositedITokens = market.liquidityPoolRegistry.liquidatePool(_pool);
@@ -303,13 +241,9 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     //
     // Return true if ensured safe or false if not.
     function isTraderSafe(MarginLiquidityPoolInterface _pool, address _trader) public returns (bool) {
-        Percentage.SignedPercent memory marginLevel = getMarginLevel(
-            _pool,
-            _trader
-        );
+        Percentage.SignedPercent memory marginLevel = getMarginLevel(_pool, _trader);
 
-        bool isSafe = marginLevel.value >
-            int256(market.config.traderRiskMarginCallThreshold());
+        bool isSafe = marginLevel.value > int256(market.config.traderRiskMarginCallThreshold());
 
         return isSafe;
     }
@@ -317,16 +251,13 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     // Margin level of a given user.
     function getMarginLevel(MarginLiquidityPoolInterface _pool, address _trader) public returns (Percentage.SignedPercent memory) {
         int256 equity = market.getEstimatedEquityOfTrader(_pool, _trader, market.marginProtocol.balances(_pool, _trader));
-        uint256 leveragedDebitsITokens = market.moneyMarket.convertAmountFromBase(
-            market.marginProtocol.traderPositionAccUsd(_pool, _trader)
-        );
+        uint256 leveragedDebitsITokens = market.moneyMarket.convertAmountFromBase(market.marginProtocol.traderPositionAccUsd(_pool, _trader));
 
         if (leveragedDebitsITokens == 0) {
             return Percentage.SignedPercent(MAX_INT);
         }
 
-        return
-            Percentage.signedFromFraction(equity, int256(leveragedDebitsITokens));
+        return Percentage.signedFromFraction(equity, int256(leveragedDebitsITokens));
     }
 
     // ENP and ELL. If `new_position` is `None`, return the ENP & ELL based on current positions,
@@ -357,31 +288,21 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         }
 
         uint256 netAbs = net >= 0 ? uint256(net) : uint256(-net);
-        Percentage.Percent memory enp = netAbs == 0
-            ? Percentage.Percent(MAX_UINT)
-            : uint256(equity).fromFraction(netAbs);
+        Percentage.Percent memory enp = netAbs == 0 ? Percentage.Percent(MAX_UINT) : uint256(equity).fromFraction(netAbs);
 
-        Percentage.Percent memory ell = longestLeg == 0
-            ? Percentage.Percent(MAX_UINT)
-            : uint256(equity).fromFraction(longestLeg);
+        Percentage.Percent memory ell = longestLeg == 0 ? Percentage.Percent(MAX_UINT) : uint256(equity).fromFraction(longestLeg);
 
         return (enp, ell);
     }
 
     function getLeveragedDebitsOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
         uint256 accumulatedLeveragedDebits = uint256(0);
-        uint256 positionsLength = market.marginProtocol
-            .getPositionsByPoolAndTraderLength(_pool, _trader);
+        uint256 positionsLength = market.marginProtocol.getPositionsByPoolAndTraderLength(_pool, _trader);
 
         for (uint256 i = 0; i < positionsLength; i++) {
-            int256 leveragedDebitsInUsd = market.marginProtocol
-                .getLeveragedDebitsByPoolAndTraderAndIndex(_pool, _trader, i);
-            uint256 leveragedDebitsAbs = leveragedDebitsInUsd >= 0
-                ? uint256(leveragedDebitsInUsd)
-                : uint256(-leveragedDebitsInUsd);
-            accumulatedLeveragedDebits = accumulatedLeveragedDebits.add(
-                leveragedDebitsAbs
-            );
+            int256 leveragedDebitsInUsd = market.marginProtocol.getLeveragedDebitsByPoolAndTraderAndIndex(_pool, _trader, i);
+            uint256 leveragedDebitsAbs = leveragedDebitsInUsd >= 0 ? uint256(leveragedDebitsInUsd) : uint256(-leveragedDebitsInUsd);
+            accumulatedLeveragedDebits = accumulatedLeveragedDebits.add(leveragedDebitsAbs);
         }
 
         return accumulatedLeveragedDebits;
@@ -393,7 +314,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         int256 unrealized = 0;
 
         for (uint256 i = 0; i < pairs.length; i++) {
-            (,,int256 unrealizedPair) = market.marginProtocol.getPairPoolSafetyInfo(_pool, pairs[i]);
+            (, , int256 unrealizedPair) = market.marginProtocol.getPairPoolSafetyInfo(_pool, pairs[i]);
             unrealized = unrealized.add(unrealizedPair);
         }
 
@@ -407,34 +328,26 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         address _trader,
         uint256 _paidMarginITokens,
         uint256 _paidLiquidationITokens
-    )
-        external
-        nonReentrant
-    {
+    ) external nonReentrant {
         require(msg.sender == address(market.marginProtocol), "P1");
         _markTraderDepositsAsPaid(_pool, _trader, _paidMarginITokens, _paidLiquidationITokens);
     }
 
-    function __withdrawTraderDeposits(MarginLiquidityPoolInterface _pool, address _trader)
-        public
-        nonReentrant
-    {
+    function __withdrawTraderDeposits(MarginLiquidityPoolInterface _pool, address _trader) public nonReentrant {
         require(msg.sender == address(market.marginProtocol), "P1");
         _withdrawTraderDeposits(_pool, _trader);
     }
 
     // Internal functions
 
-    function _withdrawTraderDeposits(MarginLiquidityPoolInterface _pool, address _trader)
-        private
-    {
-        require(market.marginProtocol.getPositionsByPoolAndTraderLength(_pool, _trader) == 0, 'WD1');
+    function _withdrawTraderDeposits(MarginLiquidityPoolInterface _pool, address _trader) private {
+        require(market.marginProtocol.getPositionsByPoolAndTraderLength(_pool, _trader) == 0, "WD1");
 
         uint256 iTokenDeposits = traderMarginCallITokens[_pool][_trader].add(traderLiquidationITokens[_pool][_trader]);
         market.moneyMarket.redeemTo(_trader, iTokenDeposits);
 
         traderMarginCallITokens[_pool][_trader] = 0;
-        traderLiquidationITokens[_pool][_trader] = 0;       
+        traderLiquidationITokens[_pool][_trader] = 0;
         traderHasPaidDeposits[_pool][_trader] = false;
     }
 
@@ -443,12 +356,9 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         address _trader,
         uint256 _paidMarginITokens,
         uint256 _paidLiquidationITokens
-    )
-        private
-    {
-
+    ) private {
         traderMarginCallITokens[_pool][_trader] = _paidMarginITokens;
-        traderLiquidationITokens[_pool][_trader] = _paidLiquidationITokens;        
+        traderLiquidationITokens[_pool][_trader] = _paidLiquidationITokens;
         traderHasPaidDeposits[_pool][_trader] = true;
     }
 
@@ -458,18 +368,8 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         address _quote,
         Percentage.Percent memory _usdBasePrice
     ) private view returns (uint256) {
-        uint256 leveragedHeldsLong = market.marginProtocol.poolLongPositionAccPerPair(
-                _pool,
-                _base,
-                _quote,
-                MarginFlowProtocol.CurrencyType.QUOTE
-        );
-        uint256 leveragedHeldsShort = market.marginProtocol.poolShortPositionAccPerPair(
-            _pool,
-            _base,
-            _quote,
-            MarginFlowProtocol.CurrencyType.QUOTE
-        );
+        uint256 leveragedHeldsLong = market.marginProtocol.poolLongPositionAccPerPair(_pool, _base, _quote, MarginFlowProtocol.CurrencyType.QUOTE);
+        uint256 leveragedHeldsShort = market.marginProtocol.poolShortPositionAccPerPair(_pool, _base, _quote, MarginFlowProtocol.CurrencyType.QUOTE);
 
         uint256 bidSpread = market.protocolLiquidated.poolBidSpreads(_pool, _base, _quote);
         uint256 askSpread = market.protocolLiquidated.poolAskSpreads(_pool, _base, _quote);

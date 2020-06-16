@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
@@ -20,8 +21,8 @@ contract FlowProtocolBase is Initializable, OwnableUpgradeSafe, ReentrancyGuardU
     PriceOracleInterface public oracle;
     MoneyMarketInterface public moneyMarket;
 
-    int256 constant MAX_INT = 2**256 / 2 - 1;
-    uint256 constant MAX_UINT = 2**256 - 1;
+    int256 private constant MAX_INT = type(int256).max;
+    uint256 private constant MAX_UINT = type(uint256).max;
 
     uint256 public maxSpread;
 
@@ -41,7 +42,7 @@ contract FlowProtocolBase is Initializable, OwnableUpgradeSafe, ReentrancyGuardU
         maxSpread = _maxSpread;
     }
 
-    function getPrice(address _token) internal returns (uint) {
+    function getPrice(address _token) internal returns (uint256) {
         uint256 price = oracle.getPrice(_token);
         require(price > 0, "no oracle price");
 

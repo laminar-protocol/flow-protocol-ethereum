@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
 
@@ -6,21 +7,21 @@ library Percentage {
     using SafeMath for uint256;
     using SignedSafeMath for int256;
 
-    uint public constant ONE = 1e18;
-    uint public constant ONE_BY_ONE = 1e36;
+    uint256 public constant ONE = 1e18;
+    uint256 public constant ONE_BY_ONE = 1e36;
 
-    int public constant SIGNED_ONE = 1e18;
-    int public constant SIGNED_ONE_BY_ONE = 1e36;
+    int256 public constant SIGNED_ONE = 1e18;
+    int256 public constant SIGNED_ONE_BY_ONE = 1e36;
 
     struct Percent {
-        uint value;
+        uint256 value;
     }
 
     struct SignedPercent {
-        int value;
+        int256 value;
     }
 
-    function fromFraction(uint numerator, uint denominator) internal pure returns (Percent memory) {
+    function fromFraction(uint256 numerator, uint256 denominator) internal pure returns (Percent memory) {
         if (numerator == 0) {
             // it is fine if denominator is 0 in this case
             return Percent(0);
@@ -28,7 +29,7 @@ library Percentage {
         return Percent(numerator.mul(ONE).div(denominator));
     }
 
-    function signedFromFraction(int numerator, int denominator) internal pure returns (SignedPercent memory) {
+    function signedFromFraction(int256 numerator, int256 denominator) internal pure returns (SignedPercent memory) {
         if (numerator == 0) {
             // it is fine if denominator is 0 in this case
             return SignedPercent(0);
@@ -36,16 +37,15 @@ library Percentage {
         return SignedPercent(numerator.mul(SIGNED_ONE).div(denominator));
     }
 
-
-    function mulPercent(uint val, Percent memory percent) internal pure returns (uint) {
+    function mulPercent(uint256 val, Percent memory percent) internal pure returns (uint256) {
         return val.mul(percent.value).div(ONE);
     }
 
-    function signedMulPercent(int val, SignedPercent memory percent) internal pure returns (int) {
+    function signedMulPercent(int256 val, SignedPercent memory percent) internal pure returns (int256) {
         return val.mul(percent.value).div(SIGNED_ONE);
     }
 
-    function divPercent(uint val, Percent memory percent) internal pure returns (uint) {
+    function divPercent(uint256 val, Percent memory percent) internal pure returns (uint256) {
         return val.mul(ONE).div(percent.value);
     }
 
@@ -73,7 +73,7 @@ library Percentage {
         return Percent(ONE);
     }
 
-    function one() internal pure returns (uint) {
+    function one() internal pure returns (uint256) {
         return ONE;
     }
 }

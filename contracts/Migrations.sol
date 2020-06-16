@@ -1,22 +1,24 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
+
 contract Migrations {
-  address public owner;
-  uint256 public last_completed_migration;
+    address public owner;
+    uint256 public lastCompletedMigration;
 
-  modifier restricted() {
-    if (msg.sender == owner) _;
-  }
+    modifier restricted() {
+        if (msg.sender == owner) _;
+    }
 
-  constructor() public {
-    owner = msg.sender;
-  }
+    constructor() public {
+        owner = msg.sender;
+    }
 
-  function setCompleted(uint completed) public restricted {
-    last_completed_migration = completed;
-  }
+    function setCompleted(uint256 completed) public restricted {
+        lastCompletedMigration = completed;
+    }
 
-  function upgrade(address new_address) public restricted {
-    Migrations upgraded = Migrations(new_address);
-    upgraded.setCompleted(last_completed_migration);
-  }
+    function upgrade(address newAddress) public restricted {
+        Migrations upgraded = Migrations(newAddress);
+        upgraded.setCompleted(lastCompletedMigration);
+    }
 }
