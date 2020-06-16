@@ -148,6 +148,7 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
     }
 
     function restoreTraderInPool(MarginLiquidityPoolInterface _pool, address _trader) external nonReentrant {
+        require(stoppedTradersInPool[_pool][_trader], "TL4");
         require(market.marginProtocol.getPositionsByPoolAndTraderLength(_pool, msg.sender) == 0, "W2");
         stoppedTradersInPool[_pool][_trader] = false;
         hasClosedLossPosition[_pool][_trader] = false;

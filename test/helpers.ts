@@ -96,6 +96,7 @@ export const messages = {
   traderCannotBeLiquidated: 'TL1',
   traderAlreadyLiquidated: 'TL2',
   cannotLiquidateTraderInStoppedPool: 'TL3',
+  traderNotLiquidated: 'TL4',
   poolCannotBeLiquidated: 'PL1',
   marginAskPriceTooHigh: 'AP1',
   marginBidPriceTooLow: 'BP1',
