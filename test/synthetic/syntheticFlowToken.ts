@@ -1,17 +1,12 @@
-import { constants } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {constants} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 import {
   TestTokenInstance,
   SyntheticFlowTokenInstance,
   MoneyMarketInstance,
   Ierc20Instance,
 } from 'types/truffle-contracts';
-import {
-  createTestToken,
-  createMoneyMarket,
-  fromPercent,
-  bn,
-} from '../helpers';
+import {createTestToken, createMoneyMarket, fromPercent, bn} from '../helpers';
 
 const SyntheticFlowToken = artifacts.require('SyntheticFlowToken');
 const SyntheticFlowTokenNewVersion = artifacts.require(
@@ -19,7 +14,7 @@ const SyntheticFlowTokenNewVersion = artifacts.require(
 );
 const Proxy = artifacts.require('Proxy');
 
-contract('SyntheticFlowToken', accounts => {
+contract('SyntheticFlowToken', (accounts) => {
   const owner = accounts[0];
   const liquidityPool = accounts[1];
   const liquidityPoolTwo = accounts[2];
@@ -32,7 +27,7 @@ contract('SyntheticFlowToken', accounts => {
 
   beforeEach(async () => {
     usd = await createTestToken();
-    ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(
+    ({moneyMarket, iToken: iUsd} = await createMoneyMarket(
       usd.address,
       fromPercent(100),
     ));

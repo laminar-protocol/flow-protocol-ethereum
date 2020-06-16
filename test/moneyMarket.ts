@@ -1,6 +1,6 @@
 import BN from 'bn.js';
-import { expectRevert } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {expectRevert} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 
 import {
   TestTokenInstance,
@@ -20,7 +20,7 @@ import {
 const MoneyMarketNewVersion = artifacts.require('MoneyMarketNewVersion');
 const Proxy = artifacts.require('Proxy');
 
-contract('MoneyMarket', accounts => {
+contract('MoneyMarket', (accounts) => {
   const alice = accounts[1];
   const bob = accounts[2];
   const badAddress = accounts[3];
@@ -31,18 +31,18 @@ contract('MoneyMarket', accounts => {
 
   beforeEach(async () => {
     usd = await createTestToken([alice, dollar(10000)], [bob, dollar(10000)]);
-    ({ moneyMarket, iToken, cToken } = await createMoneyMarket(
+    ({moneyMarket, iToken, cToken} = await createMoneyMarket(
       usd.address,
       fromPercent(100),
     ));
-    usd.approve(moneyMarket.address, dollar(10000), { from: alice });
-    usd.approve(moneyMarket.address, dollar(10000), { from: bob });
-    usd.approve(cToken.address, dollar(10000));
+    await usd.approve(moneyMarket.address, dollar(10000), {from: alice});
+    await usd.approve(moneyMarket.address, dollar(10000), {from: bob});
+    await usd.approve(cToken.address, dollar(10000));
   });
 
   const expectBalances = async (
     token: Ierc20Instance | TestCTokenInstance | TestTokenInstance,
-    address: string | { address: string },
+    address: string | {address: string},
     value: number | string,
   ) =>
     expect(
@@ -52,14 +52,14 @@ contract('MoneyMarket', accounts => {
     ).bignumber.equal(bn(value));
 
   it('should be able to mint', async () => {
-    await moneyMarket.mint(dollar(1000), { from: alice });
+    await moneyMarket.mint(dollar(1000), {from: alice});
     await expectBalances(usd, alice, dollar(9000));
     await expectBalances(usd, moneyMarket, dollar(1000));
     await expectBalances(iToken, alice, dollar(10000));
   });
 
   it('should be able to mintTo', async () => {
-    await moneyMarket.mintTo(bob, dollar(1000), { from: alice });
+    await moneyMarket.mintTo(bob, dollar(1000), {from: alice});
     await expectBalances(usd, alice, dollar(9000));
     await expectBalances(usd, moneyMarket, dollar(1000));
     await expectBalances(iToken, alice, 0);
@@ -68,18 +68,18 @@ contract('MoneyMarket', accounts => {
 
   describe('with iToken', () => {
     beforeEach(async () => {
-      await moneyMarket.mint(dollar(1000), { from: alice });
+      await moneyMarket.mint(dollar(1000), {from: alice});
     });
 
     it('should be able to redeem', async () => {
-      await moneyMarket.redeem(dollar(8000), { from: alice });
+      await moneyMarket.redeem(dollar(8000), {from: alice});
       await expectBalances(usd, alice, dollar(9800));
       await expectBalances(usd, moneyMarket, dollar(200));
       await expectBalances(iToken, alice, dollar(2000));
     });
 
     it('should be able to redeemTo', async () => {
-      await moneyMarket.redeemTo(bob, dollar(8000), { from: alice });
+      await moneyMarket.redeemTo(bob, dollar(8000), {from: alice});
       await expectBalances(usd, alice, dollar(9000));
       await expectBalances(usd, bob, dollar(10800));
       await expectBalances(usd, moneyMarket, dollar(200));
@@ -87,14 +87,14 @@ contract('MoneyMarket', accounts => {
     });
 
     it('should be able to redeemBaseToken', async () => {
-      await moneyMarket.redeemBaseToken(dollar(800), { from: alice });
+      await moneyMarket.redeemBaseToken(dollar(800), {from: alice});
       await expectBalances(usd, alice, dollar(9800));
       await expectBalances(usd, moneyMarket, dollar(200));
       await expectBalances(iToken, alice, dollar(2000));
     });
 
     it('should be able to redeemBaseTokenTo', async () => {
-      await moneyMarket.redeemBaseTokenTo(bob, dollar(800), { from: alice });
+      await moneyMarket.redeemBaseTokenTo(bob, dollar(800), {from: alice});
       await expectBalances(usd, alice, dollar(9000));
       await expectBalances(usd, bob, dollar(10800));
       await expectBalances(usd, moneyMarket, dollar(200));
@@ -130,7 +130,7 @@ contract('MoneyMarket', accounts => {
 
       it('should not be able to setMinLiquidity by others', async () => {
         await expectRevert(
-          moneyMarket.setMinLiquidity(fromPercent(10), { from: badAddress }),
+          moneyMarket.setMinLiquidity(fromPercent(10), {from: badAddress}),
           messages.onlyOwner,
         );
       });
@@ -266,7 +266,7 @@ contract('MoneyMarket', accounts => {
           );
           const cash = totalValueBN.sub(invest);
 
-          await moneyMarket.mint(totalValueBN, { from: alice });
+          await moneyMarket.mint(totalValueBN, {from: alice});
           await expectBalances(usd, moneyMarket, cash);
           await expectBalances(usd, cToken, cTokenCashBN.add(invest));
 

@@ -1,5 +1,5 @@
-import { expectRevert, constants } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {expectRevert, constants} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 import {
   SyntheticLiquidityPoolInstance,
   TestTokenInstance,
@@ -13,7 +13,7 @@ const SyntheticLiquidityPoolNewVersion = artifacts.require(
 );
 const Proxy = artifacts.require('Proxy');
 
-contract('SyntheticLiquidityPool', accounts => {
+contract('SyntheticLiquidityPool', (accounts) => {
   const liquidityProvider = accounts[1];
   const protocol = accounts[2];
   const fToken = accounts[3];
@@ -28,7 +28,7 @@ contract('SyntheticLiquidityPool', accounts => {
       [liquidityProvider, 10000],
       [protocol, 10000],
     );
-    ({ moneyMarket } = await helper.createMoneyMarket(usd.address));
+    ({moneyMarket} = await helper.createMoneyMarket(usd.address));
 
     const liquidityPoolImpl = await SyntheticLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
@@ -49,7 +49,7 @@ contract('SyntheticLiquidityPool', accounts => {
       from: liquidityProvider,
     });
 
-    usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
+    await usd.approve(moneyMarket.address, 10000, {from: liquidityProvider});
   });
 
   describe('spread', () => {
@@ -147,7 +147,7 @@ contract('SyntheticLiquidityPool', accounts => {
     });
 
     it('should be able to disable token', async () => {
-      await liquidityPool.disableToken(fToken, { from: liquidityProvider });
+      await liquidityPool.disableToken(fToken, {from: liquidityProvider});
 
       let spread = await liquidityPool.getBidSpread(fToken);
       expect(spread).bignumber.equal(
@@ -172,7 +172,7 @@ contract('SyntheticLiquidityPool', accounts => {
 
     it('requires owner to disable token', async () => {
       await expectRevert(
-        liquidityPool.disableToken(fToken, { from: badAddress }),
+        liquidityPool.disableToken(fToken, {from: badAddress}),
         helper.messages.onlyOwner,
       );
     });

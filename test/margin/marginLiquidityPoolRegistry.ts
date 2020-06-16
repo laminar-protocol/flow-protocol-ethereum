@@ -1,5 +1,5 @@
-import { constants, expectRevert } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {constants, expectRevert} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 import BN from 'bn.js';
 
 import {
@@ -35,7 +35,7 @@ const MarginLiquidityPoolRegistryNewVersion = artifacts.require(
 );
 const Proxy = artifacts.require('Proxy');
 
-contract('MarginLiquidityPoolRegistry', accounts => {
+contract('MarginLiquidityPoolRegistry', (accounts) => {
   const liquidityProvider = accounts[1];
   const protocol = accounts[2];
   const alice = accounts[3];
@@ -71,7 +71,7 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       [protocol, dollar(10000)],
       [alice, dollar(10000)],
     );
-    ({ moneyMarket } = await createMoneyMarket(usd.address));
+    ({moneyMarket} = await createMoneyMarket(usd.address));
 
     const flowMarginProtocolImpl = await TestMarginFlowProtocol.new();
     const flowMarginProtocolProxy = await Proxy.new();
@@ -116,7 +116,8 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       liquidityPoolRegistryProxy.address,
     );
 
-    await (protocolContract as any).initialize( // eslint-disable-line
+    await (protocolContract as any).initialize(
+      // eslint-disable-line
       constants.ZERO_ADDRESS,
       moneyMarket.address,
       protocolConfig.address,
@@ -150,21 +151,21 @@ contract('MarginLiquidityPoolRegistry', accounts => {
     describe('when margin calling pool', () => {
       it('sets pool as margin called', async () => {
         expect(await liquidityPoolRegistry.isMarginCalled(newPool)).to.be.false;
-        await liquidityPoolRegistry.marginCallPool(newPool, { from: protocol });
+        await liquidityPoolRegistry.marginCallPool(newPool, {from: protocol});
         expect(await liquidityPoolRegistry.isMarginCalled(newPool)).to.be.true;
       });
 
       it('reverts for non-protocol safety caller', async () => {
         await expectRevert(
-          liquidityPoolRegistry.marginCallPool(newPool, { from: alice }),
+          liquidityPoolRegistry.marginCallPool(newPool, {from: alice}),
           messages.onlyProtocolSafety,
         );
       });
 
       it('reverts for already margin called pools', async () => {
-        await liquidityPoolRegistry.marginCallPool(newPool, { from: protocol });
+        await liquidityPoolRegistry.marginCallPool(newPool, {from: protocol});
         await expectRevert(
-          liquidityPoolRegistry.marginCallPool(newPool, { from: protocol }),
+          liquidityPoolRegistry.marginCallPool(newPool, {from: protocol}),
           messages.poolAlreadyMarginCalled,
         );
       });
@@ -172,23 +173,23 @@ contract('MarginLiquidityPoolRegistry', accounts => {
 
     describe('when making pool safe', () => {
       it('sets pool as safe', async () => {
-        await liquidityPoolRegistry.marginCallPool(newPool, { from: protocol });
+        await liquidityPoolRegistry.marginCallPool(newPool, {from: protocol});
         expect(await liquidityPoolRegistry.isMarginCalled(newPool)).to.be.true;
-        await liquidityPoolRegistry.makePoolSafe(newPool, { from: protocol });
+        await liquidityPoolRegistry.makePoolSafe(newPool, {from: protocol});
         expect(await liquidityPoolRegistry.isMarginCalled(newPool)).to.be.false;
       });
 
       it('reverts for non-protocol safety caller', async () => {
-        await liquidityPoolRegistry.marginCallPool(newPool, { from: protocol });
+        await liquidityPoolRegistry.marginCallPool(newPool, {from: protocol});
         await expectRevert(
-          liquidityPoolRegistry.makePoolSafe(newPool, { from: alice }),
+          liquidityPoolRegistry.makePoolSafe(newPool, {from: alice}),
           messages.onlyProtocolSafety,
         );
       });
 
       it('reverts for already safe pools', async () => {
         await expectRevert(
-          liquidityPoolRegistry.makePoolSafe(newPool, { from: protocol }),
+          liquidityPoolRegistry.makePoolSafe(newPool, {from: protocol}),
           messages.poolNotMarginCalled,
         );
       });
@@ -208,7 +209,7 @@ contract('MarginLiquidityPoolRegistry', accounts => {
         await usd.approve(liquidityPoolRegistry.address, feeSum, {
           from: alice,
         });
-        await liquidityPoolRegistry.registerPool(newPool, { from: alice });
+        await liquidityPoolRegistry.registerPool(newPool, {from: alice});
       });
 
       it('sets pool as registered', async () => {
@@ -230,7 +231,7 @@ contract('MarginLiquidityPoolRegistry', accounts => {
 
       it('allows only owner to verify pools', async () => {
         await expectRevert(
-          liquidityPoolRegistry.registerPool(newPool, { from: alice }),
+          liquidityPoolRegistry.registerPool(newPool, {from: alice}),
           messages.poolAlreadyPaidFees,
         );
       });
@@ -247,7 +248,7 @@ contract('MarginLiquidityPoolRegistry', accounts => {
       });
 
       it('sets pool as verified', async () => {
-        await liquidityPoolRegistry.registerPool(newPool, { from: alice });
+        await liquidityPoolRegistry.registerPool(newPool, {from: alice});
         await liquidityPoolRegistry.verifyPool(newPool);
         expect(await liquidityPoolRegistry.isVerifiedPool(newPool)).to.be.true;
       });
@@ -261,13 +262,13 @@ contract('MarginLiquidityPoolRegistry', accounts => {
 
       it('allows only owner to verify pools', async () => {
         await expectRevert(
-          liquidityPoolRegistry.verifyPool(newPool, { from: alice }),
+          liquidityPoolRegistry.verifyPool(newPool, {from: alice}),
           messages.onlyOwner,
         );
       });
 
       it('allows only owner to verify pools', async () => {
-        await liquidityPoolRegistry.registerPool(newPool, { from: alice });
+        await liquidityPoolRegistry.registerPool(newPool, {from: alice});
         await liquidityPoolRegistry.verifyPool(newPool);
 
         await expectRevert(

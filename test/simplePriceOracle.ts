@@ -1,6 +1,6 @@
-import { expectRevert, time } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
-import { SimplePriceOracleInstance } from 'types/truffle-contracts';
+import {expectRevert, time} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
+import {SimplePriceOracleInstance} from 'types/truffle-contracts';
 import BN from 'bn.js';
 import web3 from 'web3';
 
@@ -12,7 +12,7 @@ const SimplePriceOracleNewVersion = artifacts.require(
   'SimplePriceOracleNewVersion',
 );
 
-contract('SimplePriceOracle', accounts => {
+contract('SimplePriceOracle', (accounts) => {
   const owner = accounts[0];
   const priceFeeder = accounts[1];
   const priceFeederTwo = accounts[2];
@@ -25,7 +25,7 @@ contract('SimplePriceOracle', accounts => {
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
-    oracleProxy.upgradeTo(oracleImpl.address);
+    await oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
     await (oracle as any).initialize();
@@ -48,22 +48,22 @@ contract('SimplePriceOracle', accounts => {
     });
 
     it('should be able to feed and get new price', async () => {
-      await oracle.feedPrice(fToken, 100, { from: priceFeeder });
+      await oracle.feedPrice(fToken, 100, {from: priceFeeder});
       expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(100));
       expect(await getPrice(oracle, fTokenTwo)).bignumber.equal(helper.ZERO);
 
-      await oracle.feedPrice(fTokenTwo, 110, { from: priceFeeder });
+      await oracle.feedPrice(fTokenTwo, 110, {from: priceFeeder});
       expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(100));
       expect(await getPrice(oracle, fTokenTwo)).bignumber.equal(helper.bn(110));
     });
 
     it('requires price feeder role to feed price', async () => {
       await expectRevert(
-        oracle.feedPrice(fToken, 100, { from: owner }),
+        oracle.feedPrice(fToken, 100, {from: owner}),
         helper.messages.onlyPriceFeeder,
       );
       await expectRevert(
-        oracle.feedPrice(fToken, 100, { from: badAddress }),
+        oracle.feedPrice(fToken, 100, {from: badAddress}),
         helper.messages.onlyPriceFeeder,
       );
     });
@@ -74,19 +74,19 @@ contract('SimplePriceOracle', accounts => {
       await oracle.addPriceFeeder(owner);
       await oracle.addPriceFeeder(priceFeederTwo);
       await oracle.feedPrice(fToken, 99);
-      await oracle.feedPrice(fToken, 101, { from: priceFeederTwo });
-      await oracle.feedPrice(fToken, 103, { from: priceFeeder });
+      await oracle.feedPrice(fToken, 101, {from: priceFeederTwo});
+      await oracle.feedPrice(fToken, 103, {from: priceFeeder});
 
       expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(101));
     });
 
     it('should return price 0 if all prices expired', async () => {
       await oracle.setExpireIn(2);
-      await oracle.feedPrice(fToken, 100, { from: priceFeeder });
+      await oracle.feedPrice(fToken, 100, {from: priceFeeder});
       await oracle.addPriceFeeder(priceFeederTwo);
-      await oracle.feedPrice(fToken, 100, { from: priceFeederTwo });
+      await oracle.feedPrice(fToken, 100, {from: priceFeederTwo});
 
-      time.increase(2);
+      await time.increase(2);
       expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(0));
     });
 
@@ -96,10 +96,10 @@ contract('SimplePriceOracle', accounts => {
       await oracle.addPriceFeeder(priceFeederTwo);
 
       await oracle.feedPrice(fToken, 99);
-      time.increase(2);
+      await time.increase(2);
 
-      await oracle.feedPrice(fToken, 103, { from: priceFeederTwo });
-      await oracle.feedPrice(fToken, 101, { from: priceFeeder });
+      await oracle.feedPrice(fToken, 103, {from: priceFeederTwo});
+      await oracle.feedPrice(fToken, 101, {from: priceFeeder});
 
       expect(await getPrice(oracle, fToken)).bignumber.equal(helper.bn(103));
     });
@@ -125,29 +125,29 @@ contract('SimplePriceOracle', accounts => {
 
     it('requires owner to set config', async () => {
       await expectRevert(
-        oracle.setOracleDeltaLastLimit(123, { from: badAddress }),
+        oracle.setOracleDeltaLastLimit(123, {from: badAddress}),
         helper.messages.onlyOwner,
       );
       await expectRevert(
-        oracle.setOracleDeltaLastLimit(123, { from: priceFeeder }),
-        helper.messages.onlyOwner,
-      );
-
-      await expectRevert(
-        oracle.setOracleDeltaSnapshotLimit(456, { from: badAddress }),
-        helper.messages.onlyOwner,
-      );
-      await expectRevert(
-        oracle.setOracleDeltaSnapshotLimit(456, { from: priceFeeder }),
+        oracle.setOracleDeltaLastLimit(123, {from: priceFeeder}),
         helper.messages.onlyOwner,
       );
 
       await expectRevert(
-        oracle.setOracleDeltaSnapshotTime(789, { from: badAddress }),
+        oracle.setOracleDeltaSnapshotLimit(456, {from: badAddress}),
         helper.messages.onlyOwner,
       );
       await expectRevert(
-        oracle.setOracleDeltaSnapshotTime(789, { from: priceFeeder }),
+        oracle.setOracleDeltaSnapshotLimit(456, {from: priceFeeder}),
+        helper.messages.onlyOwner,
+      );
+
+      await expectRevert(
+        oracle.setOracleDeltaSnapshotTime(789, {from: badAddress}),
+        helper.messages.onlyOwner,
+      );
+      await expectRevert(
+        oracle.setOracleDeltaSnapshotTime(789, {from: priceFeeder}),
         helper.messages.onlyOwner,
       );
     });
@@ -293,25 +293,25 @@ contract('SimplePriceOracle', accounts => {
     });
 
     it('should allow price feeder to renounce role', async () => {
-      await oracle.renouncePriceFeeder({ from: priceFeeder });
+      await oracle.renouncePriceFeeder({from: priceFeeder});
       expect(await oracle.isPriceFeeder(priceFeeder)).to.be.false;
     });
 
     it('should only allow owner to change price feeder', async () => {
       await expectRevert(
-        oracle.addPriceFeeder(badAddress, { from: priceFeeder }),
+        oracle.addPriceFeeder(badAddress, {from: priceFeeder}),
         helper.messages.onlyOwner,
       );
       await expectRevert(
-        oracle.addPriceFeeder(badAddress, { from: badAddress }),
+        oracle.addPriceFeeder(badAddress, {from: badAddress}),
         helper.messages.onlyOwner,
       );
       await expectRevert(
-        oracle.removePriceFeeder(priceFeeder, { from: priceFeeder }),
+        oracle.removePriceFeeder(priceFeeder, {from: priceFeeder}),
         helper.messages.onlyOwner,
       );
       await expectRevert(
-        oracle.removePriceFeeder(priceFeeder, { from: badAddress }),
+        oracle.removePriceFeeder(priceFeeder, {from: badAddress}),
         helper.messages.onlyOwner,
       );
     });
