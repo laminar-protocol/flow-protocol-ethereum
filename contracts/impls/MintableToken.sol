@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol
 // TODO: simpify this
 contract MintableToken is OwnableUpgradeSafe, ERC20UpgradeSafe {
     function initialize(string memory name, string memory symbol) public initializer {
+        OwnableUpgradeSafe.__Ownable_init();
         ERC20UpgradeSafe.__ERC20_init(name, symbol);
     }
 
