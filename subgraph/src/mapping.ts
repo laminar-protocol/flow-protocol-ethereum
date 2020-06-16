@@ -1,4 +1,4 @@
-import { Address, BigDecimal, BigInt, ethereum } from '@graphprotocol/graph-ts';
+import {Address, BigDecimal, BigInt, ethereum} from '@graphprotocol/graph-ts';
 import {
   NewFlowToken,
   Minted,
@@ -9,13 +9,13 @@ import {
   FlowTokenWithdrew,
   FlowTokenDeposited,
 } from '../generated/SyntheticFlowProtocol/SyntheticFlowProtocol';
-import { SyntheticFlowToken } from '../generated/SyntheticFlowProtocol/SyntheticFlowToken';
+import {SyntheticFlowToken} from '../generated/SyntheticFlowProtocol/SyntheticFlowToken';
 import {
   PositionOpened,
   PositionClosed,
 } from '../generated/MarginFlowProtocol/MarginFlowProtocol';
-import { NewTradingPair } from '../generated/MarginFlowProtocolConfig/MarginFlowProtocolConfig';
-import { MoneyMarket } from '../generated/MarginFlowProtocol/MoneyMarket';
+import {NewTradingPair} from '../generated/MarginFlowProtocolConfig/MarginFlowProtocolConfig';
+import {MoneyMarket} from '../generated/MarginFlowProtocol/MoneyMarket';
 import {
   PriceFeeded,
   PriceOracleInterface,
@@ -209,10 +209,7 @@ export function handleClosePosition(event: PositionClosed): void {
   let moneyMarket = MoneyMarket.bind(
     Address.fromString(deployment.moneyMarket),
   );
-  let iTokenRate = moneyMarket
-    .exchangeRate()
-    .toBigDecimal()
-    .div(one);
+  let iTokenRate = moneyMarket.exchangeRate().toBigDecimal().div(one);
   entity.closePrice = event.params.price.toBigDecimal().div(one);
   entity.liquidator = event.params.sender;
   entity.realizedPl = event.params.realizedPl

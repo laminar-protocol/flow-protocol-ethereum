@@ -34,7 +34,7 @@ import {
 } from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
-const MarginMarketLib = artifacts.require('MarginMarketLib');
+const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');

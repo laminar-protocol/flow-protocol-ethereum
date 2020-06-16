@@ -35,7 +35,7 @@ const generatedDeploy = Object.entries(deployment)
   .join('\n');
 
 try {
-  fs.mkdirSync(path.join(__dirname, '../generated'), { rescursive: true });
+  fs.mkdirSync(path.join(__dirname, '../generated'), {rescursive: true});
 } catch {
   // ignore mkdir error
 }
