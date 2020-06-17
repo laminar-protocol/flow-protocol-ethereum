@@ -43,10 +43,12 @@ contract PriceFeederRole is Initializable, OwnableUpgradeSafe, AccessControlUpgr
     }
 
     function removePriceFeeder(address _account) public onlyOwner {
+        revokeRole(PRICE_FEEDER_ROLE, _account);
         _removePriceFeeder(_account);
     }
 
     function renouncePriceFeeder() public {
+        renounceRole(PRICE_FEEDER_ROLE, msg.sender);
         _removePriceFeeder(msg.sender);
     }
 
@@ -62,9 +64,6 @@ contract PriceFeederRole is Initializable, OwnableUpgradeSafe, AccessControlUpgr
     }
 
     function _removePriceFeeder(address _account) internal {
-        // role
-        renounceRole(PRICE_FEEDER_ROLE, _account);
-
         // if not last index, swap with last element
         uint256 index = priceFeederIndices[_account];
         uint256 lastIndex = priceFeeders.length - 1;
