@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import Web3 from 'web3';
 import {
   PriceOracleInterfaceInstance,
@@ -77,7 +78,7 @@ const save = (obj: any, filePath: string[]) => {
   const finalPath = path.join(...filePath);
   const dirname = path.dirname(finalPath);
   if (!fs.existsSync(dirname)) {
-    fs.mkdirSync(dirname, { recursive: true });
+    fs.mkdirSync(dirname, {recursive: true});
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const dirPath = fs.writeFileSync(finalPath, JSON.stringify(obj, null, 2));
@@ -109,7 +110,7 @@ const readDeploymentConfig = (network: Network) => {
       },
       pools: [],
     },
-    synthetic: { config: [], pools: [] },
+    synthetic: {config: [], pools: []},
   };
   const configPath = path.join(__dirname, `config/${network}/`);
   const marginPath = path.join(`${configPath}/margin/`);
@@ -128,11 +129,11 @@ const readDeploymentConfig = (network: Network) => {
   );
 
   const marginPoolFiles = fs.readdirSync(marginPoolPath);
-  const marginPools = marginPoolFiles.map(pool =>
+  const marginPools = marginPoolFiles.map((pool) =>
     JSON.parse(fs.readFileSync(marginPoolPath + pool) as any),
   );
   const syntheticPoolFiles = fs.readdirSync(syntheticPoolPath);
-  const syntheticPools = syntheticPoolFiles.map(pool =>
+  const syntheticPools = syntheticPoolFiles.map((pool) =>
     JSON.parse(fs.readFileSync(syntheticPoolPath + pool) as any),
   );
 
@@ -149,10 +150,7 @@ const floatUsdToWei = (floatString: string) =>
   `${parseFloat(floatString.replace('$', '')) * 1e18}`;
 
 const usdToWei = (usd: string, web3: Web3) => {
-  const usdString = usd
-    .replace('$', '')
-    .replace('Fr', '')
-    .replace('¥', '');
+  const usdString = usd.replace('$', '').replace('Fr', '').replace('¥', '');
   return web3.utils.toWei(usdString);
 };
 const percentageToWei = (percentage: string) =>
@@ -226,7 +224,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     'MarginFlowProtocolLiquidated',
   );
   const PriceOracleInterface = artifacts.require('PriceOracleInterface');
-  const ERC20Detailed = artifacts.require('ERC20Detailed');
+  const ERC20 = artifacts.require('ERC20');
   const MarginLiquidityPoolInterface = artifacts.require(
     'MarginLiquidityPoolInterface',
   );
@@ -243,7 +241,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     console.log(`---- Deploying on network: ${network}`);
 
     const deploymentConfig = await readDeploymentConfig(network);
-    const { cToken, baseToken } = await getTokensByNetwork[network](
+    const {cToken, baseToken} = await getTokensByNetwork[network](
       artifacts,
       deployer,
     );
@@ -343,7 +341,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     if (network !== 'development') {
       const chainlinkOracles = ALL_CURRENCIES_KOVAN.map(
-        key => (deploymentConfig.oracles as any)[key],
+        (key) => (deploymentConfig.oracles as any)[key],
       );
       const chainlinkOracle = await ChainLinkOracle.at(oracle.address);
 
@@ -351,7 +349,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         '0x0000000000000000000000000000000000000000', // use public default contract
         baseToken.address,
         chainlinkOracles,
-        fTokens.map(fToken => fToken.address),
+        fTokens.map((fToken) => fToken.address),
       );
     } else {
       const priceFeeder = accounts[0];
@@ -505,7 +503,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     );
 
     for (const pair of marginConfig.tradingPairs) {
-      const { swapRateUnit, swapRateLong, swapRateShort } = pair;
+      const {swapRateUnit, swapRateLong, swapRateShort} = pair;
 
       const parsedSwapLong = floatUsdToWei(swapRateLong);
       const parsedSwapShort = floatUsdToWei(swapRateShort);
@@ -646,7 +644,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         [`f${key}`]: [fTokensMapping[`f${key}`], SyntheticFlowToken],
       };
 
-      return { ...acc, ...current };
+      return {...acc, ...current};
     }, {});
     const marginPoolsDeployment = marginPools.reduce((acc, pool) => {
       const current = {
@@ -656,7 +654,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         ],
       };
 
-      return { ...acc, ...current };
+      return {...acc, ...current};
     }, {});
     const syntheticPoolsDeployment = syntheticPools.reduce((acc, pool) => {
       const current = {
@@ -666,12 +664,12 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
         ],
       };
 
-      return { ...acc, ...current };
+      return {...acc, ...current};
     }, {});
 
     const deployment = {
       moneyMarket: [moneyMarket, MoneyMarket],
-      iToken: [iToken, ERC20Detailed],
+      iToken: [iToken, ERC20],
       oracle: [oracle, PriceOracleInterface],
       syntheticProtocol: [protocol, SyntheticFlowProtocol],
       ...fTokensDeployment,

@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
 import "../../interfaces/PriceOracleInterface.sol";
 import "../../roles/PriceFeederRole.sol";
@@ -9,11 +10,10 @@ import "./PriceOracleConfig.sol";
 
 library PriceOracleStructs {
     struct PriceRecord {
-        uint price;
-        uint timestamp;
+        uint256 price;
+        uint256 timestamp;
     }
 }
-
 
 /// Price oracle data source. Only for inheritance.
 contract PriceOracleDataSource {
@@ -22,18 +22,22 @@ contract PriceOracleDataSource {
     // key => hasUpdate
     mapping(address => bool) internal hasUpdate;
 
-    function _feedPrice(address key, uint price) internal {
+    function _feedPrice(address key, uint256 price) internal {
         priceRecords[key][msg.sender] = PriceOracleStructs.PriceRecord(price, block.timestamp);
         hasUpdate[key] = true;
     }
 
-    function findMedianPrice(address key, uint expireIn, address[] storage priceFeeders) internal view returns (uint) {
-        uint expireAt = block.timestamp - expireIn;
+    function findMedianPrice(
+        address key,
+        uint256 expireIn,
+        address[] storage priceFeeders
+    ) internal view returns (uint256) {
+        uint256 expireAt = block.timestamp - expireIn;
 
         // filter active price records, put them in an array with max possible length
-        uint[] memory validPricesWithMaxCapacity = new uint[](priceFeeders.length);
-        uint validPricesLength = 0;
-        for (uint i = 0; i < priceFeeders.length; i++) {
+        uint256[] memory validPricesWithMaxCapacity = new uint256[](priceFeeders.length);
+        uint256 validPricesLength = 0;
+        for (uint256 i = 0; i < priceFeeders.length; i++) {
             PriceOracleStructs.PriceRecord storage record = priceRecords[key][priceFeeders[i]];
             if (record.timestamp > expireAt) {
                 validPricesWithMaxCapacity[validPricesLength] = record.price;
@@ -46,8 +50,8 @@ contract PriceOracleDataSource {
         }
 
         // move active price records into an array just long enough to hold all records
-        uint[] memory validPrices = new uint[](validPricesLength);
-        for (uint i = 0; i < validPricesLength; i++) {
+        uint256[] memory validPrices = new uint256[](validPricesLength);
+        for (uint256 i = 0; i < validPricesLength; i++) {
             validPrices[i] = validPricesWithMaxCapacity[i];
         }
 
@@ -55,31 +59,30 @@ contract PriceOracleDataSource {
     }
 }
 
-
 contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeederRole, PriceOracleDataSource {
-    mapping(address => uint) private cachedPrices;
+    mapping(address => uint256) private cachedPrices;
     mapping(address => PriceOracleStructs.PriceRecord) private priceSnapshots;
 
-    function initialize() public override(PriceOracleConfig,PriceFeederRole) initializer {
+    function initialize() public override(PriceOracleConfig, PriceFeederRole) initializer {
         PriceOracleConfig.initialize();
         PriceFeederRole.initialize();
     }
 
-    function isPriceOracle() external pure override returns (bool) {
+    function isPriceOracle() external override pure returns (bool) {
         return true;
     }
 
-    event PriceUpdated(address indexed addr, uint price);
+    event PriceUpdated(address indexed addr, uint256 price);
 
-    function feedPrice(address key, uint price) external onlyPriceFeeder {
+    function feedPrice(address key, uint256 price) external onlyPriceFeeder {
         _feedPrice(key, price);
 
         emit PriceFeeded(key, msg.sender, price);
     }
 
-    function getPrice(address key) external override returns (uint) {
+    function getPrice(address key) external override returns (uint256) {
         if (hasUpdate[key]) {
-            uint price = findMedianPrice(key, expireIn, priceFeeders);
+            uint256 price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {
                 _setPrice(key, price);
             }
@@ -88,9 +91,9 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function readPrice(address key) external view returns (uint) {
+    function readPrice(address key) external override view returns (uint256) {
         if (hasUpdate[key]) {
-            uint price = findMedianPrice(key, expireIn, priceFeeders);
+            uint256 price = findMedianPrice(key, expireIn, priceFeeders);
             if (price > 0) {
                 return _calculateCapPrice(key, price);
             }
@@ -98,19 +101,20 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         return cachedPrices[key];
     }
 
-    function _calculateCapPrice(address addr, uint price) private view returns (uint) {
+    function _calculateCapPrice(address addr, uint256 price) private view returns (uint256) {
         require(price != 0, "Invalid price");
 
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
-        uint lastPrice = cachedPrices[addr];
-        uint price2 = _capPrice(price, lastPrice, oracleDeltaLastLimit);
-        uint price3 = _capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
+        uint256 lastPrice = cachedPrices[addr];
+        uint256 price2 = _capPrice(price, lastPrice, oracleDeltaLastLimit);
+        uint256 price3 = _capPrice(price2, snapshotPrice.price, oracleDeltaSnapshotLimit);
 
         return price3;
     }
 
-    function _setPrice(address addr, uint price) private {
-        uint finalPrice = _calculateCapPrice(addr, price);
+    function _setPrice(address addr, uint256 price) private {
+        uint256 finalPrice = _calculateCapPrice(addr, price);
+
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
         if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < block.timestamp) {
             snapshotPrice.price = finalPrice;
@@ -122,19 +126,23 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         emit PriceUpdated(addr, finalPrice);
     }
 
-    function _capPrice(uint current, uint last, Percentage.Percent storage limit) private pure returns (uint) {
+    function _capPrice(
+        uint256 current,
+        uint256 last,
+        Percentage.Percent storage limit
+    ) private pure returns (uint256) {
         if (last == 0) {
             return current;
         }
-        uint price = current;
-        uint cap = Percentage.mulPercent(last, limit);
+        uint256 price = current;
+        uint256 cap = Percentage.mulPercent(last, limit);
         if (current > last) {
-            uint diff = current - last;
+            uint256 diff = current - last;
             if (diff > cap) {
                 price = last + cap;
             }
         } else if (current < last) {
-            uint diff = last - current;
+            uint256 diff = last - current;
             if (diff > cap) {
                 price = last - cap;
             }

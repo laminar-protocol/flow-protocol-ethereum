@@ -1,21 +1,19 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2; // not experimental anymore
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
 import "../../libs/Percentage.sol";
-import "../../libs/upgrades/UpgradeOwnable.sol";
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
 import "./MarginFlowProtocol.sol";
 
-contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
+contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
     using SignedSafeMath for int256;
 
-    enum PositionType {
-        LONG,
-        SHORT
-    }
+    enum PositionType {LONG, SHORT}
 
     /**
      * @dev Event for new trading pair being added.
@@ -30,9 +28,9 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
     uint256 public poolLiquidationDeposit;
     uint256 public maxSpread;
 
-    mapping (address => mapping(address => uint256)) public currentSwapUnits;
-    mapping (address => mapping(address => mapping (PositionType => int256))) private currentSwapRates;
-    mapping(address => mapping (address => bool)) public tradingPairWhitelist;
+    mapping(address => mapping(address => uint256)) public currentSwapUnits;
+    mapping(address => mapping(address => mapping(PositionType => int256))) private currentSwapRates;
+    mapping(address => mapping(address => bool)) public tradingPairWhitelist;
 
     MarginFlowProtocol.TradingPair[] private tradingPairs;
 
@@ -52,7 +50,7 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
         uint256 _initialLiquidityPoolENPLiquidateThreshold,
         uint256 _initialLiquidityPoolELLLiquidateThreshold
     ) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
+        OwnableUpgradeSafe.__Ownable_init();
 
         maxSpread = _maxSpread;
 
@@ -60,12 +58,8 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
         liquidityPoolELLMarginThreshold = _initialLiquidityPoolELLMarginThreshold;
         liquidityPoolENPLiquidateThreshold = _initialLiquidityPoolENPLiquidateThreshold;
         liquidityPoolELLLiquidateThreshold = _initialLiquidityPoolELLLiquidateThreshold;
-        traderRiskMarginCallThreshold = Percentage.Percent(
-            _initialTraderRiskMarginCallThreshold
-        );
-        traderRiskLiquidateThreshold = Percentage.Percent(
-            _initialTraderRiskLiquidateThreshold
-        );
+        traderRiskMarginCallThreshold = Percentage.Percent(_initialTraderRiskMarginCallThreshold);
+        traderRiskLiquidateThreshold = Percentage.Percent(_initialTraderRiskLiquidateThreshold);
     }
 
     /**
@@ -75,7 +69,12 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      * @param _newSwapRateLong The new swap rate as percentage for longs.
      * @param _newSwapRateShort The new swap rate as percentage for shorts.
      */
-    function setCurrentSwapRateForPair(address _base, address _quote, int256 _newSwapRateLong, int256 _newSwapRateShort) external onlyOwner {
+    function setCurrentSwapRateForPair(
+        address _base,
+        address _quote,
+        int256 _newSwapRateLong,
+        int256 _newSwapRateShort
+    ) external onlyOwner {
         require(_newSwapRateLong != 0 && _newSwapRateShort != 0, "0");
         currentSwapRates[_base][_quote][PositionType.LONG] = _newSwapRateLong;
         currentSwapRates[_base][_quote][PositionType.SHORT] = _newSwapRateShort;
@@ -93,7 +92,13 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      * @param _swapRateLong The swap rate as percentage for longs.
      * @param _swapRateShort The swap rate as percentage for shorts.
      */
-    function addTradingPair(address _base, address _quote, uint256 _swapUnit, int256 _swapRateLong, int256 _swapRateShort) external onlyOwner {
+    function addTradingPair(
+        address _base,
+        address _quote,
+        uint256 _swapUnit,
+        int256 _swapRateLong,
+        int256 _swapRateShort
+    ) external onlyOwner {
         require(_base != address(0) && _quote != address(0) && _swapUnit != 0 && _swapRateLong != 0 && _swapRateShort != 0, "0");
         require(!tradingPairWhitelist[_base][_quote], "TP2");
         require(_base != _quote, "TP3");
@@ -108,39 +113,29 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
         emit NewTradingPair(_base, _quote);
     }
 
-     /**
+    /**
      * @dev Set new trader risk threshold for trader margin calls, only set by owner.
      * @param _newTraderRiskMarginCallThreshold The new trader risk threshold as percentage.
      */
-    function setTraderRiskMarginCallThreshold(
-        uint256 _newTraderRiskMarginCallThreshold
-    ) external onlyOwner {
+    function setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold) external onlyOwner {
         require(_newTraderRiskMarginCallThreshold > 0, "0");
-        traderRiskMarginCallThreshold = Percentage.Percent(
-            _newTraderRiskMarginCallThreshold
-        );
+        traderRiskMarginCallThreshold = Percentage.Percent(_newTraderRiskMarginCallThreshold);
     }
 
     /**
      * @dev Set new trader risk threshold for trader liquidation, only set by owner.
      * @param _newTraderRiskLiquidateThreshold The new trader risk threshold as percentage.
      */
-    function setTraderRiskLiquidateThreshold(
-        uint256 _newTraderRiskLiquidateThreshold
-    ) external onlyOwner {
+    function setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold) external onlyOwner {
         require(_newTraderRiskLiquidateThreshold > 0, "0");
-        traderRiskLiquidateThreshold = Percentage.Percent(
-            _newTraderRiskLiquidateThreshold
-        );
+        traderRiskLiquidateThreshold = Percentage.Percent(_newTraderRiskLiquidateThreshold);
     }
 
     /**
      * @dev Set new trader risk threshold, only for the owner.
      * @param _newLiquidityPoolENPMarginThreshold The new trader risk threshold.
      */
-    function setLiquidityPoolENPMarginThreshold(
-        uint256 _newLiquidityPoolENPMarginThreshold
-    ) external onlyOwner {
+    function setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold) external onlyOwner {
         require(_newLiquidityPoolENPMarginThreshold > 0, "0");
         liquidityPoolENPMarginThreshold = _newLiquidityPoolENPMarginThreshold;
     }
@@ -149,9 +144,7 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      * @dev Set new trader risk threshold, only for the owner.
      * @param _newLiquidityPoolELLMarginThreshold The new trader risk threshold.
      */
-    function setLiquidityPoolELLMarginThreshold(
-        uint256 _newLiquidityPoolELLMarginThreshold
-    ) external onlyOwner {
+    function setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold) external onlyOwner {
         require(_newLiquidityPoolELLMarginThreshold > 0, "0");
         liquidityPoolELLMarginThreshold = _newLiquidityPoolELLMarginThreshold;
     }
@@ -160,9 +153,7 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      * @dev Set new trader risk threshold, only for the owner.
      * @param _newLiquidityPoolENPLiquidateThreshold The new trader risk threshold.
      */
-    function setLiquidityPoolENPLiquidateThreshold(
-        uint256 _newLiquidityPoolENPLiquidateThreshold
-    ) external onlyOwner {
+    function setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold) external onlyOwner {
         require(_newLiquidityPoolENPLiquidateThreshold > 0, "0");
         liquidityPoolENPLiquidateThreshold = _newLiquidityPoolENPLiquidateThreshold;
     }
@@ -171,9 +162,7 @@ contract MarginFlowProtocolConfig is Initializable, UpgradeOwnable {
      * @dev Set new trader risk threshold, only for the owner.
      * @param _newLiquidityPoolELLLiquidateThreshold The new trader risk threshold.
      */
-    function setLiquidityPoolELLLiquidateThreshold(
-        uint256 _newLiquidityPoolELLLiquidateThreshold
-    ) external onlyOwner {
+    function setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold) external onlyOwner {
         require(_newLiquidityPoolELLLiquidateThreshold > 0, "0");
         liquidityPoolELLLiquidateThreshold = _newLiquidityPoolELLLiquidateThreshold;
     }

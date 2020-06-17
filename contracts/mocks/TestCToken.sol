@@ -1,55 +1,55 @@
 /* solium-disable error-reason */
 
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 
-contract TestCToken is ERC20, ERC20Detailed {
+contract TestCToken is ERC20 {
     IERC20 public baseToken;
-    uint public totalBorrows;
+    uint256 public totalBorrows;
 
-    constructor(IERC20 baseToken_) ERC20Detailed("Test cToken", "cTEST", 18) public {
+    constructor(IERC20 baseToken_) public ERC20("Test cToken", "cTEST") {
         baseToken = baseToken_;
     }
 
-    function mint(uint baseTokenAmount) public returns (uint) {
-        uint cTokenAmount = baseTokenAmount * 1 ether / getPrice();
+    function mint(uint256 baseTokenAmount) public returns (uint256) {
+        uint256 cTokenAmount = (baseTokenAmount * 1 ether) / getPrice();
 
-        require(baseToken.transferFrom(msg.sender, address(this), baseTokenAmount));
+        require(baseToken.transferFrom(msg.sender, address(this), baseTokenAmount), "TransferFrom failed");
         _mint(msg.sender, cTokenAmount);
 
         return 0;
     }
 
-    function redeem(uint cTokenAmount) public returns (uint) {
-        uint baseTokenAmount = cTokenAmount * getPrice() / 1 ether;
+    function redeem(uint256 cTokenAmount) public returns (uint256) {
+        uint256 baseTokenAmount = (cTokenAmount * getPrice()) / 1 ether;
 
         _burn(msg.sender, cTokenAmount);
-        require(baseToken.transfer(msg.sender, baseTokenAmount));
+        require(baseToken.transfer(msg.sender, baseTokenAmount), "Transfer failed");
 
         return 0;
     }
 
-    function getPrice() public view returns (uint) {
-        uint poolSize = baseToken.balanceOf(address(this));
-        uint issued = totalSupply();
+    function getPrice() public view returns (uint256) {
+        uint256 poolSize = baseToken.balanceOf(address(this));
+        uint256 issued = totalSupply();
 
         if (poolSize == 0 || issued == 0) {
             return 1 ether;
         }
 
-        return poolSize * 1 ether / issued;
+        return (poolSize * 1 ether) / issued;
     }
 
-    function borrow(address recipient, uint amount) public {
-        require(baseToken.transfer(recipient, amount));
+    function borrow(address recipient, uint256 amount) public {
         totalBorrows += amount;
+        require(baseToken.transfer(recipient, amount), "Transfer failed");
     }
 
-    function repay(uint amount) public {
-        require(baseToken.transferFrom(msg.sender, address(this), amount));
+    function repay(uint256 amount) public {
         totalBorrows -= amount;
+        require(baseToken.transferFrom(msg.sender, address(this), amount), "TransferFrom failed");
     }
 
     function exchangeRateStored() public view returns (uint256) {
@@ -65,10 +65,10 @@ contract TestCToken is ERC20, ERC20Detailed {
     }
 
     function redeemUnderlying(uint256 baseTokenAmount) public returns (uint256) {
-        uint cTokenAmount = baseTokenAmount * 1 ether / getPrice();
+        uint256 cTokenAmount = (baseTokenAmount * 1 ether) / getPrice();
 
         _burn(msg.sender, cTokenAmount);
-        require(baseToken.transfer(msg.sender, baseTokenAmount));
+        require(baseToken.transfer(msg.sender, baseTokenAmount), "Transfer failed");
 
         return 0;
     }

@@ -1,33 +1,34 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "../libs/Percentage.sol";
-import "../libs/upgrades/UpgradeOwnable.sol";
-import "../libs/upgrades/UpgradeReentrancyGuard.sol";
 
 import "../interfaces/PriceOracleInterface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 
-contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGuard {
+contract FlowProtocolBase is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     PriceOracleInterface public oracle;
     MoneyMarketInterface public moneyMarket;
 
-    int256 constant MAX_INT = 2**256 / 2 - 1;
-    uint256 constant MAX_UINT = 2**256 - 1;
+    int256 private constant MAX_INT = type(int256).max;
+    uint256 private constant MAX_UINT = type(uint256).max;
 
     uint256 public maxSpread;
 
     function initialize(PriceOracleInterface _oracle, MoneyMarketInterface _moneyMarket) public initializer {
-        UpgradeOwnable.initialize(msg.sender);
-        UpgradeReentrancyGuard.initialize();
+        OwnableUpgradeSafe.__Ownable_init();
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
 
         oracle = _oracle;
         moneyMarket = _moneyMarket;
@@ -41,7 +42,7 @@ contract FlowProtocolBase is Initializable, UpgradeOwnable, UpgradeReentrancyGua
         maxSpread = _maxSpread;
     }
 
-    function getPrice(address _token) internal returns (uint) {
+    function getPrice(address _token) internal returns (uint256) {
         uint256 price = oracle.getPrice(_token);
         require(price > 0, "no oracle price");
 

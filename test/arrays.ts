@@ -1,8 +1,8 @@
-import { expect } from 'chai';
-import { expectRevert } from 'openzeppelin-test-helpers';
-import { QuickImplInstance, ArraysImplInstance } from 'types/truffle-contracts';
+import {expect} from 'chai';
+import {expectRevert} from 'openzeppelin-test-helpers';
+import {QuickImplInstance, ArraysImplInstance} from 'types/truffle-contracts';
 
-import { bn } from './helpers';
+import {bn} from './helpers';
 
 const QuickImpl = artifacts.require('QuickImpl');
 

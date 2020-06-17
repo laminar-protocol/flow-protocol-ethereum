@@ -1,10 +1,11 @@
-import { Given, setDefaultTimeout, TableDefinition, Then } from 'cucumber';
+/* eslint-disable import/no-extraneous-dependencies */
+import {Given, setDefaultTimeout, TableDefinition, Then} from 'cucumber';
 import Web3 from 'web3';
-import { Account } from 'web3-core';
-import { assert, expect } from 'chai';
+import {Account} from 'web3-core';
+import {assert, expect} from 'chai';
 import BN from 'bn.js';
 
-import erc20Abi from '../../artifacts/development/abi/ERC20Detailed.json';
+import erc20Abi from '../../artifacts/development/abi/ERC20.json';
 import flowMarginProtocolAbi from '../../artifacts/development/abi/MarginFlowProtocol.json';
 import flowMarginProtocolConfigAbi from '../../artifacts/development/abi/MarginFlowProtocolConfig.json';
 import flowMarginProtocolSafetyAbi from '../../artifacts/development/abi/MarginFlowProtocolSafety.json';
@@ -114,10 +115,7 @@ const parseCurrency = (amount: string): string => {
 
 const parseAmount = (amount: string): BN => {
   const isDollar = amount.includes('$');
-  const parsed = amount
-    .replace(' ', '')
-    .replace('$', '')
-    .replace('_', '');
+  const parsed = amount.replace(' ', '').replace('$', '').replace('_', '');
   return new BN(isDollar ? web3.utils.toWei(parsed) : parsed);
 };
 
@@ -156,7 +154,7 @@ const sendTx = async ({
 
   if (!from) return web3.eth.sendTransaction(tx);
 
-  const { rawTransaction } = await from.signTransaction(tx);
+  const {rawTransaction} = await from.signTransaction(tx);
   return web3.eth.sendSignedTransaction(rawTransaction as string);
 };
 
@@ -267,7 +265,7 @@ const approveUsd = ({
 
 const parseTradingPair = (
   tradingPair: string,
-): { baseAddress: string; quoteAddress: string } => {
+): {baseAddress: string; quoteAddress: string} => {
   const base = tradingPair.slice(0, 3) as 'USD' | 'EUR' | 'JPY' | 'AUX';
   const quote = tradingPair.slice(3) as 'USD' | 'EUR' | 'JPY' | 'AUX';
 
@@ -362,14 +360,14 @@ Given(/accounts/, async (table: TableDefinition) => {
     .call();
 
   await Promise.all(
-    table.rows().map(row => transfer(row[0], parseAmount('$0.4'))),
+    table.rows().map((row) => transfer(row[0], parseAmount('$0.4'))),
   );
 
   await emptyAccount('Alice');
   await emptyAccount('Bob');
 
   await Promise.all(
-    table.rows().map(row => transferUsd(row[0], parseAmount(row[1]))),
+    table.rows().map((row) => transferUsd(row[0], parseAmount(row[1]))),
   );
 
   await emptyPool();
@@ -377,13 +375,13 @@ Given(/accounts/, async (table: TableDefinition) => {
 
 Given(/transfer ETH to/, async (table: TableDefinition) => {
   await Promise.all(
-    table.rows().map(row => transfer(row[0], parseAmount('1'))),
+    table.rows().map((row) => transfer(row[0], parseAmount('1'))),
   );
 });
 
 Given(/transfer USD to/, async (table: TableDefinition) => {
   await Promise.all(
-    table.rows().map(row => transferUsd(row[0], parseAmount(row[1]))),
+    table.rows().map((row) => transferUsd(row[0], parseAmount(row[1]))),
   );
 });
 
@@ -458,7 +456,7 @@ Given('oracle price', async (table: TableDefinition) => {
 Given('margin spread', async (table: TableDefinition) => {
   for (const [pair, value] of table.rows()) {
     const spreadValue = parseAmount(value);
-    const { baseAddress, quoteAddress } = parseTradingPair(pair);
+    const {baseAddress, quoteAddress} = parseTradingPair(pair);
 
     await sendTx({
       contractMethod: poolContract.methods.enableToken(
@@ -498,7 +496,7 @@ Given(
 
 Given('margin set swap rate', async (table: TableDefinition) => {
   for (const [pair, long, short] of table.rows()) {
-    const { baseAddress, quoteAddress } = parseTradingPair(pair);
+    const {baseAddress, quoteAddress} = parseTradingPair(pair);
     const longSwapRate = parseSwapRate(long);
     const shortSwapRate = parseSwapRate(short);
 
@@ -550,7 +548,7 @@ Given(/margin execute block (\d*)..(\d*)/, async (from: string, to: string) => {
 Then(
   /margin set additional swap (.*)% for (.*)/,
   async (additionalSwapRate: string, tradingPair: string) => {
-    const { baseAddress, quoteAddress } = parseTradingPair(tradingPair);
+    const {baseAddress, quoteAddress} = parseTradingPair(tradingPair);
     const swapRate = parseSwapRate(additionalSwapRate);
 
     await sendTx({
@@ -565,7 +563,7 @@ Then(
 );
 
 Given(/margin enable trading pair (\D*)/, async (tradingPair: string) => {
-  const { baseAddress, quoteAddress } = parseTradingPair(tradingPair);
+  const {baseAddress, quoteAddress} = parseTradingPair(tradingPair);
 
   const isWhitelisted = await flowMarginProtocolConfigContract.methods
     .tradingPairWhitelist(baseAddress, quoteAddress)
@@ -586,7 +584,7 @@ Given(/margin enable trading pair (\D*)/, async (tradingPair: string) => {
 
 Given('open positions', async (table: TableDefinition) => {
   for (const [name, pair, leverage, amount, price] of table.rows()) {
-    const { baseAddress, quoteAddress } = parseTradingPair(pair);
+    const {baseAddress, quoteAddress} = parseTradingPair(pair);
     const from = accountOf(name);
     const openAmount = parseAmount(amount);
     const openPrice = parseAmount(price);

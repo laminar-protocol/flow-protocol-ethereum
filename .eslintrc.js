@@ -26,11 +26,16 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'import', 'prettier'],
   rules: {
+    '@typescript-eslint/no-unsafe-assignment': ['off'],
+    '@typescript-eslint/no-unsafe-member-access': ['off'],
+    '@typescript-eslint/no-unsafe-call': ['off'],
+    '@typescript-eslint/no-unsafe-return': ['off'],
+    '@typescript-eslint/restrict-template-expressions': ['off'],
     '@typescript-eslint/indent': ['error', 2],
     indent: 'off', // required as 'off' by @typescript-eslint/indent
     'no-console': 'off',
     'no-restricted-syntax': 'off',
-    'max-len': ['error', { code: 150 }],
+    'max-len': ['error', {code: 150}],
     'comma-dangle': ['error', 'always-multiline'],
     'no-mixed-operators': 'off',
     'object-curly-newline': 'off',
@@ -44,20 +49,17 @@ module.exports = {
     'no-unused-expressions': 'off',
     'no-empty-character-class': 'off', // causing linter to crash
     'no-regex-spaces': 'off', // causing linter to crash
-    'prettier/prettier': [
-      'error',
-      { "endOfLine":"auto" }
-    ],
+    'prettier/prettier': ['error', {endOfLine: 'auto'}],
     'import/extensions': [
       'error',
       'ignorePackages',
       {
-        'js': 'never',
-        'jsx': 'never',
-        'ts': 'never',
-        'tsx': 'never'
-      }
-   ]
+        js: 'never',
+        jsx: 'never',
+        ts: 'never',
+        tsx: 'never',
+      },
+    ],
   },
   settings: {
     'import/resolver': {

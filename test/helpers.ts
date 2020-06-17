@@ -27,14 +27,17 @@ export const yen = (val: number | string): any => dollar(val);
 export const euro = (val: number | string): any => dollar(val);
 export const bn = (val: number | string | bigint): any =>
   new BN(val.toString());
-export const convertFromBaseToken = (baseTokenAmount: number | string | BN) =>
-  new BN(baseTokenAmount.toString()).mul(new BN(10));
-export const convertToBaseToken = (baseTokenAmount: number | string | BN) =>
+export const convertFromBaseToken = (
+  baseTokenAmount: number | string | BN,
+): BN => new BN(baseTokenAmount.toString()).mul(new BN(10));
+export const convertToBaseToken = (baseTokenAmount: number | string | BN): BN =>
   new BN(baseTokenAmount.toString()).div(new BN(10));
 
 export const ZERO = new BN(0);
 
-export async function createTestToken(...args: [string, number][]) {
+export async function createTestToken(
+  ...args: [string, number][]
+): Promise<any> {
   const token = await TestToken.new();
   for (const [acc, amount] of args) {
     await token.transfer(acc, amount);
@@ -45,11 +48,11 @@ export async function createTestToken(...args: [string, number][]) {
 export async function createMoneyMarket(
   testTokenAddress: string,
   liquidity = fromPercent(100),
-) {
+): Promise<any> {
   const cToken = await TestCToken.new(testTokenAddress);
   const moneyMarketProxy = await Proxy.new();
   const moneyMarketImpl = await MoneyMarket.new();
-  moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
+  await moneyMarketProxy.upgradeTo(moneyMarketImpl.address);
   const moneyMarket = await MoneyMarket.at(moneyMarketProxy.address);
   await (moneyMarket as any).initialize(
     // workaround since init is overloaded function which isnt supported by typechain yet
@@ -68,7 +71,7 @@ export async function createMoneyMarket(
 
 export const messages = {
   onlyOwner: 'Ownable: caller is not the owner',
-  onlyPriceFeeder: 'PriceFeederRole: caller does not have the PriceFeeder role',
+  onlyPriceFeeder: 'Caller doesnt have the PriceFeeder role',
   stillSafe: 'Still in a safe position',
   notEnoughLiquidationFee: 'Not enough to pay for liquidation fee',
   onlyOwnerCanClosePosition: 'Only position owner can close a safe position',

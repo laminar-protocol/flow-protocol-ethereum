@@ -1,5 +1,5 @@
-import { expectRevert, constants } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {expectRevert, constants} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 import {
   MarginLiquidityPoolInstance,
   TestTokenInstance,
@@ -20,7 +20,7 @@ const MockPoolIsNotSafeMarginProtocol = artifacts.require(
 );
 const Proxy = artifacts.require('Proxy');
 
-contract('MarginLiquidityPool', accounts => {
+contract('MarginLiquidityPool', (accounts) => {
   const liquidityProvider = accounts[1];
   const protocol = accounts[2];
   const fToken = accounts[3];
@@ -36,7 +36,7 @@ contract('MarginLiquidityPool', accounts => {
       [liquidityProvider, 10000],
       [protocol, 10000],
     );
-    ({ moneyMarket, iToken } = await helper.createMoneyMarket(usd.address));
+    ({moneyMarket, iToken} = await helper.createMoneyMarket(usd.address));
 
     const liquidityPoolImpl = await MarginLiquidityPool.new();
     const liquidityPoolProxy = await Proxy.new();
@@ -72,7 +72,7 @@ contract('MarginLiquidityPool', accounts => {
       },
     );
 
-    usd.approve(moneyMarket.address, 10000, { from: liquidityProvider });
+    await usd.approve(moneyMarket.address, 10000, {from: liquidityProvider});
   });
 
   describe('spread', () => {
@@ -193,7 +193,7 @@ contract('MarginLiquidityPool', accounts => {
 
     it('requires owner to disable token', async () => {
       await expectRevert(
-        liquidityPool.disableToken(usd.address, fToken, { from: badAddress }),
+        liquidityPool.disableToken(usd.address, fToken, {from: badAddress}),
         helper.messages.onlyOwner,
       );
     });
@@ -289,7 +289,7 @@ contract('MarginLiquidityPool', accounts => {
 
     it('should not be able to withdraw by others', async () => {
       await expectRevert(
-        liquidityPool.withdrawLiquidityOwner(500, { from: badAddress }),
+        liquidityPool.withdrawLiquidityOwner(500, {from: badAddress}),
         helper.messages.onlyOwner,
       );
     });

@@ -1,5 +1,5 @@
-import { expectRevert, constants, time } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {expectRevert, constants, time} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 import BN from 'bn.js';
 
 import {
@@ -43,7 +43,7 @@ const MarginLiquidityPoolRegistry = artifacts.require(
 );
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
-contract('MarginFlowProtocolSafety', accounts => {
+contract('MarginFlowProtocolSafety', (accounts) => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -104,12 +104,12 @@ contract('MarginFlowProtocolSafety', accounts => {
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
-    oracleProxy.upgradeTo(oracleImpl.address);
+    await oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
     await (oracle as any).initialize();
 
-    oracle.addPriceFeeder(owner);
+    await oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
 
@@ -130,7 +130,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       [bob, dollar(10000)],
       [charlie, dollar(10000)],
     );
-    ({ moneyMarket, iToken: iUsd } = await createMoneyMarket(
+    ({moneyMarket, iToken: iUsd} = await createMoneyMarket(
       usd.address,
       fromPercent(100),
     ));
@@ -176,7 +176,8 @@ contract('MarginFlowProtocolSafety', accounts => {
       liquidityPoolRegistryProxy.address,
     );
 
-    await (protocol as any).initialize( // eslint-disable-line
+    await (protocol as any).initialize(
+      // eslint-disable-line
       oracle.address,
       moneyMarket.address,
       protocolConfig.address,
@@ -271,13 +272,13 @@ contract('MarginFlowProtocolSafety', accounts => {
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,
     });
-    await oracle.feedPrice(eur, initialEurPrice, { from: owner });
+    await oracle.feedPrice(eur, initialEurPrice, {from: owner});
   });
 
   const setUpMultipleTradingPairPositions = async () => {
     await liquidityPool.enableToken(eur, jpy, initialSpread, 0);
     await liquidityPool.enableToken(jpy, eur, initialSpread, 0);
-    await oracle.feedPrice(jpy, fromPercent(200), { from: owner });
+    await oracle.feedPrice(jpy, fromPercent(200), {from: owner});
 
     await protocolConfig.addTradingPair(
       eur,
@@ -334,7 +335,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         leveragesEur[i],
         leveragedHeldsEur[i],
         0,
-        { from: alice },
+        {from: alice},
       );
       await protocol.openPosition(
         liquidityPool.address,
@@ -343,7 +344,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         leveragesJpy[i],
         leveragedHeldsJpy[i],
         0,
-        { from: alice },
+        {from: alice},
       );
     }
     await protocol.openPosition(
@@ -353,11 +354,11 @@ contract('MarginFlowProtocolSafety', accounts => {
       leverageBob,
       leveragedHeldBob,
       0,
-      { from: bob },
+      {from: bob},
     );
 
-    await oracle.feedPrice(jpy, fromPercent(150), { from: owner });
-    await oracle.feedPrice(eur, fromPercent(140), { from: owner });
+    await oracle.feedPrice(jpy, fromPercent(150), {from: owner});
+    await oracle.feedPrice(eur, fromPercent(140), {from: owner});
   };
 
   describe('when trader pays the fees', () => {
@@ -370,7 +371,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       await usd.approve(
         protocolSafety.address,
         marginCallFee.add(liquidationFee),
-        { from: charlie },
+        {from: charlie},
       );
       await protocolSafety.payTraderDeposits(liquidityPool.address, {
         from: charlie,
@@ -440,7 +441,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         leverage,
         leveragedHeldInEuro,
         price,
-        { from: alice },
+        {from: alice},
       );
     });
 
@@ -448,7 +449,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       beforeEach(async () => {
         await oracle.setOracleDeltaLastLimit(dollar(1000000));
         await oracle.setOracleDeltaSnapshotLimit(dollar(1000000));
-        await oracle.feedPrice(eur, fromPercent(10000), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(10000), {from: owner});
       });
 
       it('allows margin calling of trader', async () => {
@@ -517,7 +518,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               20,
               euro(5),
               0,
-              { from: alice },
+              {from: alice},
             ),
             messages.traderIsMarginCalled,
           );
@@ -529,7 +530,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           await protocolSafety.marginCallTrader(liquidityPool.address, alice, {
             from: bob,
           });
-          await oracle.feedPrice(eur, fromPercent(120), { from: owner });
+          await oracle.feedPrice(eur, fromPercent(120), {from: owner});
         });
 
         it('allows making trader safe again', async () => {
@@ -608,7 +609,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         leverage,
         leveragedHeldInEuro,
         price,
-        { from: alice },
+        {from: alice},
       );
     });
 
@@ -616,7 +617,7 @@ contract('MarginFlowProtocolSafety', accounts => {
       beforeEach(async () => {
         await oracle.setOracleDeltaLastLimit(dollar(1000000));
         await oracle.setOracleDeltaSnapshotLimit(dollar(1000000));
-        await oracle.feedPrice(eur, fromPercent(10000), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(10000), {from: owner});
       });
 
       it('allows liquidating of trader', async () => {
@@ -625,7 +626,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             from: bob,
           });
         } catch (error) {
-          console.log({ error });
+          console.log({error});
           expect.fail(
             `Liquidation transaction should not have been reverted: ${error}`,
           );
@@ -673,7 +674,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             1,
             100,
             price,
-            { from: alice },
+            {from: alice},
           ),
           messages.traderLiquidated,
         );
@@ -710,7 +711,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         await oracle.setOracleDeltaLastLimit(dollar(1000000));
         await oracle.setOracleDeltaSnapshotLimit(dollar(1000000));
         await time.increase(time.duration.days(5));
-        await oracle.feedPrice(eur, fromPercent(10000), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(10000), {from: owner});
 
         await protocolSafety.liquidateTrader(liquidityPool.address, alice, {
           from: bob,
@@ -728,8 +729,8 @@ contract('MarginFlowProtocolSafety', accounts => {
         }
 
         await time.increase(time.duration.days(8));
-        await oracle.feedPrice(eur, fromPercent(180), { from: owner });
-        await oracle.feedPrice(jpy, fromPercent(150), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(180), {from: owner});
+        await oracle.feedPrice(jpy, fromPercent(150), {from: owner});
         await oracle.feedPrice(usd.address, fromPercent(50), {
           from: owner,
         });
@@ -803,7 +804,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             from: bob,
           },
         );
-        await oracle.feedPrice(eur, fromPercent(180), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(180), {from: owner});
         await protocolConfig.setTraderRiskLiquidateThreshold(fromPercent(90));
         await protocolSafety.liquidateTrader(liquidityPool.address, bob, {
           from: alice,
@@ -861,14 +862,14 @@ contract('MarginFlowProtocolSafety', accounts => {
         leverage,
         leveragedHeldInEuro,
         price,
-        { from: alice },
+        {from: alice},
       );
     });
 
     describe('when pool is below margin call threshold', () => {
       beforeEach(async () => {
         await liquidityPool.withdrawLiquidityOwner(dollar(199400));
-        await oracle.feedPrice(eur, fromPercent(30), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(30), {from: owner});
       });
 
       it('allows margin calling of pool', async () => {
@@ -944,7 +945,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               20,
               euro(5),
               0,
-              { from: alice },
+              {from: alice},
             ),
             messages.poolIsMarginCalled,
           );
@@ -1041,7 +1042,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         leverage,
         leveragedHeldInEuro,
         price,
-        { from: alice },
+        {from: alice},
       );
     });
 
@@ -1078,7 +1079,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             fromPercent(99),
           );
 
-          await oracle.feedPrice(eur, fromPercent(230), { from: owner });
+          await oracle.feedPrice(eur, fromPercent(230), {from: owner});
           await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           });
@@ -1155,7 +1156,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           await oracle.feedPrice(usd.address, fromPercent(1000000), {
             from: owner,
           });
-          await oracle.feedPrice(eur, fromPercent(230), { from: owner });
+          await oracle.feedPrice(eur, fromPercent(230), {from: owner});
           await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           });
@@ -1189,7 +1190,7 @@ contract('MarginFlowProtocolSafety', accounts => {
           await protocolConfig.setLiquidityPoolENPLiquidateThreshold(
             fromPercent(999),
           );
-          await oracle.feedPrice(eur, fromPercent(230), { from: owner });
+          await oracle.feedPrice(eur, fromPercent(230), {from: owner});
           await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
             from: bob,
           });
@@ -1202,7 +1203,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               from: bob,
             });
           } catch (error) {
-            console.log({ error });
+            console.log({error});
             expect.fail(
               `Pool liquidation transaction should not have been reverted: ${error}`,
             );
@@ -1223,7 +1224,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               1,
               100,
               price,
-              { from: alice },
+              {from: alice},
             ),
             messages.poolLiquidated,
           );
@@ -1287,8 +1288,8 @@ contract('MarginFlowProtocolSafety', accounts => {
             );
 
             await time.increase(time.duration.days(8));
-            await oracle.feedPrice(eur, fromPercent(180), { from: owner });
-            await oracle.feedPrice(jpy, fromPercent(150), { from: owner });
+            await oracle.feedPrice(eur, fromPercent(180), {from: owner});
+            await oracle.feedPrice(jpy, fromPercent(150), {from: owner});
             await oracle.feedPrice(usd.address, fromPercent(50), {
               from: owner,
             });
@@ -1411,8 +1412,8 @@ contract('MarginFlowProtocolSafety', accounts => {
 
               const spreads =
                 i % 2 === 1 || i === 0
-                  ? { ask: askSpreadUsdEur, bid: bidSpreadUsdEur }
-                  : { ask: askSpreadEurJpy, bid: bidSpreadEurJpy };
+                  ? {ask: askSpreadUsdEur, bid: bidSpreadUsdEur}
+                  : {ask: askSpreadEurJpy, bid: bidSpreadEurJpy};
 
               if (i % 2 === 1 || i === 0) {
                 if (!leveragePos.isNeg()) {
@@ -1435,10 +1436,7 @@ contract('MarginFlowProtocolSafety', accounts => {
               }
 
               const spread = leveragePos.isNeg() ? spreads.ask : spreads.bid;
-              const penalty = leveragedHeld
-                .abs()
-                .mul(spread)
-                .div(bn(1e18));
+              const penalty = leveragedHeld.abs().mul(spread).div(bn(1e18));
               const penaltyUsd = penalty.mul(initialUsdPrice).div(bn(1e18));
               totalPenalty = totalPenalty.add(penaltyUsd);
             }
@@ -1487,7 +1485,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         await protocolConfig.setLiquidityPoolENPLiquidateThreshold(
           fromPercent(999),
         );
-        await oracle.feedPrice(eur, fromPercent(230), { from: owner });
+        await oracle.feedPrice(eur, fromPercent(230), {from: owner});
         await protocolSafety.marginCallLiquidityPool(liquidityPool.address, {
           from: bob,
         });
@@ -1499,7 +1497,7 @@ contract('MarginFlowProtocolSafety', accounts => {
             from: bob,
           });
         } catch (error) {
-          console.log({ error });
+          console.log({error});
           expect.fail(
             `Pool liquidation transaction should not have been reverted: ${error}`,
           );
@@ -1556,7 +1554,7 @@ contract('MarginFlowProtocolSafety', accounts => {
         leverage,
         leveragedHeldInEuro,
         0,
-        { from: trader },
+        {from: trader},
       );
     }
   };

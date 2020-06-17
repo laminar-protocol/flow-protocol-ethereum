@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
 import "../../impls/margin/MarginFlowProtocol.sol";
@@ -13,7 +14,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         int256 _leveragedHeld,
         int256 _leveragedDebits,
         uint256 _maxPrice
-    ) public returns(int256, uint256) {
+    ) public returns (int256, uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
         Position memory position = Position(
             0,
@@ -29,11 +30,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
             0
         );
 
-        (int256 unrealized, Percentage.Percent memory price) = MarginMarketLib.getUnrealizedPlAndMarketPriceOfPosition(
-            market,
-            position,
-            _maxPrice
-        );
+        (int256 unrealized, Percentage.Percent memory price) = MarginMarketLib.getUnrealizedPlAndMarketPriceOfPosition(market, position, _maxPrice);
 
         return (unrealized, price.value);
     }
@@ -46,13 +43,23 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         return MarginMarketLib.getUsdValue(market, _base, _amount);
     }
 
-    function getAskPrice(MarginLiquidityPoolInterface _pool, address _base, address _quote, uint256 _max) public returns (uint256) {
+    function getAskPrice(
+        MarginLiquidityPoolInterface _pool,
+        address _base,
+        address _quote,
+        uint256 _max
+    ) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
         return MarginMarketLib.getAskPrice(market, _pool, pair, _max).value;
     }
 
-    function getBidPrice(MarginLiquidityPoolInterface _pool, address _base, address _quote, uint256 _min) public returns (uint256) {
+    function getBidPrice(
+        MarginLiquidityPoolInterface _pool,
+        address _base,
+        address _quote,
+        uint256 _min
+    ) public returns (uint256) {
         TradingPair memory pair = TradingPair(_base, _quote);
 
         return MarginMarketLib.getBidPrice(market, _pool, pair, _min).value;
@@ -96,7 +103,12 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
     }
 
     function getAccumulatedSwapRateFromParameters(
-        MarginLiquidityPoolInterface _pool, address base, address quote, int256 _leveragedHeld, int256 _swapRate, uint256 _timeWhenOpened
+        MarginLiquidityPoolInterface _pool,
+        address base,
+        address quote,
+        int256 _leveragedHeld,
+        int256 _swapRate,
+        uint256 _timeWhenOpened
     ) public returns (int256) {
         Position memory position = Position(
             12,

@@ -1,18 +1,19 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2; // not experimental anymore
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
 import "@nomiclabs/buidler/console.sol";
 
 import "../../libs/Percentage.sol";
-import "../../libs/upgrades/UpgradeOwnable.sol";
-import "../../libs/upgrades/UpgradeReentrancyGuard.sol";
 
 import "../../interfaces/PriceOracleInterface.sol";
 import "../../interfaces/MoneyMarketInterface.sol";
@@ -23,7 +24,7 @@ import "./MarginFlowProtocolConfig.sol";
 import "./MarginFlowProtocolSafety.sol";
 import "./MarginMarketLib.sol";
 
-contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
+contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSafe {
     using Percentage for uint256;
     using Percentage for int256;
     using SafeERC20 for IERC20;
@@ -31,34 +32,32 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
     using SignedSafeMath for int256;
     using MarginMarketLib for MarginMarketLib.MarketData;
 
-    int256 constant MAX_INT = 2**256 / 2 - 1;
+    int256 private constant MAX_INT = type(int256).max;
     MarginMarketLib.MarketData private market;
 
     // stopped pools
-    mapping (MarginLiquidityPoolInterface => bool) public stoppedPools;
-    mapping (MarginLiquidityPoolInterface => uint256) private poolClosingTimes;
-    mapping (MarginLiquidityPoolInterface => uint256) public poolBasePrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) private poolPairPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public poolBidSpreads;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping (address => uint256))) public poolAskSpreads;
+    mapping(MarginLiquidityPoolInterface => bool) public stoppedPools;
+    mapping(MarginLiquidityPoolInterface => uint256) private poolClosingTimes;
+    mapping(MarginLiquidityPoolInterface => uint256) public poolBasePrices;
+    mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) private poolPairPrices;
+    mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => uint256))) public poolBidSpreads;
+    mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => uint256))) public poolAskSpreads;
 
     // stopped traders
-    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public stoppedTradersInPool;
-    mapping (MarginLiquidityPoolInterface => mapping(address => bool)) public hasClosedLossPosition;
-    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) private traderClosingTimes;
-    mapping (MarginLiquidityPoolInterface => mapping(address => uint256)) public traderBasePrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => uint256))) private traderPairPrices;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping (address => uint256)))) public traderBidSpreads;
-    mapping (MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping (address => uint256)))) public traderAskSpreads;
+    mapping(MarginLiquidityPoolInterface => mapping(address => bool)) public stoppedTradersInPool;
+    mapping(MarginLiquidityPoolInterface => mapping(address => bool)) public hasClosedLossPosition;
+    mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) private traderClosingTimes;
+    mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) public traderBasePrices;
+    mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => uint256))) private traderPairPrices;
+    mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping(address => uint256)))) public traderBidSpreads;
+    mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping(address => uint256)))) public traderAskSpreads;
 
     /**
      * @dev Initialize the MarginFlowProtocolLiquidated.
      * @param _market The market data.
      */
-    function initialize(
-        MarginMarketLib.MarketData memory _market
-    ) public initializer {
-        UpgradeReentrancyGuard.initialize();
+    function initialize(MarginMarketLib.MarketData memory _market) public initializer {
+        ReentrancyGuardUpgradeSafe.__ReentrancyGuard_init();
         market = _market;
     }
 
@@ -86,20 +85,13 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
         );
 
         Percentage.Percent memory openPrice = Percentage.Percent(
-            position.leverage > 0 ?  marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)
+            position.leverage > 0 ? marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)
         );
         Percentage.Percent memory closePrice = Percentage.Percent(
             position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)
         );
 
-        int256 totalUnrealized = _closePositionForStoppedPool(
-            position,
-            closingTime,
-            usdPairPrice,
-            marketStopPrice,
-            openPrice,
-            closePrice
-        );
+        int256 totalUnrealized = _closePositionForStoppedPool(position, closingTime, usdPairPrice, marketStopPrice, openPrice, closePrice);
 
         if (totalUnrealized > 0) {
             require(msg.sender == position.owner, "CPL2");
@@ -129,20 +121,13 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
         );
 
         Percentage.Percent memory openPrice = Percentage.Percent(
-            position.leverage > 0 ?  marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)
+            position.leverage > 0 ? marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)
         );
         Percentage.Percent memory closePrice = Percentage.Percent(
             position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)
         );
 
-        int256 totalUnrealized = _closePositionForStoppedTrader(
-            position,
-            closingTime,
-            usdPairPrice,
-            marketStopPrice,
-            openPrice,
-            closePrice
-        );
+        int256 totalUnrealized = _closePositionForStoppedTrader(position, closingTime, usdPairPrice, marketStopPrice, openPrice, closePrice);
 
         return totalUnrealized;
     }
@@ -264,18 +249,12 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
                 )
             );
 
-            int256 longUnrealized = longPairQuote > 0 ? market.getUnrealizedPlForStoppedPoolOrTrader(
-                _usdPairPrice,
-                _closePrice,
-                longPairBase.mul(-1),
-                longPairQuote
-            ) : int256(0);
-            int256 shortUnrealized = shortPairQuote > 0 ? market.getUnrealizedPlForStoppedPoolOrTrader(
-                _usdPairPrice,
-                _closePrice,
-                shortPairBase.mul(-1),
-                shortPairQuote
-            ) : int256(0);
+            int256 longUnrealized = longPairQuote > 0
+                ? market.getUnrealizedPlForStoppedPoolOrTrader(_usdPairPrice, _closePrice, longPairBase.mul(-1), longPairQuote)
+                : int256(0);
+            int256 shortUnrealized = shortPairQuote > 0
+                ? market.getUnrealizedPlForStoppedPoolOrTrader(_usdPairPrice, _closePrice, shortPairBase.mul(-1), shortPairQuote)
+                : int256(0);
 
             unrealized = unrealized.add(longUnrealized.add(shortUnrealized));
         }
@@ -382,10 +361,10 @@ contract MarginFlowProtocolLiquidated is Initializable, UpgradeReentrancyGuard {
         return _closePositionWithTransfer(_unrealized, storedTraderEquity, _position, _marketStopPrice);
     }
 
-    function _closePositionWithoutTransfer(
-        MarginFlowProtocol.Position memory _position,
-        Percentage.Percent memory _marketStopPrice
-    ) private returns (int256) {
+    function _closePositionWithoutTransfer(MarginFlowProtocol.Position memory _position, Percentage.Percent memory _marketStopPrice)
+        private
+        returns (int256)
+    {
         market.marginProtocol.__removePosition(_position, 0, _marketStopPrice);
         return 0;
     }

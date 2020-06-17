@@ -1,33 +1,45 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
 
 interface MoneyMarketInterface {
     function baseToken() external view returns (IERC20);
+
     function iToken() external view returns (IERC20);
 
-    function exchangeRate() external view returns (uint);
+    function exchangeRate() external view returns (uint256);
 
-    function mint(uint baseTokenAmount) external returns (uint);
-    function mintTo(address recipient, uint baseTokenAmount) external returns (uint);
-    function redeem(uint iTokenAmount) external returns (uint);
-    function redeemTo(address recipient, uint iTokenAmount) external returns (uint);
-    function redeemBaseToken(uint baseTokenAmount) external returns (uint);
-    function redeemBaseTokenTo(address recipient, uint baseTokenAmount) external returns (uint);
+    function mint(uint256 baseTokenAmount) external returns (uint256);
 
-    function convertAmountFromBase(uint _baseTokenAmount) external view returns (uint);
-    function convertAmountFromBase(uint rate, uint baseTokenAmount) external pure returns (uint);
-    function convertAmountToBase(uint iTokenAmount) external view returns (uint);
-    function convertAmountToBase(uint rate, uint iTokenAmount) external pure returns (uint);
+    function mintTo(address recipient, uint256 baseTokenAmount) external returns (uint256);
 
-    function convertAmountFromBase(int _baseTokenAmount) external view returns (int);
-    function convertAmountFromBase(int rate, int baseTokenAmount) external pure returns (int);
-    function convertAmountToBase(int iTokenAmount) external view returns (int);
-    function convertAmountToBase(int rate, int iTokenAmount) external pure returns (int);
+    function redeem(uint256 iTokenAmount) external returns (uint256);
 
-    function totalHoldings() external view returns (uint);
+    function redeemTo(address recipient, uint256 iTokenAmount) external returns (uint256);
 
+    function redeemBaseToken(uint256 baseTokenAmount) external returns (uint256);
 
-    event Minted(address indexed recipient, uint baseTokenAmount, uint iTokenAmount);
-    event Redeemed(address indexed recipient, uint baseTokenAmount, uint iTokenAmount);
+    function redeemBaseTokenTo(address recipient, uint256 baseTokenAmount) external returns (uint256);
+
+    function convertAmountFromBase(uint256 _baseTokenAmount) external view returns (uint256);
+
+    function convertAmountFromBase(uint256 rate, uint256 baseTokenAmount) external pure returns (uint256);
+
+    function convertAmountToBase(uint256 iTokenAmount) external view returns (uint256);
+
+    function convertAmountToBase(uint256 rate, uint256 iTokenAmount) external pure returns (uint256);
+
+    function convertAmountFromBase(int256 _baseTokenAmount) external view returns (int256);
+
+    function convertAmountFromBase(int256 rate, int256 baseTokenAmount) external pure returns (int256);
+
+    function convertAmountToBase(int256 iTokenAmount) external view returns (int256);
+
+    function convertAmountToBase(int256 rate, int256 iTokenAmount) external pure returns (int256);
+
+    function totalHoldings() external view returns (uint256);
+
+    event Minted(address indexed recipient, uint256 baseTokenAmount, uint256 iTokenAmount);
+    event Redeemed(address indexed recipient, uint256 baseTokenAmount, uint256 iTokenAmount);
 }

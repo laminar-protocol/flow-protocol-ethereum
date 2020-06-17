@@ -1,5 +1,5 @@
-import { expectRevert } from 'openzeppelin-test-helpers';
-import { expect } from 'chai';
+import {expectRevert} from 'openzeppelin-test-helpers';
+import {expect} from 'chai';
 import BN from 'bn.js';
 
 import {
@@ -37,7 +37,7 @@ const MarginLiquidityPoolRegistry = artifacts.require(
 );
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
-contract('MarginFlowProtocolConfig', accounts => {
+contract('MarginFlowProtocolConfig', (accounts) => {
   const owner = accounts[0];
   const liquidityProvider = accounts[1];
   const alice = accounts[2];
@@ -77,12 +77,12 @@ contract('MarginFlowProtocolConfig', accounts => {
   beforeEach(async () => {
     const oracleImpl = await SimplePriceOracle.new();
     const oracleProxy = await Proxy.new();
-    oracleProxy.upgradeTo(oracleImpl.address);
+    await oracleProxy.upgradeTo(oracleImpl.address);
 
     oracle = await SimplePriceOracle.at(oracleProxy.address);
     await (oracle as any).initialize();
 
-    oracle.addPriceFeeder(owner);
+    await oracle.addPriceFeeder(owner);
     await oracle.setOracleDeltaLastLimit(fromPercent(100));
     await oracle.setOracleDeltaSnapshotLimit(fromPercent(100));
 
@@ -94,7 +94,7 @@ contract('MarginFlowProtocolConfig', accounts => {
       [alice, dollar(10000)],
       [bob, dollar(10000)],
     );
-    ({ moneyMarket } = await createMoneyMarket(usd.address, fromPercent(100)));
+    ({moneyMarket} = await createMoneyMarket(usd.address, fromPercent(100)));
 
     const flowMarginProtocolImpl = await TestMarginFlowProtocol.new();
     const flowMarginProtocolProxy = await Proxy.new();
@@ -137,7 +137,8 @@ contract('MarginFlowProtocolConfig', accounts => {
       liquidityPoolRegistryProxy.address,
     );
 
-    await (protocol as any).initialize( // eslint-disable-line
+    await (protocol as any).initialize(
+      // eslint-disable-line
       oracle.address,
       moneyMarket.address,
       protocolConfig.address,
@@ -216,7 +217,7 @@ contract('MarginFlowProtocolConfig', accounts => {
 
           const setParameter = setFunction
             .slice(3)
-            .replace(/^\w/, c => c.toLowerCase());
+            .replace(/^\w/, (c) => c.toLowerCase());
           const newStoredParameter = await (protocolConfig as any)[
             setParameter
           ]();
@@ -226,7 +227,7 @@ contract('MarginFlowProtocolConfig', accounts => {
 
         it('allows only owner to set parameters', async () => {
           await expectRevert(
-            (protocolConfig as any)[setFunction](newParameter, { from: alice }),
+            (protocolConfig as any)[setFunction](newParameter, {from: alice}),
             messages.onlyOwner,
           );
         });
@@ -326,14 +327,14 @@ contract('MarginFlowProtocolConfig', accounts => {
       const newStoredSwapRateLong = (
         await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
           liquidityPool.address,
-          { base: usd.address, quote: eur },
+          {base: usd.address, quote: eur},
           LONG,
         )
       ).value;
       const newStoredSwapRateShort = (
         await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
           liquidityPool.address,
-          { base: usd.address, quote: eur },
+          {base: usd.address, quote: eur},
           SHORT,
         )
       ).value;
@@ -348,7 +349,7 @@ contract('MarginFlowProtocolConfig', accounts => {
           eur,
           newSwapRateLong,
           newSwapRateShort,
-          { from: alice },
+          {from: alice},
         ),
         messages.onlyOwner,
       );
@@ -406,14 +407,14 @@ contract('MarginFlowProtocolConfig', accounts => {
       const newStoredSwapRateLong = (
         await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
           liquidityPool.address,
-          { base: usd.address, quote: eur },
+          {base: usd.address, quote: eur},
           LONG,
         )
       ).value;
       const newStoredSwapRateShort = (
         await protocolConfig.getCurrentTotalSwapRateForPoolAndPair(
           liquidityPool.address,
-          { base: usd.address, quote: eur },
+          {base: usd.address, quote: eur},
           SHORT,
         )
       ).value;

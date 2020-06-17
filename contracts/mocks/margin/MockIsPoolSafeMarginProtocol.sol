@@ -1,4 +1,5 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
 import "../../impls/margin/MarginFlowProtocolSafety.sol";
@@ -6,8 +7,21 @@ import "../../impls/margin/MarginFlowProtocolSafety.sol";
 contract MockPoolIsSafeMarginProtocol {
     event FakeWithdrew(address sender, uint256 amount);
 
-    function market() public view returns (uint,uint,uint,uint,MarginFlowProtocolSafety,uint,uint,uint) {
-        return (0,0,0,0,MarginFlowProtocolSafety(address(this)),0,0,0);
+    function market()
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            MarginFlowProtocolSafety,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return (0, 0, 0, 0, MarginFlowProtocolSafety(address(this)), 0, 0, 0);
     }
 
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public pure returns (bool) {
@@ -19,7 +33,7 @@ contract MockPoolIsSafeMarginProtocol {
     }
 
     function balances(MarginLiquidityPoolInterface _pool, address _trader) public pure returns (uint256) {
-        if (address(_pool) != address(0) && _trader != address(0) ) {
+        if (address(_pool) != address(0) && _trader != address(0)) {
             return 0;
         }
     }
@@ -28,8 +42,21 @@ contract MockPoolIsSafeMarginProtocol {
 contract MockPoolIsNotSafeMarginProtocol {
     event FakeWithdrew(address sender, uint256 amount);
 
-    function market() public view returns (uint,uint,uint,uint,MarginFlowProtocolSafety,uint,uint,uint) {
-        return (0,0,0,0,MarginFlowProtocolSafety(address(this)),0,0,0);
+    function market()
+        public
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256,
+            uint256,
+            MarginFlowProtocolSafety,
+            uint256,
+            uint256,
+            uint256
+        )
+    {
+        return (0, 0, 0, 0, MarginFlowProtocolSafety(address(this)), 0, 0, 0);
     }
 
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public pure returns (bool) {
@@ -41,7 +68,7 @@ contract MockPoolIsNotSafeMarginProtocol {
     }
 
     function balances(MarginLiquidityPoolInterface _pool, address _trader) public pure returns (uint256) {
-        if (address(_pool) != address(0) && _trader != address(0) ) {
+        if (address(_pool) != address(0) && _trader != address(0)) {
             return 0;
         }
     }

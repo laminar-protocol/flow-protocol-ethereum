@@ -1,12 +1,13 @@
-pragma solidity ^0.6.4;
+// SPDX-License-Identifier: Apache-2.0
+pragma solidity ^0.6.10;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/upgrades/contracts/Initializable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
-import "@openzeppelin/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SignedSafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 
-import "../../libs/upgrades/UpgradeOwnable.sol";
 import "../../interfaces/MarginLiquidityPoolInterface.sol";
 
 import "../LiquidityPool.sol";
@@ -14,12 +15,12 @@ import "./MarginFlowProtocol.sol";
 import "./MarginFlowProtocolConfig.sol";
 import "./MarginFlowProtocolSafety.sol";
 
-contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, MarginLiquidityPoolInterface {
+contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool, MarginLiquidityPoolInterface {
     using SignedSafeMath for int256;
 
-    mapping (address => mapping (address => bool)) public override allowedTokens;
-    mapping (address => mapping(address => int256)) private swapRatesMarkups;
-    mapping (address => mapping (address => uint256)) public override spreadsPerTokenPair;
+    mapping(address => mapping(address => bool)) public override allowedTokens;
+    mapping(address => mapping(address => int256)) private swapRatesMarkups;
+    mapping(address => mapping(address => uint256)) public override spreadsPerTokenPair;
 
     uint256 public override minLeverage;
     uint256 public override maxLeverage;
@@ -31,11 +32,8 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
     }
 
     modifier onlyProtocolSafety() {
-        (,,,,MarginFlowProtocolSafety safety,,,) = MarginFlowProtocol(protocol).market();
-        require(
-            msg.sender == address(safety),
-            "Ownable: caller is not the protocol safety"
-        );
+        (, , , , MarginFlowProtocolSafety safety, , , ) = MarginFlowProtocol(protocol).market();
+        require(msg.sender == address(safety), "Ownable: caller is not the protocol safety");
         _;
     }
 
@@ -53,14 +51,14 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         minLeverageAmount = _initialMinLeverageAmount;
     }
 
-    function setSpreadForPair(address _baseToken, address _quoteToken, uint256 _value) external override onlyOwner {
+    function setSpreadForPair(
+        address _baseToken,
+        address _quoteToken,
+        uint256 _value
+    ) external override onlyOwner {
         spreadsPerTokenPair[_baseToken][_quoteToken] = _value;
 
         emit SpreadUpdated(_baseToken, _quoteToken, _value);
-    }
-
-    function owner() public view override(UpgradeOwnable,LiquidityPool,LiquidityPoolInterface) returns (address) {
-        return UpgradeOwnable.owner();
     }
 
     function depositLiquidity(uint256 _baseTokenAmount) external override returns (uint256) {
@@ -70,41 +68,38 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         return moneyMarket.mint(_baseTokenAmount);
     }
 
-    function increaseAllowanceForProtocol(uint _iTokenAmount) external override onlyProtocol {
-        moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);        
+    function increaseAllowanceForProtocol(uint256 _iTokenAmount) external override onlyProtocol {
+        moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);
     }
 
-    function increaseAllowanceForProtocolSafety(uint _iTokenAmount) external override onlyProtocolSafety {
-        (,,,,MarginFlowProtocolSafety safety,,,) = MarginFlowProtocol(protocol).market();
+    function increaseAllowanceForProtocolSafety(uint256 _iTokenAmount) external override onlyProtocolSafety {
+        (, , , , MarginFlowProtocolSafety safety, , , ) = MarginFlowProtocol(protocol).market();
         address safetyProtocol = address(safety);
         moneyMarket.iToken().safeIncreaseAllowance(safetyProtocol, _iTokenAmount);
     }
 
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
-        (,,,,MarginFlowProtocolSafety safety,,,) = MarginFlowProtocol(protocol).market();
+        (, , , , MarginFlowProtocolSafety safety, , , ) = MarginFlowProtocol(protocol).market();
         int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
         if (protocolBalance > 0) {
             MarginFlowProtocol(protocol).withdrawForPool(uint256(protocolBalance));
         }
 
         uint256 baseTokenAmount = moneyMarket.redeemTo(msg.sender, _iTokenAmount);
-        require(
-            safety.isPoolSafe(MarginLiquidityPoolInterface(this)),
-            "Pool not safe after withdrawal"
-        );
+        require(safety.isPoolSafe(MarginLiquidityPoolInterface(this)), "Pool not safe after withdrawal");
 
         return baseTokenAmount;
     }
 
-    function getLiquidity() external view override returns (uint256) {
+    function getLiquidity() external override view returns (uint256) {
         return moneyMarket.iToken().balanceOf(address(this));
     }
 
-    function getBidSpread(address _baseToken, address _quoteToken) external view override returns (uint256) {
+    function getBidSpread(address _baseToken, address _quoteToken) external override view returns (uint256) {
         return _getSpread(_baseToken, _quoteToken);
     }
 
-    function getAskSpread(address _baseToken, address _quoteToken) external view override returns (uint256) {
+    function getAskSpread(address _baseToken, address _quoteToken) external override view returns (uint256) {
         return _getSpread(_baseToken, _quoteToken);
     }
 
@@ -167,10 +162,7 @@ contract MarginLiquidityPool is Initializable, UpgradeOwnable, LiquidityPool, Ma
         swapRatesMarkups[_base][_quote] = _newSwapRateMarkup;
     }
 
-    function getSwapRateMarkupForPair(
-        address _baseToken,
-        address _quoteToken
-    ) external view override returns (int256) {
+    function getSwapRateMarkupForPair(address _baseToken, address _quoteToken) external override view returns (int256) {
         return swapRatesMarkups[_baseToken][_quoteToken];
     }
 
