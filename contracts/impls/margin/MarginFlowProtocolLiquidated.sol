@@ -65,7 +65,11 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
      * @dev Force close position for trader for liquidated pool.
      * @param _positionId The id of the position to close.
      */
-    function closePositionForLiquidatedPool(uint256 _positionId) external nonReentrant {
+    function closePositionForLiquidatedPool(
+        uint256 _positionId,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
+    ) external nonReentrant {
         MarginFlowProtocol.Position memory position = market.marginProtocol.getPositionById(_positionId);
         // allow anyone to close positions with loss
 
@@ -74,24 +78,20 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
 
         uint256 bidSpread = poolBidSpreads[position.pool][position.pair.base][position.pair.quote];
         uint256 askSpread = poolAskSpreads[position.pool][position.pair.base][position.pair.quote];
-        uint256 closingTime = poolClosingTimes[position.pool];
-        Percentage.Percent memory usdPairPrice = Percentage.fromFraction(
-            poolPairPrices[position.pool][position.pair.quote],
-            poolBasePrices[position.pool]
-        );
         Percentage.Percent memory marketStopPrice = Percentage.fromFraction(
             poolPairPrices[position.pool][position.pair.base],
             poolPairPrices[position.pool][position.pair.quote]
         );
 
-        Percentage.Percent memory openPrice = Percentage.Percent(
-            position.leverage > 0 ? marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)
+        int256 totalUnrealized = _closePositionForStoppedPool(
+            position,
+            Percentage.fromFraction(poolPairPrices[position.pool][position.pair.quote], poolBasePrices[position.pool]),
+            marketStopPrice,
+            Percentage.Percent(position.leverage > 0 ? marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)),
+            Percentage.Percent(position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)),
+            _estimatedPoolIndex,
+            _estimatedTraderIndex
         );
-        Percentage.Percent memory closePrice = Percentage.Percent(
-            position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)
-        );
-
-        int256 totalUnrealized = _closePositionForStoppedPool(position, closingTime, usdPairPrice, marketStopPrice, openPrice, closePrice);
 
         if (totalUnrealized > 0) {
             require(msg.sender == position.owner, "CPL2");
@@ -102,7 +102,11 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
      * @dev Force close position for trader for liquidated trader.
      * @param _positionId The id of the position to close.
      */
-    function closePositionForLiquidatedTrader(uint256 _positionId) external nonReentrant returns (int256) {
+    function closePositionForLiquidatedTrader(
+        uint256 _positionId,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
+    ) external nonReentrant returns (int256) {
         MarginFlowProtocol.Position memory position = market.marginProtocol.getPositionById(_positionId);
 
         require(stoppedTradersInPool[position.pool][msg.sender], "CPL1");
@@ -110,24 +114,20 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
 
         uint256 bidSpread = traderBidSpreads[position.pool][msg.sender][position.pair.base][position.pair.quote];
         uint256 askSpread = traderAskSpreads[position.pool][msg.sender][position.pair.base][position.pair.quote];
-        uint256 closingTime = traderClosingTimes[position.pool][msg.sender];
-        Percentage.Percent memory usdPairPrice = Percentage.fromFraction(
-            traderPairPrices[position.pool][msg.sender][position.pair.quote],
-            traderBasePrices[position.pool][msg.sender]
-        );
         Percentage.Percent memory marketStopPrice = Percentage.fromFraction(
             traderPairPrices[position.pool][msg.sender][position.pair.base],
             traderPairPrices[position.pool][msg.sender][position.pair.quote]
         );
 
-        Percentage.Percent memory openPrice = Percentage.Percent(
-            position.leverage > 0 ? marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)
+        int256 totalUnrealized = _closePositionForStoppedTrader(
+            position,
+            Percentage.fromFraction(traderPairPrices[position.pool][msg.sender][position.pair.quote], traderBasePrices[position.pool][msg.sender]),
+            marketStopPrice,
+            Percentage.Percent(position.leverage > 0 ? marketStopPrice.value.add(askSpread) : marketStopPrice.value.sub(bidSpread)),
+            Percentage.Percent(position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)),
+            _estimatedPoolIndex,
+            _estimatedTraderIndex
         );
-        Percentage.Percent memory closePrice = Percentage.Percent(
-            position.leverage > 0 ? marketStopPrice.value.sub(bidSpread) : marketStopPrice.value.add(askSpread)
-        );
-
-        int256 totalUnrealized = _closePositionForStoppedTrader(position, closingTime, usdPairPrice, marketStopPrice, openPrice, closePrice);
 
         return totalUnrealized;
     }
@@ -266,11 +266,12 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
 
     function _closePositionForStoppedPool(
         MarginFlowProtocol.Position memory _position,
-        uint256 _closingTime,
         Percentage.Percent memory _usdPairPrice,
         Percentage.Percent memory _marketStopPrice,
         Percentage.Percent memory _openPrice,
-        Percentage.Percent memory _closePrice
+        Percentage.Percent memory _closePrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) private returns (int256) {
         int256 unrealized = market.getUnrealizedPlForStoppedPoolOrTrader(
             _usdPairPrice,
@@ -278,60 +279,62 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
             _position.leveragedDebits,
             _position.leveragedHeld
         );
-        int256 swapRates = market.getAccumulatedSwapRateOfPositionUntilDate(
-            _position,
-            market.config.currentSwapUnits(_position.pair.base, _position.pair.quote),
-            _closingTime,
-            _openPrice,
-            _usdPairPrice
-        );
+        int256 swapRates = market.getAccumulatedSwapRateOfPositionUntilDate(_position, poolClosingTimes[_position.pool], _openPrice, _usdPairPrice);
         int256 totalUnrealized = unrealized.add(swapRates);
 
         int256 storedTraderEquity = getEstimatedEquityOfTrader(_position.pool, _position.owner, _usdPairPrice, _closePrice);
-        return _closePositionWithTransfer(totalUnrealized, storedTraderEquity, _position, _marketStopPrice);
+        return
+            _closePositionWithTransfer(totalUnrealized, storedTraderEquity, _position, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
     }
 
     function _closePositionForStoppedTrader(
         MarginFlowProtocol.Position memory _position,
-        uint256 _closingTime,
         Percentage.Percent memory _usdPairPrice,
         Percentage.Percent memory _marketStopPrice,
         Percentage.Percent memory _openPrice,
-        Percentage.Percent memory _closePrice
+        Percentage.Percent memory _closePrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) private returns (int256) {
-        int256 unrealized = market.getUnrealizedPlForStoppedPoolOrTrader(
-            _usdPairPrice,
-            _closePrice,
-            _position.leveragedDebits,
-            _position.leveragedHeld
-        );
-        int256 swapRates = market.getAccumulatedSwapRateOfPositionUntilDate(
-            _position,
-            market.config.currentSwapUnits(_position.pair.base, _position.pair.quote),
-            _closingTime,
-            _openPrice,
-            _usdPairPrice
-        );
-        int256 totalUnrealized = unrealized.add(swapRates);
+        int256 totalUnrealized = 0;
 
-        if (totalUnrealized > 0) {
-            return _handleProfit(_position, totalUnrealized, _usdPairPrice, _marketStopPrice, _closePrice);
+        {
+            totalUnrealized = totalUnrealized.add(
+                market.getUnrealizedPlForStoppedPoolOrTrader(_usdPairPrice, _closePrice, _position.leveragedDebits, _position.leveragedHeld)
+            );
+        }
+        {
+            totalUnrealized = totalUnrealized.add(
+                market.getAccumulatedSwapRateOfPositionUntilDate(
+                    _position,
+                    traderClosingTimes[_position.pool][_position.owner],
+                    _openPrice,
+                    _usdPairPrice
+                )
+            );
         }
 
-        return _handleLoss(_position, totalUnrealized, _marketStopPrice);
+        if (totalUnrealized > 0) {
+            return
+                _handleProfit(_position, totalUnrealized, _usdPairPrice, _marketStopPrice, _closePrice, _estimatedPoolIndex, _estimatedTraderIndex);
+        }
+
+        return _handleLoss(_position, totalUnrealized, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
     }
 
     function _handleLoss(
         MarginFlowProtocol.Position memory _position,
         int256 _unrealized,
-        Percentage.Percent memory _marketStopPrice
+        Percentage.Percent memory _marketStopPrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) private returns (int256) {
         int256 unrealized = _unrealized;
         int256 traderBalance = market.marginProtocol.balances(_position.pool, _position.owner);
 
         if (traderBalance <= 0) {
             // dont allow negative resulting balances
-            return _closePositionWithoutTransfer(_position, _marketStopPrice);
+            return _closePositionWithoutTransfer(_position, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
         }
 
         if (traderBalance.add(unrealized) < 0) {
@@ -342,7 +345,8 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         hasClosedLossPosition[_position.pool][msg.sender] = true;
 
         // pass MAX_INT as equity to ensure transferring adjusted unrealized amount
-        return _closePositionWithTransfer(unrealized, MAX_INT.add(unrealized), _position, _marketStopPrice);
+        return
+            _closePositionWithTransfer(unrealized, MAX_INT.add(unrealized), _position, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
     }
 
     function _handleProfit(
@@ -350,22 +354,26 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         int256 _unrealized,
         Percentage.Percent memory _usdPairPrice,
         Percentage.Percent memory _marketStopPrice,
-        Percentage.Percent memory _closePrice
+        Percentage.Percent memory _closePrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) private returns (int256) {
         if (hasClosedLossPosition[_position.pool][msg.sender]) {
             // enforce closing profit positions first
-            return _closePositionWithoutTransfer(_position, _marketStopPrice);
+            return _closePositionWithoutTransfer(_position, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
         }
 
         int256 storedTraderEquity = getEstimatedEquityOfTrader(_position.pool, _position.owner, _usdPairPrice, _closePrice);
-        return _closePositionWithTransfer(_unrealized, storedTraderEquity, _position, _marketStopPrice);
+        return _closePositionWithTransfer(_unrealized, storedTraderEquity, _position, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
     }
 
-    function _closePositionWithoutTransfer(MarginFlowProtocol.Position memory _position, Percentage.Percent memory _marketStopPrice)
-        private
-        returns (int256)
-    {
-        market.marginProtocol.__removePosition(_position, 0, _marketStopPrice);
+    function _closePositionWithoutTransfer(
+        MarginFlowProtocol.Position memory _position,
+        Percentage.Percent memory _marketStopPrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
+    ) private returns (int256) {
+        market.marginProtocol.__removePosition(_position, 0, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
         return 0;
     }
 
@@ -373,10 +381,12 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         int256 _unrealized,
         int256 _storedTraderEquity,
         MarginFlowProtocol.Position memory _position,
-        Percentage.Percent memory _marketStopPrice
+        Percentage.Percent memory _marketStopPrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) private returns (int256) {
         market.marginProtocol.__transferUnrealized(_position.pool, _position.owner, _unrealized, _storedTraderEquity);
-        market.marginProtocol.__removePosition(_position, _unrealized, _marketStopPrice);
+        market.marginProtocol.__removePosition(_position, _unrealized, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
 
         return _unrealized;
     }

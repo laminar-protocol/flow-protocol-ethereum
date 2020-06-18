@@ -289,7 +289,12 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
      * @param _positionId The id of the position to close.
      * @param _price The max/min price when closing the position..
      */
-    function closePosition(uint256 _positionId, uint256 _price) external nonReentrant {
+    function closePosition(
+        uint256 _positionId,
+        uint256 _price,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
+    ) external nonReentrant {
         Position memory position = positionsById[_positionId];
         require(msg.sender == position.owner, "CP1");
         require(!market.protocolLiquidated.stoppedTradersInPool(position.pool, msg.sender), "CP2");
@@ -299,7 +304,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         int256 totalUnrealized = unrealizedPl.add(accumulatedSwapRate);
 
         _transferUnrealized(position.pool, position.owner, totalUnrealized, 0);
-        _removePosition(position, totalUnrealized, marketPrice);
+        _removePosition(position, totalUnrealized, marketPrice, _estimatedPoolIndex, _estimatedTraderIndex);
     }
 
     /**
@@ -396,6 +401,14 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         return positionsById[_positionId];
     }
 
+    function getPositionsByPool(MarginLiquidityPoolInterface _pool) external view returns (Position[] memory) {
+        return positionsByPool[_pool];
+    }
+
+    function getPositionsByPoolAndTrader(MarginLiquidityPoolInterface _pool, address _trader) external view returns (Position[] memory) {
+        return positionsByPoolAndTrader[_pool][_trader];
+    }
+
     function getPositionIdByPoolAndIndex(MarginLiquidityPoolInterface _pool, uint256 _index) external view returns (uint256) {
         return positionsByPool[_pool][_index].id;
     }
@@ -443,10 +456,12 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     function __removePosition(
         Position calldata _position,
         int256 _unrealizedPosition,
-        Percentage.Percent calldata _marketStopPrice
+        Percentage.Percent calldata _marketStopPrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) external {
         require(msg.sender == address(market.protocolLiquidated), "T1");
-        _removePosition(_position, _unrealizedPosition, _marketStopPrice);
+        _removePosition(_position, _unrealizedPosition, _marketStopPrice, _estimatedPoolIndex, _estimatedTraderIndex);
     }
 
     function __transferUnrealized(
@@ -655,27 +670,52 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         );
     }
 
-    function _removePositionFromList(Position[] storage positions, uint256 _positionId) internal {
-        for (uint256 i = 0; i < positions.length; i++) {
-            // TODO pass correct index to minimise gas
-            if (positions[i].id == _positionId) {
-                positions[i] = positions[positions.length.sub(1)];
-                positions.pop();
+    function _removePositionFromList(
+        Position[] storage _positions,
+        uint256 _positionId,
+        uint256 _estimatedIndexInList
+    ) internal {
+        uint256 correctIndex = _getCorrectIndex(_positions, _positionId, _estimatedIndexInList);
 
-                return;
+        _positions[correctIndex] = _positions[_positions.length.sub(1)];
+        _positions.pop();
+    }
+
+    function _getCorrectIndex(
+        Position[] storage _positions,
+        uint256 _positionId,
+        uint256 _estimatedIndexInList
+    ) private view returns (uint256) {
+        require(_estimatedIndexInList < _positions.length, "R1");
+
+        if (_positions[_estimatedIndexInList].id == _positionId) {
+            return _estimatedIndexInList;
+        }
+
+        if (_positions.length > _estimatedIndexInList) {
+            if (_positions[_estimatedIndexInList.add(1)].id == _positionId) {
+                return _estimatedIndexInList + 1;
             }
         }
+
+        if (_positions[_estimatedIndexInList.sub(1, "R1")].id == _positionId) {
+            return _estimatedIndexInList - 1;
+        }
+
+        revert("R1");
     }
 
     function _removePosition(
         Position memory _position,
         int256 _unrealizedPosition,
-        Percentage.Percent memory _marketStopPrice
+        Percentage.Percent memory _marketStopPrice,
+        uint256 _estimatedPoolIndex,
+        uint256 _estimatedTraderIndex
     ) private {
         _updateAccumulatedPositions(_position, false);
 
-        _removePositionFromList(positionsByPoolAndTrader[_position.pool][_position.owner], _position.id);
-        _removePositionFromList(positionsByPool[_position.pool], _position.id);
+        _removePositionFromList(positionsByPool[_position.pool], _position.id, _estimatedPoolIndex);
+        _removePositionFromList(positionsByPoolAndTrader[_position.pool][_position.owner], _position.id, _estimatedTraderIndex);
         delete positionsById[_position.id];
 
         emit PositionClosed(

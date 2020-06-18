@@ -69,11 +69,29 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
         Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.SignedPercent(0), 0);
 
-        _removePositionFromList(positionsByPoolAndTrader[position.pool][position.owner], position.id);
-        _removePositionFromList(positionsByPool[position.pool], position.id);
+        uint256 poolIndex = 0;
+        uint256 traderIndex = 0;
+
+        for (uint256 i = 0; i < positionsByPool[_pool].length; i++) {
+            // TODO pass correct index to minimise gas
+            if (positionsByPool[_pool][i].id == _positionId) {
+                poolIndex = i;
+                break;
+            }
+        }
+        for (uint256 i = 0; i < positionsByPoolAndTrader[_pool][msg.sender].length; i++) {
+            // TODO pass correct index to minimise gas
+            if (positionsByPoolAndTrader[_pool][msg.sender][i].id == _positionId) {
+                traderIndex = i;
+                break;
+            }
+        }
+
+        _removePositionFromList(positionsByPoolAndTrader[position.pool][position.owner], position.id, traderIndex);
+        _removePositionFromList(positionsByPool[position.pool], position.id, poolIndex);
     }
 
-    function getPositionsByPool(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256[] memory) {
+    function getPositionIdsByPool(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256[] memory) {
         Position[] memory positions = _trader == address(0) ? positionsByPool[_pool] : positionsByPoolAndTrader[_pool][_trader];
         uint256[] memory positionIds = new uint256[](positions.length);
 

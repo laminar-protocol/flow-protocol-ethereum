@@ -219,35 +219,27 @@ library MarginMarketLib {
             : getBidPrice(self, position.pool, position.pair, 0);
         Percentage.Percent memory usdPairPrice = getPriceForPair(self, position.pair.quote, self.marketBaseToken);
 
-        return
-            getAccumulatedSwapRateOfPositionUntilDate(
-                self,
-                position,
-                self.config.currentSwapUnits(position.pair.base, position.pair.quote),
-                now,
-                price,
-                usdPairPrice
-            );
+        return getAccumulatedSwapRateOfPositionUntilDate(self, position, now, price, usdPairPrice);
     }
 
     function getAccumulatedSwapRateOfPositionUntilDate(
         MarketData storage self,
-        MarginFlowProtocol.Position memory position,
-        uint256 _swapRateUnit,
+        MarginFlowProtocol.Position memory _position,
         uint256 _time,
         Percentage.Percent memory _price,
         Percentage.Percent memory _usdPairPrice
     ) public view returns (int256) {
-        uint256 timeDeltaInSeconds = _time.sub(position.timeWhenOpened);
-        uint256 timeUnitsSinceOpen = timeDeltaInSeconds.div(_swapRateUnit);
-        uint256 leveragedHeldAbs = position.leveragedHeld >= 0 ? uint256(position.leveragedHeld) : uint256(-position.leveragedHeld);
+        uint256 swapRateUnit = self.config.currentSwapUnits(_position.pair.base, _position.pair.quote);
+        uint256 timeDeltaInSeconds = _time.sub(_position.timeWhenOpened);
+        uint256 timeUnitsSinceOpen = timeDeltaInSeconds.div(swapRateUnit);
+        uint256 leveragedHeldAbs = _position.leveragedHeld >= 0 ? uint256(_position.leveragedHeld) : uint256(-_position.leveragedHeld);
 
-        Percentage.Percent memory swapRate = position.swapRate.value >= 0
-            ? Percentage.Percent(uint256(position.swapRate.value))
-            : Percentage.Percent(uint256(-position.swapRate.value));
+        Percentage.Percent memory swapRate = _position.swapRate.value >= 0
+            ? Percentage.Percent(uint256(_position.swapRate.value))
+            : Percentage.Percent(uint256(-_position.swapRate.value));
         uint256 accumulatedSwapRateInBase = leveragedHeldAbs.mul(timeUnitsSinceOpen).mulPercent(_price).mulPercent(swapRate);
         uint256 accumulatedSwapRateInUsd = accumulatedSwapRateInBase.mulPercent(_usdPairPrice);
-        int256 signedSwapRate = position.swapRate.value >= 0 ? int256(accumulatedSwapRateInUsd) : int256(-accumulatedSwapRateInUsd);
+        int256 signedSwapRate = _position.swapRate.value >= 0 ? int256(accumulatedSwapRateInUsd) : int256(-accumulatedSwapRateInUsd);
 
         return self.moneyMarket.convertAmountFromBase(signedSwapRate);
     }

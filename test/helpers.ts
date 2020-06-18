@@ -125,4 +125,5 @@ export const messages = {
   onlyForLiquidatedPoolsOrTraders: 'CPL1',
   onlyOwnerCanCloseProfitPosition: 'CPL2',
   mustUseLiquidatedTraderCloseFunction: 'CPL3',
+  estimatedIndexPositionIncorrect: 'R1',
 };
