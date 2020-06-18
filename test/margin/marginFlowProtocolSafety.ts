@@ -7,6 +7,7 @@ import {
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
   MarginFlowProtocolLiquidatedInstance,
+  MarginFlowProtocolAccPositionsInstance,
   MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
@@ -36,6 +37,9 @@ const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
 const MarginFlowProtocolLiquidated = artifacts.require(
   'MarginFlowProtocolLiquidated',
 );
+const MarginFlowProtocolAccPositions = artifacts.require(
+  'MarginFlowProtocolAccPositions',
+);
 const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
@@ -57,6 +61,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
   let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
+  let protocolAccPositions: MarginFlowProtocolAccPositionsInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
@@ -92,11 +97,13 @@ contract('MarginFlowProtocolSafety', (accounts) => {
     try {
       TestMarginFlowProtocol.link(MarginMarketLib);
       MarginFlowProtocolLiquidated.link(MarginMarketLib);
+      MarginFlowProtocolAccPositions.link(MarginMarketLib);
       MarginFlowProtocolSafety.link(MarginMarketLib);
     } catch (error) {
       // running in buidler, use instance
       TestMarginFlowProtocol.link(marketLib);
       MarginFlowProtocolLiquidated.link(marketLib);
+      MarginFlowProtocolAccPositions.link(marketLib);
       MarginFlowProtocolSafety.link(marketLib);
     }
   });
@@ -158,6 +165,15 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       flowMarginProtocolLiquidatedProxy.address,
     );
 
+    const flowMarginProtocolAccPositionsImpl = await MarginFlowProtocolAccPositions.new();
+    const flowMarginProtocolAccPositionsProxy = await Proxy.new();
+    await flowMarginProtocolAccPositionsProxy.upgradeTo(
+      flowMarginProtocolAccPositionsImpl.address,
+    );
+    protocolAccPositions = await MarginFlowProtocolAccPositions.at(
+      flowMarginProtocolAccPositionsProxy.address,
+    );
+
     const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
     const flowMarginProtocolConfigProxy = await Proxy.new();
     await flowMarginProtocolConfigProxy.upgradeTo(
@@ -183,6 +199,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       protocolConfig.address,
       protocolSafety.address,
       protocolLiquidated.address,
+      protocolAccPositions.address,
       liquidityPoolRegistry.address,
     );
     const market = await protocol.market();
@@ -197,11 +214,14 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       initialLiquidityPoolELLLiquidateThreshold,
     );
 
+    await (protocolAccPositions as any).methods[
+      'initialize((address,address,address,address,address,address,address,address,address))'
+    ](market);
     await (protocolLiquidated as any).methods[
-      'initialize((address,address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address,address))'
     ](market);
     await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address,address))'
     ](market);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, {
@@ -1691,12 +1711,13 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       });
     });
 
-    describe.skip('when the pool has 100 positions', () => {
+    describe('when the pool has 100 positions', () => {
       beforeEach(async function testSetup() {
         this.timeout(0);
 
         await insertPositions(50, alice);
         await insertPositions(50, bob);
+        await protocolSafety.isPoolSafe(liquidityPool.address);
       });
 
       it('returns if pool is safe', async () => {
