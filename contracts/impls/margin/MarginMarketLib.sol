@@ -14,6 +14,7 @@ import "./MarginFlowProtocol.sol";
 import "./MarginFlowProtocolConfig.sol";
 import "./MarginFlowProtocolLiquidated.sol";
 import "./MarginFlowProtocolSafety.sol";
+import "./MarginFlowProtocolAccPositions.sol";
 import "./MarginLiquidityPoolRegistry.sol";
 
 library MarginMarketLib {
@@ -29,6 +30,7 @@ library MarginMarketLib {
         MarginFlowProtocolConfig config;
         MarginFlowProtocolSafety protocolSafety;
         MarginFlowProtocolLiquidated protocolLiquidated;
+        MarginFlowProtocolAccPositions protocolAcc;
         MarginLiquidityPoolRegistry liquidityPoolRegistry;
         address marketBaseToken;
     }
@@ -149,7 +151,7 @@ library MarginMarketLib {
         int256 unrealized = 0;
 
         for (uint256 i = 0; i < pairs.length; i++) {
-            int256 unrealizedPair = self.marginProtocol.getPairTraderUnrealized(_pool, _trader, pairs[i]);
+            int256 unrealizedPair = self.protocolAcc.getPairTraderUnrealized(_pool, _trader, pairs[i]);
             unrealized = unrealized.add(unrealizedPair);
         }
 

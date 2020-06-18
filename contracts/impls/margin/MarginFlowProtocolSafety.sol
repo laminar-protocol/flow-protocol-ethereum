@@ -23,6 +23,7 @@ import "../FlowProtocolBase.sol";
 import "./MarginFlowProtocol.sol";
 import "./MarginFlowProtocolConfig.sol";
 import "./MarginLiquidityPoolRegistry.sol";
+import "./MarginFlowProtocolAccPositions.sol";
 import "./MarginMarketLib.sol";
 
 contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
@@ -251,7 +252,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     // Margin level of a given user.
     function getMarginLevel(MarginLiquidityPoolInterface _pool, address _trader) public returns (Percentage.SignedPercent memory) {
         int256 equity = market.getEstimatedEquityOfTrader(_pool, _trader, market.marginProtocol.balances(_pool, _trader));
-        uint256 leveragedDebitsITokens = market.moneyMarket.convertAmountFromBase(market.marginProtocol.traderPositionAccUsd(_pool, _trader));
+        uint256 leveragedDebitsITokens = market.moneyMarket.convertAmountFromBase(market.protocolAcc.traderPositionAccUsd(_pool, _trader));
 
         if (leveragedDebitsITokens == 0) {
             return Percentage.SignedPercent(MAX_INT);
@@ -275,7 +276,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         int256 unrealized = 0;
 
         for (uint256 i = 0; i < pairs.length; i++) {
-            (uint256 netPair, uint256 longestLegPair, int256 unrealizedPair) = market.marginProtocol.getPairPoolSafetyInfo(_pool, pairs[i]);
+            (uint256 netPair, uint256 longestLegPair, int256 unrealizedPair) = market.protocolAcc.getPairPoolSafetyInfo(_pool, pairs[i]);
             net = net.add(netPair);
             longestLeg = longestLeg.add(longestLegPair);
             unrealized = unrealized.add(unrealizedPair);
@@ -314,7 +315,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         int256 unrealized = 0;
 
         for (uint256 i = 0; i < pairs.length; i++) {
-            (, , int256 unrealizedPair) = market.marginProtocol.getPairPoolSafetyInfo(_pool, pairs[i]);
+            (, , int256 unrealizedPair) = market.protocolAcc.getPairPoolSafetyInfo(_pool, pairs[i]);
             unrealized = unrealized.add(unrealizedPair);
         }
 
@@ -368,8 +369,18 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         address _quote,
         Percentage.Percent memory _usdBasePrice
     ) private view returns (uint256) {
-        uint256 leveragedHeldsLong = market.marginProtocol.poolLongPositionAccPerPair(_pool, _base, _quote, MarginFlowProtocol.CurrencyType.QUOTE);
-        uint256 leveragedHeldsShort = market.marginProtocol.poolShortPositionAccPerPair(_pool, _base, _quote, MarginFlowProtocol.CurrencyType.QUOTE);
+        uint256 leveragedHeldsLong = market.protocolAcc.poolLongPositionAccPerPair(
+            _pool,
+            _base,
+            _quote,
+            MarginFlowProtocolAccPositions.CurrencyType.QUOTE
+        );
+        uint256 leveragedHeldsShort = market.protocolAcc.poolShortPositionAccPerPair(
+            _pool,
+            _base,
+            _quote,
+            MarginFlowProtocolAccPositions.CurrencyType.QUOTE
+        );
 
         uint256 bidSpread = market.protocolLiquidated.poolBidSpreads(_pool, _base, _quote);
         uint256 askSpread = market.protocolLiquidated.poolAskSpreads(_pool, _base, _quote);
