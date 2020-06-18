@@ -1257,7 +1257,7 @@ contract('MarginFlowProtocol', (accounts) => {
       });
 
       it('computes new balance correctly when immediately closing', async () => {
-        receipt = await protocol.closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, 0, 0, {
           from: alice,
         });
 
@@ -1278,7 +1278,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('computes new balance correctly after a price drop', async () => {
         await oracle.feedPrice(eur, fromPercent(100), {from: owner});
-        receipt = await protocol.closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, 0, 0, {
           from: alice,
         });
 
@@ -1300,7 +1300,7 @@ contract('MarginFlowProtocol', (accounts) => {
       describe('when the price increases', () => {
         beforeEach(async () => {
           await oracle.feedPrice(eur, fromPercent(200), {from: owner});
-          receipt = await protocol.closePosition(positionId, price, {
+          receipt = await protocol.closePosition(positionId, price, 0, 0, {
             from: alice,
           });
         });
@@ -1364,7 +1364,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('computes new balance correctly when immediately closing', async () => {
         await oracle.feedPrice(eur, fromPercent(100), {from: owner});
-        receipt = await protocol.closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, 0, 0, {
           from: alice,
         });
 
@@ -1387,7 +1387,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('computes new balance correctly after a price drop', async () => {
         await oracle.feedPrice(eur, fromPercent(100), {from: owner});
-        receipt = await protocol.closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, 0, 0, {
           from: alice,
         });
 
@@ -1410,7 +1410,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('computes new balance correctly after a price increase', async () => {
         await oracle.feedPrice(eur, fromPercent(150), {from: owner});
-        receipt = await protocol.closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, 0, 0, {
           from: alice,
         });
 
@@ -1503,9 +1503,15 @@ contract('MarginFlowProtocol', (accounts) => {
       });
 
       it('closes position correctly in both pools', async () => {
-        const receipt1 = await protocol.closePosition(positionId1, price, {
-          from: alice,
-        });
+        const receipt1 = await protocol.closePosition(
+          positionId1,
+          price,
+          0,
+          0,
+          {
+            from: alice,
+          },
+        );
         await expectCorrectlyClosedPosition({
           id: positionId1,
           expectedOwner: alice,
@@ -1522,9 +1528,15 @@ contract('MarginFlowProtocol', (accounts) => {
           receipt: receipt1,
         });
 
-        const receipt2 = await protocol.closePosition(positionId2, price, {
-          from: alice,
-        });
+        const receipt2 = await protocol.closePosition(
+          positionId2,
+          price,
+          0,
+          0,
+          {
+            from: alice,
+          },
+        );
 
         await expectCorrectlyClosedPosition({
           id: positionId2,
@@ -1573,7 +1585,7 @@ contract('MarginFlowProtocol', (accounts) => {
         });
 
         it('does not send money to the pool', async () => {
-          receipt = await protocol.closePosition(positionId, price, {
+          receipt = await protocol.closePosition(positionId, price, 0, 0, {
             from: alice,
           });
 
@@ -1615,10 +1627,10 @@ contract('MarginFlowProtocol', (accounts) => {
         });
 
         it('results in a negative trader balance', async () => {
-          await protocol.closePosition(positionId, price, {
+          await protocol.closePosition(positionId, price, 0, 0, {
             from: alice,
           });
-          await protocol.closePosition(positionId.sub(bn(1)), price, {
+          await protocol.closePosition(positionId.sub(bn(1)), price, 0, 0, {
             from: alice,
           });
 
@@ -1657,7 +1669,7 @@ contract('MarginFlowProtocol', (accounts) => {
         await oracle.feedPrice(eur, fromPercent(1), {
           from: owner,
         });
-        receipt = await protocol.closePosition(positionId, price, {
+        receipt = await protocol.closePosition(positionId, price, 0, 0, {
           from: alice,
         });
 
@@ -1694,7 +1706,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocol.closePosition(positionId, price, {
+          protocol.closePosition(positionId, price, 0, 0, {
             from: bob,
           }),
           messages.incorrectOwnerClosePosition,
@@ -1720,7 +1732,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocol.closePosition(positionId, price, {
+          protocol.closePosition(positionId, price, 0, 0, {
             from: alice,
           }),
           messages.marginBidPriceTooLow,
@@ -1746,7 +1758,7 @@ contract('MarginFlowProtocol', (accounts) => {
 
       it('reverts the transaction', async () => {
         await expectRevert(
-          protocol.closePosition(positionId, price, {
+          protocol.closePosition(positionId, price, 0, 0, {
             from: alice,
           }),
           messages.marginAskPriceTooHigh,
@@ -1773,7 +1785,7 @@ contract('MarginFlowProtocol', (accounts) => {
         });
 
         it('closes new position correctly', async () => {
-          receipt = await protocol.closePosition(positionId, price, {
+          receipt = await protocol.closePosition(positionId, price, 0, 0, {
             from: alice,
           });
 
@@ -2437,7 +2449,7 @@ contract('MarginFlowProtocol', (accounts) => {
           );
 
           await oracle.feedPrice(eur, fromPercent(100), {from: owner});
-          await protocol.closePosition(3, 0, {from: bob}); // close bob' loss position
+          await protocol.closePosition(3, 0, 3, 1, {from: bob}); // close bob' loss position
         });
 
         it('should return the correct equity', async () => {
@@ -2469,15 +2481,15 @@ contract('MarginFlowProtocol', (accounts) => {
 
     describe('when removing a position from the lists', () => {
       it('should remove the correct position from all lists', async () => {
-        const positionsByPoolBefore = await protocol.getPositionsByPool(
+        const positionsByPoolBefore = await protocol.getPositionIdsByPool(
           liquidityPool.address,
           constants.ZERO_ADDRESS,
         );
-        const positionsByAliceBefore = await protocol.getPositionsByPool(
+        const positionsByAliceBefore = await protocol.getPositionIdsByPool(
           liquidityPool.address,
           alice,
         );
-        const positionsByBobBefore = await protocol.getPositionsByPool(
+        const positionsByBobBefore = await protocol.getPositionIdsByPool(
           liquidityPool.address,
           bob,
         );
@@ -2486,15 +2498,15 @@ contract('MarginFlowProtocol', (accounts) => {
           from: alice,
         });
 
-        const positionsByPoolAfter = await protocol.getPositionsByPool(
+        const positionsByPoolAfter = await protocol.getPositionIdsByPool(
           liquidityPool.address,
           constants.ZERO_ADDRESS,
         );
-        const positionsByAliceAfter = await protocol.getPositionsByPool(
+        const positionsByAliceAfter = await protocol.getPositionIdsByPool(
           liquidityPool.address,
           alice,
         );
-        const positionsByBobAfter = await protocol.getPositionsByPool(
+        const positionsByBobAfter = await protocol.getPositionIdsByPool(
           liquidityPool.address,
           bob,
         );
