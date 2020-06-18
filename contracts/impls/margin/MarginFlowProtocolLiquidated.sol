@@ -213,39 +213,39 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
 
         for (uint256 i = 0; i < tradingPairs.length; i++) {
             int256 longPairBase = int256(
-                market.marginProtocol.traderLongPositionAccPerPair(
+                market.protocolAcc.traderLongPositionAccPerPair(
                     _pool,
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocol.CurrencyType.BASE
+                    MarginFlowProtocolAccPositions.CurrencyType.BASE
                 )
             );
             int256 longPairQuote = int256(
-                market.marginProtocol.traderLongPositionAccPerPair(
+                market.protocolAcc.traderLongPositionAccPerPair(
                     _pool,
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocol.CurrencyType.QUOTE
+                    MarginFlowProtocolAccPositions.CurrencyType.QUOTE
                 )
             );
             int256 shortPairBase = int256(
-                market.marginProtocol.traderShortPositionAccPerPair(
+                market.protocolAcc.traderShortPositionAccPerPair(
                     _pool,
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocol.CurrencyType.BASE
+                    MarginFlowProtocolAccPositions.CurrencyType.BASE
                 )
             );
             int256 shortPairQuote = int256(
-                market.marginProtocol.traderShortPositionAccPerPair(
+                market.protocolAcc.traderShortPositionAccPerPair(
                     _pool,
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocol.CurrencyType.QUOTE
+                    MarginFlowProtocolAccPositions.CurrencyType.QUOTE
                 )
             );
 

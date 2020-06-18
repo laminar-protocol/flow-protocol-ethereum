@@ -18,10 +18,11 @@ contract MockPoolIsSafeMarginProtocol {
             MarginFlowProtocolSafety,
             uint256,
             uint256,
+            uint256,
             uint256
         )
     {
-        return (0, 0, 0, 0, MarginFlowProtocolSafety(address(this)), 0, 0, 0);
+        return (0, 0, 0, 0, MarginFlowProtocolSafety(address(this)), 0, 0, 0, 0);
     }
 
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public pure returns (bool) {
@@ -53,10 +54,11 @@ contract MockPoolIsNotSafeMarginProtocol {
             MarginFlowProtocolSafety,
             uint256,
             uint256,
+            uint256,
             uint256
         )
     {
-        return (0, 0, 0, 0, MarginFlowProtocolSafety(address(this)), 0, 0, 0);
+        return (0, 0, 0, 0, MarginFlowProtocolSafety(address(this)), 0, 0, 0, 0);
     }
 
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public pure returns (bool) {

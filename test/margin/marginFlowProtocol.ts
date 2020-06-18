@@ -12,6 +12,7 @@ import {
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
   MarginFlowProtocolLiquidatedInstance,
+  MarginFlowProtocolAccPositionsInstance,
   MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
@@ -41,6 +42,9 @@ const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
 const MarginFlowProtocolLiquidated = artifacts.require(
   'MarginFlowProtocolLiquidated',
 );
+const MarginFlowProtocolAccPositions = artifacts.require(
+  'MarginFlowProtocolAccPositions',
+);
 const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
 const MarginLiquidityPoolRegistry = artifacts.require(
   'MarginLiquidityPoolRegistry',
@@ -60,6 +64,7 @@ contract('MarginFlowProtocol', (accounts) => {
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
   let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
+  let protocolAccPositions: MarginFlowProtocolAccPositionsInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
@@ -80,11 +85,13 @@ contract('MarginFlowProtocol', (accounts) => {
 
     try {
       TestMarginFlowProtocol.link(MarginMarketLib);
+      MarginFlowProtocolAccPositions.link(MarginMarketLib);
       MarginFlowProtocolLiquidated.link(MarginMarketLib);
       MarginFlowProtocolSafety.link(MarginMarketLib);
     } catch (error) {
       // running in buidler, use instance
       TestMarginFlowProtocol.link(marketLib);
+      MarginFlowProtocolAccPositions.link(marketLib);
       MarginFlowProtocolLiquidated.link(marketLib);
       MarginFlowProtocolSafety.link(marketLib);
     }
@@ -143,6 +150,15 @@ contract('MarginFlowProtocol', (accounts) => {
       flowMarginProtocolLiquidatedProxy.address,
     );
 
+    const flowMarginProtocolAccPositionsImpl = await MarginFlowProtocolAccPositions.new();
+    const flowMarginProtocolAccPositionsProxy = await Proxy.new();
+    await flowMarginProtocolAccPositionsProxy.upgradeTo(
+      flowMarginProtocolAccPositionsImpl.address,
+    );
+    protocolAccPositions = await MarginFlowProtocolAccPositions.at(
+      flowMarginProtocolAccPositionsProxy.address,
+    );
+
     const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
     const flowMarginProtocolConfigProxy = await Proxy.new();
     await flowMarginProtocolConfigProxy.upgradeTo(
@@ -168,6 +184,7 @@ contract('MarginFlowProtocol', (accounts) => {
       protocolConfig.address,
       protocolSafety.address,
       protocolLiquidated.address,
+      protocolAccPositions.address,
       liquidityPoolRegistry.address,
     );
     const market = await protocol.market();
@@ -182,11 +199,14 @@ contract('MarginFlowProtocol', (accounts) => {
       fromPercent(2),
     );
 
+    await (protocolAccPositions as any).methods[
+      'initialize((address,address,address,address,address,address,address,address,address))'
+    ](market);
     await (protocolLiquidated as any).methods[
-      'initialize((address,address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address,address))'
     ](market);
     await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address,address))'
     ](market);
 
     await usd.approve(protocol.address, constants.MAX_UINT256, {
@@ -1856,11 +1876,11 @@ contract('MarginFlowProtocol', (accounts) => {
 
     describe('when getting accumulated margin held of a trader', () => {
       it('should return the correct value', async () => {
-        const marginHeldAlice = await protocol.traderPositionAccMarginHeld(
+        const marginHeldAlice = await protocolAccPositions.traderPositionAccMarginHeld(
           liquidityPool.address,
           alice,
         );
-        const marginHeldBob = await protocol.traderPositionAccMarginHeld(
+        const marginHeldBob = await protocolAccPositions.traderPositionAccMarginHeld(
           liquidityPool.address,
           bob,
         );
@@ -1909,11 +1929,11 @@ contract('MarginFlowProtocol', (accounts) => {
           bob,
         );
 
-        const marginHeldAlice = await protocol.traderPositionAccMarginHeld(
+        const marginHeldAlice = await protocolAccPositions.traderPositionAccMarginHeld(
           liquidityPool.address,
           alice,
         );
-        const marginHeldBob = await protocol.traderPositionAccMarginHeld(
+        const marginHeldBob = await protocolAccPositions.traderPositionAccMarginHeld(
           liquidityPool.address,
           bob,
         );

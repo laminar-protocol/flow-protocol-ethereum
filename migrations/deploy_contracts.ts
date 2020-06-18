@@ -223,6 +223,9 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
   const MarginFlowProtocolLiquidated = artifacts.require(
     'MarginFlowProtocolLiquidated',
   );
+  const MarginFlowProtocolAccPositions = artifacts.require(
+    'MarginFlowProtocolAccPositions',
+  );
   const PriceOracleInterface = artifacts.require('PriceOracleInterface');
   const ERC20 = artifacts.require('ERC20');
   const MarginLiquidityPoolInterface = artifacts.require(
@@ -407,6 +410,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     await deployer.deploy(MarginMarketLib);
     await deployer.link(MarginMarketLib, MarginFlowProtocol);
     await deployer.link(MarginMarketLib, MarginFlowProtocolLiquidated);
+    await deployer.link(MarginMarketLib, MarginFlowProtocolAccPositions);
     await deployer.link(MarginMarketLib, MarginFlowProtocolSafety);
     await deployer.deploy(MarginFlowProtocol);
     const flowMarginProtocolImpl = await MarginFlowProtocol.deployed();
@@ -439,6 +443,17 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       flowMarginProtocolLiquidatedProxy.address,
     );
 
+    await deployer.deploy(MarginFlowProtocolAccPositions);
+    const flowMarginProtocolAccPositionsImpl = await MarginFlowProtocolAccPositions.deployed();
+    await deployer.deploy(Proxy);
+    const flowMarginProtocolAccPositionsProxy = await Proxy.deployed();
+    await flowMarginProtocolAccPositionsProxy.upgradeTo(
+      flowMarginProtocolAccPositionsImpl.address,
+    );
+    const marginProtocolAccPositions = await MarginFlowProtocolAccPositions.at(
+      flowMarginProtocolAccPositionsProxy.address,
+    );
+
     await deployer.deploy(MarginFlowProtocolConfig);
     const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.deployed();
     await deployer.deploy(Proxy);
@@ -459,6 +474,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       marginProtocolConfig.address,
       marginProtocolSafety.address,
       marginProtocolLiquidated.address,
+      marginProtocolAccPositions.address,
       marginLiquidityPoolRegistry.address,
     );
     const market = await marginProtocol.market();
@@ -470,7 +486,11 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolLiquidated as any).methods[
-      'initialize((address,address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address,address))'
+    ](market);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    await (marginProtocolAccPositions as any).methods[
+      'initialize((address,address,address,address,address,address,address,address,address))'
     ](market);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolConfig as any).initialize(
@@ -484,7 +504,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     );
 
     await (marginLiquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address,address))'
+      'initialize((address,address,address,address,address,address,address,address,address))'
     ](market);
     await baseToken.approve(
       marginLiquidityPoolRegistry.address,
@@ -678,6 +698,10 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
       marginProtocolLiquidated: [
         marginProtocolLiquidated,
         MarginFlowProtocolLiquidated,
+      ],
+      marginProtocolAccPositions: [
+        marginProtocolAccPositions,
+        MarginFlowProtocolAccPositions,
       ],
       marginProtocolConfig: [marginProtocolConfig, MarginFlowProtocolConfig],
       marginPoolRegistry: [
