@@ -4,19 +4,15 @@ import BN from 'bn.js';
 
 import {
   SimplePriceOracleInstance,
-  TestMarginFlowProtocolInstance,
-  MarginFlowProtocolSafetyInstance,
-  MarginFlowProtocolLiquidatedInstance,
-  MarginFlowProtocolAccPositionsInstance,
   MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
-  MarginLiquidityPoolRegistryInstance,
   TestTokenInstance,
   MoneyMarketInstance,
 } from 'types/truffle-contracts';
 
 import {
   createTestToken,
+  createMarginProtocol,
   createMoneyMarket,
   fromPercent,
   dollar,
@@ -27,17 +23,12 @@ import {
 const Proxy = artifacts.require('Proxy');
 const MarginMarketLib = (artifacts as any).require('MarginMarketLib');
 const TestMarginFlowProtocol = artifacts.require('TestMarginFlowProtocol');
-const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
 const MarginFlowProtocolSafety = artifacts.require('MarginFlowProtocolSafety');
 const MarginFlowProtocolLiquidated = artifacts.require(
   'MarginFlowProtocolLiquidated',
 );
 const MarginFlowProtocolAccPositions = artifacts.require(
   'MarginFlowProtocolAccPositions',
-);
-const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
-const MarginLiquidityPoolRegistry = artifacts.require(
-  'MarginLiquidityPoolRegistry',
 );
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
@@ -51,12 +42,7 @@ contract('MarginFlowProtocolConfig', (accounts) => {
   const laminarTreasury = accounts[6];
 
   let oracle: SimplePriceOracleInstance;
-  let protocol: TestMarginFlowProtocolInstance;
-  let protocolSafety: MarginFlowProtocolSafetyInstance;
-  let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
-  let protocolAccPositions: MarginFlowProtocolAccPositionsInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
-  let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
   let usd: TestTokenInstance;
   let moneyMarket: MoneyMarketInstance;
@@ -103,117 +89,27 @@ contract('MarginFlowProtocolConfig', (accounts) => {
     );
     ({moneyMarket} = await createMoneyMarket(usd.address, fromPercent(100)));
 
-    const flowMarginProtocolImpl = await TestMarginFlowProtocol.new();
-    const flowMarginProtocolProxy = await Proxy.new();
-    await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
-    protocol = await TestMarginFlowProtocol.at(flowMarginProtocolProxy.address);
-
-    const flowMarginProtocolSafetyImpl = await MarginFlowProtocolSafety.new();
-    const flowMarginProtocolSafetyProxy = await Proxy.new();
-    await flowMarginProtocolSafetyProxy.upgradeTo(
-      flowMarginProtocolSafetyImpl.address,
-    );
-    protocolSafety = await MarginFlowProtocolSafety.at(
-      flowMarginProtocolSafetyProxy.address,
-    );
-
-    const flowMarginProtocolLiquidatedImpl = await MarginFlowProtocolLiquidated.new();
-    const flowMarginProtocolLiquidatedProxy = await Proxy.new();
-    await flowMarginProtocolLiquidatedProxy.upgradeTo(
-      flowMarginProtocolLiquidatedImpl.address,
-    );
-    protocolLiquidated = await MarginFlowProtocolLiquidated.at(
-      flowMarginProtocolLiquidatedProxy.address,
+    const marginProtocolContract = await createMarginProtocol(
+      TestMarginFlowProtocol,
+      MarginFlowProtocolAccPositions,
+      MarginFlowProtocolLiquidated,
+      MarginFlowProtocolSafety,
+      oracle,
+      moneyMarket,
+      laminarTreasury,
+      usd,
+      liquidityProvider,
+      alice,
+      bob,
+      eur,
+      jpy,
+      bn(28152000000000),
+      initialSwapRateLong,
+      initialSwapRateShort,
     );
 
-    const flowMarginProtocolAccPositionsImpl = await MarginFlowProtocolAccPositions.new();
-    const flowMarginProtocolAccPositionsProxy = await Proxy.new();
-    await flowMarginProtocolAccPositionsProxy.upgradeTo(
-      flowMarginProtocolAccPositionsImpl.address,
-    );
-    protocolAccPositions = await MarginFlowProtocolAccPositions.at(
-      flowMarginProtocolAccPositionsProxy.address,
-    );
-
-    const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
-    const flowMarginProtocolConfigProxy = await Proxy.new();
-    await flowMarginProtocolConfigProxy.upgradeTo(
-      flowMarginProtocolConfigImpl.address,
-    );
-    protocolConfig = await MarginFlowProtocolConfig.at(
-      flowMarginProtocolConfigProxy.address,
-    );
-
-    const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
-    const liquidityPoolRegistryProxy = await Proxy.new();
-    await liquidityPoolRegistryProxy.upgradeTo(
-      liquidityPoolRegistryImpl.address,
-    );
-    liquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
-      liquidityPoolRegistryProxy.address,
-    );
-
-    await (protocol as any).initialize(
-      // eslint-disable-line
-      oracle.address,
-      moneyMarket.address,
-      protocolConfig.address,
-      protocolSafety.address,
-      protocolLiquidated.address,
-      protocolAccPositions.address,
-      liquidityPoolRegistry.address,
-    );
-    const market = await protocol.market();
-    await (protocolSafety as any).initialize(market, laminarTreasury);
-    await (protocolConfig as any).initialize(
-      dollar('0.1'),
-      fromPercent(5),
-      fromPercent(2),
-      fromPercent(50),
-      fromPercent(10),
-      fromPercent(20),
-      fromPercent(2),
-    );
-
-    await (protocolAccPositions as any).methods[
-      'initialize((address,address,address,address,address,address,address,address,address))'
-    ](market);
-    await (protocolLiquidated as any).methods[
-      'initialize((address,address,address,address,address,address,address,address,address))'
-    ](market);
-    await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address,address,address))'
-    ](market);
-
-    const liquidityPoolImpl = await MarginLiquidityPool.new();
-    const liquidityPoolProxy = await Proxy.new();
-    await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    liquidityPool = await MarginLiquidityPool.at(liquidityPoolProxy.address);
-    await (liquidityPool as any).initialize(
-      moneyMarket.address,
-      protocol.address,
-      1,
-      50,
-      2,
-    );
-
-    await usd.approve(liquidityPool.address, dollar(20000), {
-      from: liquidityProvider,
-    });
-    await liquidityPool.depositLiquidity(dollar(20000), {
-      from: liquidityProvider,
-    });
-
-    const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
-      await protocolConfig.poolMarginCallDeposit(),
-    );
-    await usd.approve(liquidityPoolRegistry.address, feeSum, {
-      from: liquidityProvider,
-    });
-    await liquidityPoolRegistry.registerPool(liquidityPool.address, {
-      from: liquidityProvider,
-    });
-    await liquidityPoolRegistry.verifyPool(liquidityPool.address);
+    protocolConfig = marginProtocolContract.protocolConfig;
+    liquidityPool = marginProtocolContract.liquidityPool;
   });
 
   describe('when setting new parameters', () => {
