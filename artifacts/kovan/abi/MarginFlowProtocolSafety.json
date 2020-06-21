@@ -97,36 +97,6 @@
   },
   {
     "inputs": [],
-    "name": "TRADER_LIQUIDATION_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xcb323e0b"
-  },
-  {
-    "inputs": [],
-    "name": "TRADER_MARGIN_CALL_FEE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xb2d61c3d"
-  },
-  {
-    "inputs": [],
     "name": "laminarTreasury",
     "outputs": [
       {
@@ -219,11 +189,61 @@
     "signature": "0x0d3cc84c"
   },
   {
+    "inputs": [],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x8129fc1c"
+  },
+  {
     "inputs": [
       {
-        "internalType": "contract MarginFlowProtocol",
-        "name": "_marginProtocol",
-        "type": "address"
+        "components": [
+          {
+            "internalType": "contract MarginFlowProtocol",
+            "name": "marginProtocol",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MoneyMarketInterface",
+            "name": "moneyMarket",
+            "type": "address"
+          },
+          {
+            "internalType": "contract PriceOracleInterface",
+            "name": "oracle",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginFlowProtocolConfig",
+            "name": "config",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginFlowProtocolSafety",
+            "name": "protocolSafety",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginFlowProtocolLiquidated",
+            "name": "protocolLiquidated",
+            "type": "address"
+          },
+          {
+            "internalType": "contract MarginLiquidityPoolRegistry",
+            "name": "liquidityPoolRegistry",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "marketBaseToken",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct MarginMarketLib.MarketData",
+        "name": "_market",
+        "type": "tuple"
       },
       {
         "internalType": "address",
@@ -235,15 +255,7 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0x485cc955"
-  },
-  {
-    "inputs": [],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x8129fc1c"
+    "signature": "0xa596ddef"
   },
   {
     "inputs": [
@@ -274,13 +286,7 @@
       }
     ],
     "name": "payTraderDeposits",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x8bbb3f7e"
@@ -294,13 +300,7 @@
       }
     ],
     "name": "withdrawTraderDeposits",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
+    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x86278228"
@@ -545,5 +545,53 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x4dd283b2"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_paidMarginITokens",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_paidLiquidationITokens",
+        "type": "uint256"
+      }
+    ],
+    "name": "__markTraderDepositsAsPaid",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x0b226ca7"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_trader",
+        "type": "address"
+      }
+    ],
+    "name": "__withdrawTraderDeposits",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x2cbba262"
   }
 ]

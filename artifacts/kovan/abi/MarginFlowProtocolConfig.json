@@ -50,25 +50,20 @@
         "internalType": "address",
         "name": "",
         "type": "address"
-      },
-      {
-        "internalType": "enum MarginFlowProtocolConfig.PositionType",
-        "name": "",
-        "type": "uint8"
       }
     ],
-    "name": "currentSwapRates",
+    "name": "currentSwapUnits",
     "outputs": [
       {
-        "internalType": "int256",
-        "name": "value",
-        "type": "int256"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
     "type": "function",
     "constant": true,
-    "signature": "0xf98c25f7"
+    "signature": "0x97e2d2de"
   },
   {
     "inputs": [],
@@ -147,21 +142,6 @@
   },
   {
     "inputs": [],
-    "name": "maxLeverage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xae3302c2"
-  },
-  {
-    "inputs": [],
     "name": "maxSpread",
     "outputs": [
       {
@@ -174,36 +154,6 @@
     "type": "function",
     "constant": true,
     "signature": "0x796e8f90"
-  },
-  {
-    "inputs": [],
-    "name": "minLeverage",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x20f6f76f"
-  },
-  {
-    "inputs": [],
-    "name": "minLeverageAmount",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0xd2f12905"
   },
   {
     "inputs": [],
@@ -222,15 +172,7 @@
   },
   {
     "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x715018a6"
-  },
-  {
-    "inputs": [],
-    "name": "swapRateUnit",
+    "name": "poolLiquidationDeposit",
     "outputs": [
       {
         "internalType": "uint256",
@@ -241,7 +183,60 @@
     "stateMutability": "view",
     "type": "function",
     "constant": true,
-    "signature": "0x63829e9d"
+    "signature": "0x25f0f890"
+  },
+  {
+    "inputs": [],
+    "name": "poolMarginCallDeposit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x40684a4a"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0x715018a6"
+  },
+  {
+    "inputs": [],
+    "name": "traderLiquidationDeposit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x94b803fe"
+  },
+  {
+    "inputs": [],
+    "name": "traderMarginCallDeposit",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xe9488735"
   },
   {
     "inputs": [],
@@ -316,42 +311,8 @@
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xc4d66de8"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "uint256",
         "name": "_maxSpread",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialMinLeverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialMaxLeverage",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_initialMinLeverageAmount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_swapRateUnit",
         "type": "uint256"
       },
       {
@@ -389,7 +350,21 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0xcc841348"
+    "signature": "0xb6610ace"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "sender",
+        "type": "address"
+      }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xc4d66de8"
   },
   {
     "inputs": [
@@ -424,48 +399,6 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_newMinLeverage",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMinLeverage",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xa5489297"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newMaxLeverage",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMaxLeverage",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xd3127e63"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_newMinLeverageAmount",
-        "type": "uint256"
-      }
-    ],
-    "name": "setMinLeverageAmount",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x8eeca6b9"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
         "name": "_maxSpread",
         "type": "uint256"
       }
@@ -489,6 +422,11 @@
         "type": "address"
       },
       {
+        "internalType": "uint256",
+        "name": "_swapUnit",
+        "type": "uint256"
+      },
+      {
         "internalType": "int256",
         "name": "_swapRateLong",
         "type": "int256"
@@ -503,7 +441,7 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0x99b713c1"
+    "signature": "0x2144fb42"
   },
   {
     "inputs": [
@@ -615,5 +553,55 @@
     "type": "function",
     "constant": true,
     "signature": "0xcd2ce4ae"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      },
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "base",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "quote",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct MarginFlowProtocol.TradingPair",
+        "name": "_pair",
+        "type": "tuple"
+      },
+      {
+        "internalType": "enum MarginFlowProtocolConfig.PositionType",
+        "name": "_type",
+        "type": "uint8"
+      }
+    ],
+    "name": "getCurrentTotalSwapRateForPoolAndPair",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "int256",
+            "name": "value",
+            "type": "int256"
+          }
+        ],
+        "internalType": "struct Percentage.SignedPercent",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xee65fad9"
   }
 ]
