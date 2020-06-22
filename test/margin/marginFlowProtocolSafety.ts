@@ -1591,7 +1591,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       });
     });
 
-    describe('when the pool has 100 positions', () => {
+    describe.skip('when the pool has 100 positions', () => {
       beforeEach(async function testSetup() {
         this.timeout(0);
 
