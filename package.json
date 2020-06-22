@@ -3,7 +3,7 @@
   "files": [
     "artifacts"
   ],
-  "version": "0.0.7",
+  "version": "0.0.12",
   "author": "Bryan Chen <bryan@laminar.one>",
   "private": false
 }
