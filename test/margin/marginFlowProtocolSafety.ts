@@ -582,7 +582,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
     });
 
     describe('when trader is above liquidation threshold', () => {
-      it('does not allow liquidating of trader', async () => {
+      it('does not allow liquidation of trader', async () => {
         await expectRevert(
           protocolSafety.liquidateTrader(liquidityPool.address, alice, {
             from: bob,
@@ -591,10 +591,10 @@ contract('MarginFlowProtocolSafety', (accounts) => {
         );
       });
 
-      it('does not allow calling force close position', async () => {
+      it.only('does not allow calling force close position', async () => {
         await expectRevert(
-          protocolLiquidated.closePositionForLiquidatedTrader(9, 0, 0, {
-            from: bob,
+          protocolLiquidated.closePositionForLiquidatedTrader(0, 0, 0, {
+            from: alice,
           }),
           messages.onlyForLiquidatedPoolsOrTraders,
         );
