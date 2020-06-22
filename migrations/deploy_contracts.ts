@@ -94,6 +94,7 @@ const readDeploymentConfig = (network: Network) => {
     oracles: {},
     margin: {
       config: {
+        maxTradingPairCount: '',
         maxSpread: '',
         traderMarginCall: '',
         traderStopOut: '',
@@ -495,6 +496,7 @@ module.exports = (artifacts: Truffle.Artifacts, web3: Web3) => {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     await (marginProtocolConfig as any).initialize(
       floatUsdToWei(marginConfig.maxSpread),
+      marginConfig.maxTradingPairCount,
       percentageToWei(marginConfig.traderMarginCall),
       percentageToWei(marginConfig.traderStopOut),
       percentageToWei(marginConfig.enpMarginCall),

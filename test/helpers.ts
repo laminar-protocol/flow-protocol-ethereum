@@ -175,6 +175,7 @@ export async function createMarginProtocol(
   await (protocolSafety as any).initialize(market, laminarTreasury);
   await (protocolConfig as any).initialize(
     dollar('0.1'),
+    25,
     initialTraderRiskMarginCallThreshold,
     initialTraderRiskLiquidateThreshold,
     initialLiquidityPoolENPMarginThreshold,

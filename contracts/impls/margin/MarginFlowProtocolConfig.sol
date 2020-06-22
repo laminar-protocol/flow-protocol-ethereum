@@ -27,6 +27,7 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
     uint256 public poolMarginCallDeposit;
     uint256 public poolLiquidationDeposit;
     uint256 public maxSpread;
+    uint256 public maxTradingPairCount;
 
     mapping(address => mapping(address => uint256)) public currentSwapUnits;
     mapping(address => mapping(address => mapping(PositionType => int256))) private currentSwapRates;
@@ -43,6 +44,7 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
 
     function initialize(
         uint256 _maxSpread,
+        uint256 _maxTradingPairCount,
         uint256 _initialTraderRiskMarginCallThreshold,
         uint256 _initialTraderRiskLiquidateThreshold,
         uint256 _initialLiquidityPoolENPMarginThreshold,
@@ -53,6 +55,7 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
         OwnableUpgradeSafe.__Ownable_init();
 
         maxSpread = _maxSpread;
+        maxTradingPairCount = _maxTradingPairCount;
 
         liquidityPoolENPMarginThreshold = _initialLiquidityPoolENPMarginThreshold;
         liquidityPoolELLMarginThreshold = _initialLiquidityPoolELLMarginThreshold;
@@ -84,6 +87,10 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
         maxSpread = _maxSpread;
     }
 
+    function setMaxTradingPairCount(uint256 _maxTradingPairCount) external onlyOwner {
+        maxTradingPairCount = _maxTradingPairCount;
+    }
+
     /**
      * @dev Add new trading pair, only for the owner.
      * @param _base The base token.
@@ -109,6 +116,7 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
         tradingPairWhitelist[_base][_quote] = true;
 
         tradingPairs.push(MarginFlowProtocol.TradingPair(_base, _quote));
+        require(tradingPairs.length <= maxTradingPairCount, "TP4");
 
         emit NewTradingPair(_base, _quote);
     }

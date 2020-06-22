@@ -148,6 +148,7 @@ contract('MarginLiquidityPoolRegistry', (accounts) => {
     await (protocolSafety as any).initialize(market, constants.ZERO_ADDRESS);
     await (protocolConfig as any).initialize(
       dollar('0.1'),
+      25,
       fromPercent(5),
       fromPercent(2),
       fromPercent(50),
