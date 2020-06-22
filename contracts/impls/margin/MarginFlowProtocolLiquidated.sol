@@ -109,8 +109,8 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
     ) external nonReentrant returns (int256) {
         MarginFlowProtocol.Position memory position = market.marginProtocol.getPositionById(_positionId);
 
-        require(stoppedTradersInPool[position.pool][msg.sender], "CPL1");
         require(position.owner == msg.sender, "CPL2");
+        require(stoppedTradersInPool[position.pool][msg.sender], "CPL1");
 
         uint256 bidSpread = traderBidSpreads[position.pool][msg.sender][position.pair.base][position.pair.quote];
         uint256 askSpread = traderAskSpreads[position.pool][msg.sender][position.pair.base][position.pair.quote];

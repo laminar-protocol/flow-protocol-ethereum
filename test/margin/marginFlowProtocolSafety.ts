@@ -1,4 +1,4 @@
-import {expectRevert, constants, time} from 'openzeppelin-test-helpers';
+import {expectRevert, time} from 'openzeppelin-test-helpers';
 import {expect} from 'chai';
 import BN from 'bn.js';
 
@@ -7,7 +7,6 @@ import {
   TestMarginFlowProtocolInstance,
   MarginFlowProtocolSafetyInstance,
   MarginFlowProtocolLiquidatedInstance,
-  MarginFlowProtocolAccPositionsInstance,
   MarginFlowProtocolConfigInstance,
   MarginLiquidityPoolInstance,
   MarginLiquidityPoolRegistryInstance,
@@ -28,6 +27,7 @@ import {
   bn,
   messages,
   convertFromBaseToken,
+  createMarginProtocol,
 } from '../helpers';
 
 const Proxy = artifacts.require('Proxy');
@@ -39,11 +39,6 @@ const MarginFlowProtocolLiquidated = artifacts.require(
 );
 const MarginFlowProtocolAccPositions = artifacts.require(
   'MarginFlowProtocolAccPositions',
-);
-const MarginFlowProtocolConfig = artifacts.require('MarginFlowProtocolConfig');
-const MarginLiquidityPool = artifacts.require('MarginLiquidityPool');
-const MarginLiquidityPoolRegistry = artifacts.require(
-  'MarginLiquidityPoolRegistry',
 );
 const SimplePriceOracle = artifacts.require('SimplePriceOracle');
 
@@ -61,7 +56,6 @@ contract('MarginFlowProtocolSafety', (accounts) => {
   let protocol: TestMarginFlowProtocolInstance;
   let protocolSafety: MarginFlowProtocolSafetyInstance;
   let protocolLiquidated: MarginFlowProtocolLiquidatedInstance;
-  let protocolAccPositions: MarginFlowProtocolAccPositionsInstance;
   let protocolConfig: MarginFlowProtocolConfigInstance;
   let liquidityPoolRegistry: MarginLiquidityPoolRegistryInstance;
   let liquidityPool: MarginLiquidityPoolInstance;
@@ -142,70 +136,23 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       fromPercent(100),
     ));
 
-    const flowMarginProtocolImpl = await TestMarginFlowProtocol.new();
-    const flowMarginProtocolProxy = await Proxy.new();
-    await flowMarginProtocolProxy.upgradeTo(flowMarginProtocolImpl.address);
-    protocol = await TestMarginFlowProtocol.at(flowMarginProtocolProxy.address);
-
-    const flowMarginProtocolSafetyImpl = await MarginFlowProtocolSafety.new();
-    const flowMarginProtocolSafetyProxy = await Proxy.new();
-    await flowMarginProtocolSafetyProxy.upgradeTo(
-      flowMarginProtocolSafetyImpl.address,
-    );
-    protocolSafety = await MarginFlowProtocolSafety.at(
-      flowMarginProtocolSafetyProxy.address,
-    );
-
-    const flowMarginProtocolLiquidatedImpl = await MarginFlowProtocolLiquidated.new();
-    const flowMarginProtocolLiquidatedProxy = await Proxy.new();
-    await flowMarginProtocolLiquidatedProxy.upgradeTo(
-      flowMarginProtocolLiquidatedImpl.address,
-    );
-    protocolLiquidated = await MarginFlowProtocolLiquidated.at(
-      flowMarginProtocolLiquidatedProxy.address,
-    );
-
-    const flowMarginProtocolAccPositionsImpl = await MarginFlowProtocolAccPositions.new();
-    const flowMarginProtocolAccPositionsProxy = await Proxy.new();
-    await flowMarginProtocolAccPositionsProxy.upgradeTo(
-      flowMarginProtocolAccPositionsImpl.address,
-    );
-    protocolAccPositions = await MarginFlowProtocolAccPositions.at(
-      flowMarginProtocolAccPositionsProxy.address,
-    );
-
-    const flowMarginProtocolConfigImpl = await MarginFlowProtocolConfig.new();
-    const flowMarginProtocolConfigProxy = await Proxy.new();
-    await flowMarginProtocolConfigProxy.upgradeTo(
-      flowMarginProtocolConfigImpl.address,
-    );
-    protocolConfig = await MarginFlowProtocolConfig.at(
-      flowMarginProtocolConfigProxy.address,
-    );
-
-    const liquidityPoolRegistryImpl = await MarginLiquidityPoolRegistry.new();
-    const liquidityPoolRegistryProxy = await Proxy.new();
-    await liquidityPoolRegistryProxy.upgradeTo(
-      liquidityPoolRegistryImpl.address,
-    );
-    liquidityPoolRegistry = await MarginLiquidityPoolRegistry.at(
-      liquidityPoolRegistryProxy.address,
-    );
-
-    await (protocol as any).initialize(
-      // eslint-disable-line
-      oracle.address,
-      moneyMarket.address,
-      protocolConfig.address,
-      protocolSafety.address,
-      protocolLiquidated.address,
-      protocolAccPositions.address,
-      liquidityPoolRegistry.address,
-    );
-    const market = await protocol.market();
-    await (protocolSafety as any).initialize(market, laminarTreasury);
-    await (protocolConfig as any).initialize(
-      dollar('0.1'),
+    const marginProtocolContract = await createMarginProtocol(
+      TestMarginFlowProtocol,
+      MarginFlowProtocolAccPositions,
+      MarginFlowProtocolLiquidated,
+      MarginFlowProtocolSafety,
+      oracle,
+      moneyMarket,
+      laminarTreasury,
+      usd,
+      liquidityProvider,
+      alice,
+      bob,
+      eur,
+      jpy,
+      initialSpread,
+      fromPercent(1),
+      fromPercent(-1),
       initialTraderRiskMarginCallThreshold,
       initialTraderRiskLiquidateThreshold,
       initialLiquidityPoolENPMarginThreshold,
@@ -214,85 +161,18 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       initialLiquidityPoolELLLiquidateThreshold,
     );
 
-    await (protocolAccPositions as any).methods[
-      'initialize((address,address,address,address,address,address,address,address,address))'
-    ](market);
-    await (protocolLiquidated as any).methods[
-      'initialize((address,address,address,address,address,address,address,address,address))'
-    ](market);
-    await (liquidityPoolRegistry as any).methods[
-      'initialize((address,address,address,address,address,address,address,address,address))'
-    ](market);
-
-    await usd.approve(protocol.address, constants.MAX_UINT256, {
-      from: alice,
-    });
-    await usd.approve(protocol.address, constants.MAX_UINT256, {
-      from: bob,
-    });
-    await usd.approve(protocolSafety.address, constants.MAX_UINT256, {
-      from: alice,
-    });
-    await usd.approve(protocolSafety.address, constants.MAX_UINT256, {
-      from: bob,
-    });
-    await usd.approve(moneyMarket.address, constants.MAX_UINT256, {
-      from: liquidityProvider,
-    });
-
-    const liquidityPoolImpl = await MarginLiquidityPool.new();
-    const liquidityPoolProxy = await Proxy.new();
-    await liquidityPoolProxy.upgradeTo(liquidityPoolImpl.address);
-    liquidityPool = await MarginLiquidityPool.at(liquidityPoolProxy.address);
-    await (liquidityPool as any).initialize(
-      moneyMarket.address,
-      protocol.address, // need 3 pools or only use first one for withdraw tests
-      1,
-      50,
-      2,
-    );
-
-    await liquidityPool.approveToProtocol(constants.MAX_UINT256);
-    await usd.approve(liquidityPool.address, constants.MAX_UINT256);
-    await liquidityPool.enableToken(usd.address, eur, initialSpread, 0);
-    await liquidityPool.enableToken(eur, usd.address, initialSpread, 0);
-
-    await usd.approve(liquidityPool.address, dollar(20000), {
-      from: liquidityProvider,
-    });
-    await liquidityPool.depositLiquidity(dollar(20000), {
-      from: liquidityProvider,
-    });
-
-    const feeSum = (await protocolConfig.poolLiquidationDeposit()).add(
-      await protocolConfig.poolMarginCallDeposit(),
-    );
-    await usd.approve(liquidityPoolRegistry.address, feeSum, {
-      from: liquidityProvider,
-    });
-    await liquidityPoolRegistry.registerPool(liquidityPool.address, {
-      from: liquidityProvider,
-    });
-    await liquidityPoolRegistry.verifyPool(liquidityPool.address);
-    await protocolConfig.addTradingPair(
-      usd.address,
-      eur,
-      60 * 60 * 8, // 8 hours
-      fromPercent(-2),
-      fromPercent(-2),
-    );
-
-    await protocolSafety.payTraderDeposits(liquidityPool.address, {
-      from: alice,
-    });
-    await protocolSafety.payTraderDeposits(liquidityPool.address, {
-      from: bob,
-    });
+    protocol = marginProtocolContract.protocol;
+    protocolConfig = marginProtocolContract.protocolConfig;
+    protocolSafety = marginProtocolContract.protocolSafety;
+    protocolLiquidated = marginProtocolContract.protocolLiquidated;
+    liquidityPoolRegistry = marginProtocolContract.liquidityPoolRegistry;
+    liquidityPool = marginProtocolContract.liquidityPool;
 
     await oracle.feedPrice(usd.address, initialUsdPrice, {
       from: owner,
     });
     await oracle.feedPrice(eur, initialEurPrice, {from: owner});
+    await oracle.feedPrice(jpy, initialEurPrice, {from: owner});
   });
 
   const setUpMultipleTradingPairPositions = async () => {
@@ -702,7 +582,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
     });
 
     describe('when trader is above liquidation threshold', () => {
-      it('does not allow liquidating of trader', async () => {
+      it('does not allow liquidation of trader', async () => {
         await expectRevert(
           protocolSafety.liquidateTrader(liquidityPool.address, alice, {
             from: bob,
@@ -711,10 +591,10 @@ contract('MarginFlowProtocolSafety', (accounts) => {
         );
       });
 
-      it('does not allow calling force close position', async () => {
+      it.only('does not allow calling force close position', async () => {
         await expectRevert(
-          protocolLiquidated.closePositionForLiquidatedTrader(9, 0, 0, {
-            from: bob,
+          protocolLiquidated.closePositionForLiquidatedTrader(0, 0, 0, {
+            from: alice,
           }),
           messages.onlyForLiquidatedPoolsOrTraders,
         );
@@ -1711,7 +1591,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
       });
     });
 
-    describe('when the pool has 100 positions', () => {
+    describe.skip('when the pool has 100 positions', () => {
       beforeEach(async function testSetup() {
         this.timeout(0);
 
