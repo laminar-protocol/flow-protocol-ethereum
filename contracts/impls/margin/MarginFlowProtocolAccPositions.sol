@@ -44,8 +44,6 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
         public poolShortPositionAccPerPair;
 
     // traders
-
-    mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) public traderPositionAccUsd;
     mapping(MarginLiquidityPoolInterface => mapping(address => uint256)) public traderPositionAccMarginHeld;
     mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping(address => mapping(CurrencyType => uint256)))))
         public traderLongPositionAccPerPair;
@@ -78,9 +76,7 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
                     poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.BASE],
                     poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE],
                     poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.QUOTE]
-                ],
-                poolLongPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD],
-                poolShortPositionAccPerPair[_pool][_pair.base][_pair.quote][CurrencyType.USD]
+                ]
             );
     }
 
@@ -102,6 +98,19 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
             );
     }
 
+    function getPairTraderNet(
+        MarginLiquidityPoolInterface _pool,
+        address _trader,
+        MarginFlowProtocol.TradingPair calldata _pair
+    ) external returns (uint256) {
+        return
+            market.getNet(
+                _pair,
+                traderLongPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.QUOTE],
+                traderShortPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.QUOTE]
+            );
+    }
+
     function __updateAccumulatedPositions(MarginFlowProtocol.Position memory _position, bool _isAddition) external {
         require(msg.sender == address(market.marginProtocol), "P1");
 
@@ -112,51 +121,17 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
 
         uint256 leveragedHeld = _position.leverage > 0 ? uint256(_position.leveragedHeld) : uint256(-_position.leveragedHeld);
         uint256 leveragedDebits = _position.leverage > 0 ? uint256(-_position.leveragedDebits) : uint256(_position.leveragedDebits);
-        uint256 leveragedDebitsInUsd = _position.leverage > 0 ? uint256(-_position.leveragedDebitsInUsd) : uint256(_position.leveragedDebitsInUsd);
 
         traderPositionAccMarginHeld[pool][owner] = _isAddition
             ? traderPositionAccMarginHeld[pool][owner].add(_position.marginHeld)
             : traderPositionAccMarginHeld[pool][owner].sub(_position.marginHeld);
-        traderPositionAccUsd[pool][owner] = _isAddition
-            ? traderPositionAccUsd[pool][owner].add(leveragedDebitsInUsd)
-            : traderPositionAccUsd[pool][owner].sub(leveragedDebitsInUsd);
 
         if (_isAddition && _position.leverage > 0) {
-            _addToAccPositions(
-                poolLongPositionAccPerPair,
-                traderLongPositionAccPerPair,
-                pool,
-                owner,
-                base,
-                quote,
-                leveragedHeld,
-                leveragedDebits,
-                leveragedDebitsInUsd
-            );
+            _addToAccPositions(poolLongPositionAccPerPair, traderLongPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits);
         } else if (_isAddition) {
-            _addToAccPositions(
-                poolShortPositionAccPerPair,
-                traderShortPositionAccPerPair,
-                pool,
-                owner,
-                base,
-                quote,
-                leveragedHeld,
-                leveragedDebits,
-                leveragedDebitsInUsd
-            );
+            _addToAccPositions(poolShortPositionAccPerPair, traderShortPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits);
         } else if (_position.leverage > 0) {
-            _subFromAccPositions(
-                poolLongPositionAccPerPair,
-                traderLongPositionAccPerPair,
-                pool,
-                owner,
-                base,
-                quote,
-                leveragedHeld,
-                leveragedDebits,
-                leveragedDebitsInUsd
-            );
+            _subFromAccPositions(poolLongPositionAccPerPair, traderLongPositionAccPerPair, pool, owner, base, quote, leveragedHeld, leveragedDebits);
         } else {
             _subFromAccPositions(
                 poolShortPositionAccPerPair,
@@ -166,8 +141,7 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
                 base,
                 quote,
                 leveragedHeld,
-                leveragedDebits,
-                leveragedDebitsInUsd
+                leveragedDebits
             );
         }
     }
@@ -181,17 +155,14 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
         address _base,
         address _quote,
         uint256 _leveragedHeld,
-        uint256 _leveragedDebits,
-        uint256 _leveragedDebitsInUsd
+        uint256 _leveragedDebits
     ) private {
-        _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE] = _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE].add(_leveragedHeld);
-        _poolPositions[_pool][_base][_quote][CurrencyType.BASE] = _poolPositions[_pool][_base][_quote][CurrencyType.BASE].add(_leveragedDebits);
-        _poolPositions[_pool][_base][_quote][CurrencyType.USD] = _poolPositions[_pool][_base][_quote][CurrencyType.USD].add(_leveragedDebitsInUsd);
-
-        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE].add(
+        _poolPositions[_pool][_base][_quote][CurrencyType.BASE] = _poolPositions[_pool][_base][_quote][CurrencyType.BASE].add(_leveragedHeld);
+        _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE] = _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE].add(_leveragedDebits);
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].add(
             _leveragedHeld
         );
-        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].add(
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE].add(
             _leveragedDebits
         );
     }
@@ -205,17 +176,14 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
         address _base,
         address _quote,
         uint256 _leveragedHeld,
-        uint256 _leveragedDebits,
-        uint256 _leveragedDebitsInUsd
+        uint256 _leveragedDebits
     ) private {
-        _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE] = _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE].sub(_leveragedHeld);
-        _poolPositions[_pool][_base][_quote][CurrencyType.BASE] = _poolPositions[_pool][_base][_quote][CurrencyType.BASE].sub(_leveragedDebits);
-        _poolPositions[_pool][_base][_quote][CurrencyType.USD] = _poolPositions[_pool][_base][_quote][CurrencyType.USD].sub(_leveragedDebitsInUsd);
-
-        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE].sub(
+        _poolPositions[_pool][_base][_quote][CurrencyType.BASE] = _poolPositions[_pool][_base][_quote][CurrencyType.BASE].sub(_leveragedHeld);
+        _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE] = _poolPositions[_pool][_base][_quote][CurrencyType.QUOTE].sub(_leveragedDebits);
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].sub(
             _leveragedHeld
         );
-        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.BASE].sub(
+        _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE] = _traderPositions[_pool][_owner][_base][_quote][CurrencyType.QUOTE].sub(
             _leveragedDebits
         );
     }

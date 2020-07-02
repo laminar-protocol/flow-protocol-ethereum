@@ -41,9 +41,9 @@ library MarginMarketLib {
         address _currencyToken,
         int256 _amount
     ) public returns (int256) {
-        Percentage.Percent memory price = getPriceForPair(self, _currencyToken, self.marketBaseToken);
+        Percentage.SignedPercent memory currencyPrice = Percentage.SignedPercent(int256(getPrice(self, _currencyToken)));
 
-        return _amount.signedMulPercent(Percentage.SignedPercent(int256(price.value)));
+        return _amount.signedMulPercent(currencyPrice);
     }
 
     // The price from oracle.
@@ -158,6 +158,22 @@ library MarginMarketLib {
         return _traderBalance.add(unrealized);
     }
 
+    function getLeveragedDebitsOfTraderInUsd(
+        MarketData storage self,
+        MarginLiquidityPoolInterface _pool,
+        address _trader
+    ) public returns (uint256) {
+        MarginFlowProtocol.TradingPair[] memory pairs = self.config.getTradingPairs();
+        uint256 net = 0;
+
+        for (uint256 i = 0; i < pairs.length; i++) {
+            uint256 netPair = self.protocolAcc.getPairTraderNet(_pool, _trader, pairs[i]);
+            net = net.add(netPair);
+        }
+
+        return self.moneyMarket.convertAmountFromBase(net);
+    }
+
     function getExactFreeMargin(
         MarketData storage self,
         MarginFlowProtocol.Position[] memory _positions,
@@ -219,17 +235,15 @@ library MarginMarketLib {
         Percentage.Percent memory price = position.leverage > 0
             ? getAskPrice(self, position.pool, position.pair, 0)
             : getBidPrice(self, position.pool, position.pair, 0);
-        Percentage.Percent memory usdPairPrice = getPriceForPair(self, position.pair.quote, self.marketBaseToken);
 
-        return getAccumulatedSwapRateOfPositionUntilDate(self, position, now, price, usdPairPrice);
+        return getAccumulatedSwapRateOfPositionUntilDate(self, position, now, price);
     }
 
     function getAccumulatedSwapRateOfPositionUntilDate(
         MarketData storage self,
         MarginFlowProtocol.Position memory _position,
         uint256 _time,
-        Percentage.Percent memory _price,
-        Percentage.Percent memory _usdPairPrice
+        Percentage.Percent memory _price
     ) public view returns (int256) {
         uint256 swapRateUnit = self.config.currentSwapUnits(_position.pair.base, _position.pair.quote);
         uint256 timeDeltaInSeconds = _time.sub(_position.timeWhenOpened);
@@ -239,9 +253,8 @@ library MarginMarketLib {
         Percentage.Percent memory swapRate = _position.swapRate.value >= 0
             ? Percentage.Percent(uint256(_position.swapRate.value))
             : Percentage.Percent(uint256(-_position.swapRate.value));
-        uint256 accumulatedSwapRateInBase = leveragedHeldAbs.mul(timeUnitsSinceOpen).mulPercent(_price).mulPercent(swapRate);
-        uint256 accumulatedSwapRateInUsd = accumulatedSwapRateInBase.mulPercent(_usdPairPrice);
-        int256 signedSwapRate = _position.swapRate.value >= 0 ? int256(accumulatedSwapRateInUsd) : int256(-accumulatedSwapRateInUsd);
+        uint256 accumulatedSwapRate = leveragedHeldAbs.mul(timeUnitsSinceOpen).mulPercent(_price).mulPercent(swapRate);
+        int256 signedSwapRate = _position.swapRate.value >= 0 ? int256(accumulatedSwapRate) : int256(-accumulatedSwapRate);
 
         return self.moneyMarket.convertAmountFromBase(signedSwapRate);
     }
@@ -293,14 +306,23 @@ library MarginMarketLib {
         MarginFlowProtocol.TradingPair memory _pair,
         uint256[4] memory _pairValues
     ) public returns (int256) {
-        (int256 longUnrealized, ) = _pairValues[2] > 0
-            ? getUnrealizedPlForParams(self, _pool, _pair, int256(_pairValues[0]).mul(-1), int256(_pairValues[2]), 1, 0)
+        (int256 longUnrealized, ) = _pairValues[0] > 0
+            ? getUnrealizedPlForParams(self, _pool, _pair, int256(_pairValues[2]).mul(-1), int256(_pairValues[0]), 1, 0)
             : (int256(0), Percentage.Percent(0));
-        (int256 shortUnrealized, ) = _pairValues[3] > 0
-            ? getUnrealizedPlForParams(self, _pool, _pair, int256(_pairValues[1]), int256(_pairValues[3]).mul(-1), -1, 0)
+        (int256 shortUnrealized, ) = _pairValues[1] > 0
+            ? getUnrealizedPlForParams(self, _pool, _pair, int256(_pairValues[3]), int256(_pairValues[1]).mul(-1), -1, 0)
             : (int256(0), Percentage.Percent(0));
 
         return longUnrealized.add(shortUnrealized);
+    }
+
+    function getNet(
+        MarketData storage self,
+        MarginFlowProtocol.TradingPair memory _pair,
+        uint256 longQuote,
+        uint256 shortQuote
+    ) public returns (uint256) {
+        return uint256(getUsdValue(self, _pair.quote, int256(longQuote.add(shortQuote))));
     }
 
     function getUnrealizedPlForStoppedPoolOrTrader(
@@ -323,9 +345,7 @@ library MarginMarketLib {
         MarketData storage self,
         MarginLiquidityPoolInterface _pool,
         MarginFlowProtocol.TradingPair memory _pair,
-        uint256[4] memory _pairValues,
-        uint256 _longUsd,
-        uint256 _shortUsd
+        uint256[4] memory _pairValues
     )
         public
         returns (
@@ -334,14 +354,13 @@ library MarginMarketLib {
             int256
         )
     {
-        Percentage.Percent memory basePrice = Percentage.Percent(getPrice(self, address(self.moneyMarket.baseToken())));
+        uint256 netLong = self.moneyMarket.convertAmountFromBase(uint256(getUsdValue(self, _pair.quote, int256(_pairValues[2]))));
+        uint256 netShort = self.moneyMarket.convertAmountFromBase(uint256(getUsdValue(self, _pair.quote, int256(_pairValues[3]))));
+        uint256 longestLeg = Math.max(netLong, netShort);
 
-        uint256 net = (_longUsd > _shortUsd ? uint256(int256(_longUsd).sub(int256(_shortUsd))) : uint256(-(int256(_longUsd).sub(int256(_shortUsd)))))
-            .mulPercent(basePrice);
-        uint256 longestLeg = Math.max(_longUsd, _shortUsd).mulPercent(basePrice);
-
+        uint256 net = netLong.add(netShort);
         int256 unrealized = getUnrealizedForPair(self, _pool, _pair, _pairValues);
 
-        return (self.moneyMarket.convertAmountFromBase(net), self.moneyMarket.convertAmountFromBase(longestLeg), unrealized);
+        return (net, longestLeg, unrealized);
     }
 }

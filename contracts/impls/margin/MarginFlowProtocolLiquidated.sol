@@ -218,7 +218,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocolAccPositions.CurrencyType.BASE
+                    MarginFlowProtocolAccPositions.CurrencyType.QUOTE
                 )
             );
             int256 longPairQuote = int256(
@@ -227,7 +227,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocolAccPositions.CurrencyType.QUOTE
+                    MarginFlowProtocolAccPositions.CurrencyType.BASE
                 )
             );
             int256 shortPairBase = int256(
@@ -236,7 +236,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocolAccPositions.CurrencyType.BASE
+                    MarginFlowProtocolAccPositions.CurrencyType.QUOTE
                 )
             );
             int256 shortPairQuote = int256(
@@ -245,7 +245,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
                     _trader,
                     tradingPairs[i].base,
                     tradingPairs[i].quote,
-                    MarginFlowProtocolAccPositions.CurrencyType.QUOTE
+                    MarginFlowProtocolAccPositions.CurrencyType.BASE
                 )
             );
 
@@ -279,7 +279,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
             _position.leveragedDebits,
             _position.leveragedHeld
         );
-        int256 swapRates = market.getAccumulatedSwapRateOfPositionUntilDate(_position, poolClosingTimes[_position.pool], _openPrice, _usdPairPrice);
+        int256 swapRates = market.getAccumulatedSwapRateOfPositionUntilDate(_position, poolClosingTimes[_position.pool], _openPrice);
         int256 totalUnrealized = unrealized.add(swapRates);
 
         int256 storedTraderEquity = getEstimatedEquityOfTrader(_position.pool, _position.owner, _usdPairPrice, _closePrice);
@@ -305,12 +305,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         }
         {
             totalUnrealized = totalUnrealized.add(
-                market.getAccumulatedSwapRateOfPositionUntilDate(
-                    _position,
-                    traderClosingTimes[_position.pool][_position.owner],
-                    _openPrice,
-                    _usdPairPrice
-                )
+                market.getAccumulatedSwapRateOfPositionUntilDate(_position, traderClosingTimes[_position.pool][_position.owner], _openPrice)
             );
         }
 

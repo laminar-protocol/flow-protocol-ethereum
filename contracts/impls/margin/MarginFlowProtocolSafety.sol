@@ -252,7 +252,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     // Margin level of a given user.
     function getMarginLevel(MarginLiquidityPoolInterface _pool, address _trader) public returns (Percentage.SignedPercent memory) {
         int256 equity = market.getEstimatedEquityOfTrader(_pool, _trader, market.marginProtocol.balances(_pool, _trader));
-        uint256 leveragedDebitsITokens = market.moneyMarket.convertAmountFromBase(market.protocolAcc.traderPositionAccUsd(_pool, _trader));
+        uint256 leveragedDebitsITokens = market.getLeveragedDebitsOfTraderInUsd(_pool, _trader);
 
         if (leveragedDebitsITokens == 0) {
             return Percentage.SignedPercent(MAX_INT);
@@ -290,23 +290,9 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
 
         uint256 netAbs = net >= 0 ? uint256(net) : uint256(-net);
         Percentage.Percent memory enp = netAbs == 0 ? Percentage.Percent(MAX_UINT) : uint256(equity).fromFraction(netAbs);
-
         Percentage.Percent memory ell = longestLeg == 0 ? Percentage.Percent(MAX_UINT) : uint256(equity).fromFraction(longestLeg);
 
         return (enp, ell);
-    }
-
-    function getLeveragedDebitsOfTrader(MarginLiquidityPoolInterface _pool, address _trader) public view returns (uint256) {
-        uint256 accumulatedLeveragedDebits = uint256(0);
-        uint256 positionsLength = market.marginProtocol.getPositionsByPoolAndTraderLength(_pool, _trader);
-
-        for (uint256 i = 0; i < positionsLength; i++) {
-            int256 leveragedDebitsInUsd = market.marginProtocol.getLeveragedDebitsByPoolAndTraderAndIndex(_pool, _trader, i);
-            uint256 leveragedDebitsAbs = leveragedDebitsInUsd >= 0 ? uint256(leveragedDebitsInUsd) : uint256(-leveragedDebitsInUsd);
-            accumulatedLeveragedDebits = accumulatedLeveragedDebits.add(leveragedDebitsAbs);
-        }
-
-        return accumulatedLeveragedDebits;
     }
 
     // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate (left out swap rates))
@@ -373,13 +359,13 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
             _pool,
             _base,
             _quote,
-            MarginFlowProtocolAccPositions.CurrencyType.QUOTE
+            MarginFlowProtocolAccPositions.CurrencyType.BASE
         );
         uint256 leveragedHeldsShort = market.protocolAcc.poolShortPositionAccPerPair(
             _pool,
             _base,
             _quote,
-            MarginFlowProtocolAccPositions.CurrencyType.QUOTE
+            MarginFlowProtocolAccPositions.CurrencyType.BASE
         );
 
         uint256 bidSpread = market.protocolLiquidated.poolBidSpreads(_pool, _base, _quote);
@@ -387,6 +373,6 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         uint256 spreadProfitLong = leveragedHeldsLong.mul(bidSpread).div(1e18);
         uint256 spreadProfitShort = leveragedHeldsShort.mul(askSpread).div(1e18);
 
-        return spreadProfitLong.mulPercent(_usdBasePrice).add(spreadProfitShort.mulPercent(_usdBasePrice));
+        return spreadProfitLong.add(spreadProfitShort).mulPercent(_usdBasePrice);
     }
 }
