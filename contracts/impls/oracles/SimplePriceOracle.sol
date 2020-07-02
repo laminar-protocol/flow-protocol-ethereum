@@ -23,7 +23,7 @@ contract PriceOracleDataSource {
     mapping(address => bool) internal hasUpdate;
 
     function _feedPrice(address key, uint256 price) internal {
-        priceRecords[key][msg.sender] = PriceOracleStructs.PriceRecord(price, block.timestamp);
+        priceRecords[key][msg.sender] = PriceOracleStructs.PriceRecord(price, now);
         hasUpdate[key] = true;
     }
 
@@ -32,7 +32,7 @@ contract PriceOracleDataSource {
         uint256 expireIn,
         address[] storage priceFeeders
     ) internal view returns (uint256) {
-        uint256 expireAt = block.timestamp - expireIn;
+        uint256 expireAt = now - expireIn;
 
         // filter active price records, put them in an array with max possible length
         uint256[] memory validPricesWithMaxCapacity = new uint256[](priceFeeders.length);
@@ -116,9 +116,9 @@ contract SimplePriceOracle is PriceOracleConfig, PriceOracleInterface, PriceFeed
         uint256 finalPrice = _calculateCapPrice(addr, price);
 
         PriceOracleStructs.PriceRecord storage snapshotPrice = priceSnapshots[addr];
-        if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < block.timestamp) {
+        if (snapshotPrice.timestamp + oracleDeltaSnapshotTime < now) {
             snapshotPrice.price = finalPrice;
-            snapshotPrice.timestamp = block.timestamp;
+            snapshotPrice.timestamp = now;
         }
 
         cachedPrices[addr] = finalPrice;

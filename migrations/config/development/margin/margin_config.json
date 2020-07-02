@@ -14,7 +14,7 @@
   "treasuryAddress": "0x15ae150d7dC03d3B635EE90b85219dBFe071ED35",
   "tradingPairs": [
     {
-      "swapRateUnit": "315360000",
+      "swapRateUnit": "3153600",
       "swapRateLong": "0.0001",
       "swapRateShort": "-0.0001",
       "names": ["USD/EUR"]

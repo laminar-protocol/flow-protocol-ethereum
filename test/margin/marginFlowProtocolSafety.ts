@@ -80,10 +80,6 @@ contract('MarginFlowProtocolSafety', (accounts) => {
   let leveragesJpy: [BN, BN, BN, BN];
   let leveragedHeldBob: BN;
   let leverageBob: BN;
-  let initialAskPrice: BN;
-  let initialBidPrice: BN;
-  let initialAskPriceJpy: BN;
-  let initialBidPriceJpy: BN;
 
   before(async () => {
     const marketLib = await MarginMarketLib.new();
@@ -194,31 +190,6 @@ contract('MarginFlowProtocolSafety', (accounts) => {
     await protocol.deposit(liquidityPool.address, dollar(1000), {
       from: bob,
     });
-
-    initialAskPrice = await protocol.getAskPrice.call(
-      liquidityPool.address,
-      usd.address,
-      eur,
-      0,
-    );
-    initialBidPrice = await protocol.getBidPrice.call(
-      liquidityPool.address,
-      usd.address,
-      eur,
-      0,
-    );
-    initialAskPriceJpy = await protocol.getAskPrice.call(
-      liquidityPool.address,
-      eur,
-      jpy,
-      0,
-    );
-    initialBidPriceJpy = await protocol.getBidPrice.call(
-      liquidityPool.address,
-      eur,
-      jpy,
-      0,
-    );
 
     leveragedHeldsEur = [euro(10), euro(5), euro(2), euro(20)];
     leveragesEur = [bn(20), bn(-20), bn(20), bn(5)];
@@ -591,7 +562,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
         );
       });
 
-      it.only('does not allow calling force close position', async () => {
+      it('does not allow calling force close position', async () => {
         await expectRevert(
           protocolLiquidated.closePositionForLiquidatedTrader(0, 0, 0, {
             from: alice,
@@ -739,7 +710,7 @@ contract('MarginFlowProtocolSafety', (accounts) => {
             from: bob,
           },
         );
-        await oracle.feedPrice(eur, fromPercent(180), {from: owner});
+        await oracle.feedPrice(eur, fromPercent(120), {from: owner});
         await protocolConfig.setTraderRiskLiquidateThreshold(fromPercent(90));
         await protocolSafety.liquidateTrader(liquidityPool.address, bob, {
           from: alice,
@@ -1654,31 +1625,26 @@ contract('MarginFlowProtocolSafety', (accounts) => {
         )['0'];
 
         let net = bn(0);
-        let positive = bn(0);
-        let negative = bn(0);
-
         const positionCount = 9;
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = convertFromBaseToken(
-            (await protocol.getPositionById(positionId)).leveragedDebitsInUsd,
+          const position = await protocol.getPositionById(positionId);
+          const quotePrice = await oracle.readPrice(position.pair.quote);
+          net = net.add(
+            fromEth(new BN(position.leveragedDebits).abs().mul(quotePrice)),
           );
-          net = net.add(leveragedDebits);
-
-          if (leveragedDebits.isNeg()) {
-            negative = negative.add(leveragedDebits);
-          } else {
-            positive = positive.add(leveragedDebits);
-          }
         }
 
         const equity = await protocolSafety.getEquityOfPool.call(
           liquidityPool.address,
         );
-        const netAbs = net.abs();
+        const netAbs = convertFromBaseToken(net).abs();
         const expectedPoolENP = equity.mul(bn(1e18)).div(netAbs);
 
-        expect(enp.value).to.be.bignumber.equal(expectedPoolENP);
+        expect(parseInt(enp.value.toString(), 10)).to.be.approximately(
+          parseInt(expectedPoolENP.toString(), 10),
+          40,
+        );
       });
 
       // very difficult and unlikely to get exactly net of 0
@@ -1700,30 +1666,31 @@ contract('MarginFlowProtocolSafety', (accounts) => {
           await protocolSafety.getEnpAndEll.call(liquidityPool.address)
         )['1'];
 
-        let net = bn(0);
         let positive = bn(0);
         let negative = bn(0);
 
         const positionCount = 9;
 
         for (let positionId = 0; positionId < positionCount; positionId += 1) {
-          const leveragedDebits = convertFromBaseToken(
-            (await protocol.getPositionById(positionId)).leveragedDebitsInUsd,
+          const position = await protocol.getPositionById(positionId);
+          const quotePrice = await oracle.readPrice(position.pair.quote);
+          const leveragedDebitsInUsd = fromEth(
+            new BN(position.leveragedDebits).abs().mul(quotePrice),
           );
-          net = net.add(leveragedDebits);
 
-          if (leveragedDebits.isNeg()) {
-            negative = negative.add(leveragedDebits);
+          if (new BN(position.leveragedHeld).isNeg()) {
+            negative = negative.add(leveragedDebitsInUsd);
           } else {
-            positive = positive.add(leveragedDebits);
+            positive = positive.add(leveragedDebitsInUsd);
           }
         }
 
         const equity = await protocolSafety.getEquityOfPool.call(
           liquidityPool.address,
         );
-
-        const longestLeg = BN.max(positive, negative.abs());
+        const longestLeg = convertFromBaseToken(
+          BN.max(positive, negative.abs()),
+        );
         const expectedPoolELL = equity.mul(bn(1e18)).div(longestLeg);
 
         expect(ell.value).to.be.bignumber.equal(expectedPoolELL);
@@ -1739,88 +1706,6 @@ contract('MarginFlowProtocolSafety', (accounts) => {
           expect(ell).to.be.bignumber.equal(constants.MAX_UINT256);
         });
       }); */
-    });
-
-    describe('when getting accumulated leveraged debits of a trader', () => {
-      it('should return the correct value', async () => {
-        const eurToUsd = ({
-          amount,
-          leverage,
-          basePrice,
-          quotePrice,
-        }: {
-          amount: BN;
-          leverage: BN;
-          basePrice: BN;
-          quotePrice: BN;
-        }): BN => {
-          const leveragedDebits = fromEth(
-            amount.mul(leverage.isNeg() ? initialBidPrice : initialAskPrice),
-          );
-          const leveragedDebitsInUsd = leveragedDebits
-            .mul(quotePrice)
-            .div(basePrice);
-
-          return leveragedDebitsInUsd;
-        };
-
-        const jpyToUsd = ({
-          amount,
-          leverage,
-          basePrice,
-          quotePrice,
-        }: {
-          amount: BN;
-          leverage: BN;
-          basePrice: BN;
-          quotePrice: BN;
-        }): BN => {
-          const leveragedDebits = fromEth(
-            amount.mul(
-              leverage.isNeg() ? initialBidPriceJpy : initialAskPriceJpy,
-            ),
-          );
-          const leveragedDebitsInUsd = leveragedDebits
-            .mul(quotePrice)
-            .div(basePrice);
-
-          return leveragedDebitsInUsd;
-        };
-
-        const leveragedDebits = await protocolSafety.getLeveragedDebitsOfTrader(
-          liquidityPool.address,
-          alice,
-        );
-
-        const leveragedDebitsEur = leveragedHeldsEur.reduce(
-          (acc, leveragedHeld, i) =>
-            acc.add(
-              eurToUsd({
-                basePrice: initialUsdPrice,
-                quotePrice: initialEurPrice,
-                amount: leveragedHeld,
-                leverage: leveragesEur[i],
-              }),
-            ),
-          bn(0),
-        );
-        const leveragedDebitsJpy = leveragedHeldsJpy.reduce(
-          (acc, leveragedHeld, i) =>
-            acc.add(
-              jpyToUsd({
-                basePrice: initialUsdPrice,
-                quotePrice: fromPercent(200),
-                amount: leveragedHeld,
-                leverage: leveragesJpy[i],
-              }),
-            ),
-          bn(0),
-        );
-
-        expect(leveragedDebits).to.be.bignumber.equal(
-          leveragedDebitsEur.add(leveragedDebitsJpy),
-        );
-      });
     });
   });
 });

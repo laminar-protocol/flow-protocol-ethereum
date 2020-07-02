@@ -2109,8 +2109,6 @@ contract('MarginFlowProtocol', (accounts) => {
         eur,
         0,
       );
-      const basePrice = await oracle.getPrice.call(usd.address);
-      const quotePrice = await oracle.getPrice.call(eur);
       const expectedAccSwapRate = fromEth(
         swapRate
           .mul(bn(daysOfPosition))
@@ -2118,9 +2116,7 @@ contract('MarginFlowProtocol', (accounts) => {
           .mul(leveragedHeld),
       );
       const expectedRateWithPrice = convertFromBaseToken(
-        fromEth(expectedAccSwapRate.mul(bidPrice))
-          .mul(quotePrice)
-          .div(basePrice),
+        fromEth(expectedAccSwapRate.mul(bidPrice)),
       );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
@@ -2143,8 +2139,6 @@ contract('MarginFlowProtocol', (accounts) => {
         timeWhenOpened,
       );
 
-      const basePrice = await oracle.getPrice.call(usd.address);
-      const quotePrice = await oracle.getPrice.call(eur);
       const bidPrice = await protocol.getBidPrice.call(
         liquidityPool.address,
         usd.address,
@@ -2158,9 +2152,7 @@ contract('MarginFlowProtocol', (accounts) => {
         .mul(leveragedHeld)
         .div(bn(1e18));
       const expectedRateWithPrice = convertFromBaseToken(
-        fromEth(expectedAccSwapRate.mul(bidPrice))
-          .mul(quotePrice)
-          .div(basePrice),
+        fromEth(expectedAccSwapRate.mul(bidPrice)),
       );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);
@@ -2181,8 +2173,6 @@ contract('MarginFlowProtocol', (accounts) => {
         timeWhenOpened,
       );
 
-      const basePrice = await oracle.getPrice.call(usd.address);
-      const quotePrice = await oracle.getPrice.call(eur);
       const bidPrice = await protocol.getBidPrice.call(
         liquidityPool.address,
         usd.address,
@@ -2196,9 +2186,7 @@ contract('MarginFlowProtocol', (accounts) => {
           .mul(leveragedHeld),
       );
       const expectedRateWithPrice = convertFromBaseToken(
-        fromEth(expectedAccSwapRate.mul(bidPrice))
-          .mul(quotePrice)
-          .div(basePrice),
+        fromEth(expectedAccSwapRate.mul(bidPrice)),
       );
 
       expect(accSwapRate).to.be.bignumber.equal(expectedRateWithPrice);

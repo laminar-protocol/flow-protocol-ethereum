@@ -18,9 +18,13 @@ const web3 = new Web3('http://localhost:8545');
 
 setDefaultTimeout(20000);
 
+const MAX_INT_STRING =
+  '57896044618658097711785492504343953926634992332820282019728792003956564819967';
+const MAX_UINT_STRING =
+  '115792089237316195423570985008687907853269984665640564039457584007913129639935';
 const ONE_DAY = 86400;
 const PRICE_EXPIRE_TIME = ONE_DAY * 2;
-const SWAP_UNIT = 60 * 60 * 24 * 3650;
+const SWAP_UNIT = 3153600;
 let firstPositionId = '0';
 
 const iTokenAddress = deployment.iToken;
@@ -119,6 +123,16 @@ const parseAmount = (amount: string): BN => {
   return new BN(isDollar ? web3.utils.toWei(parsed) : parsed);
 };
 
+const parsePercentageNumber = (marginLevelString: string) => {
+  const isNegative = marginLevelString.includes('-');
+
+  return `${isNegative ? '-' : ''}${marginLevelString
+    .replace('0_', '')
+    .replace('-', '')
+    .replace(/^0+/, '')
+    .replace('1_', '1')}`;
+};
+
 const parseSwapRate = (amount: string): BN => {
   const isNegative = amount.includes('-');
   const parsed = amount.replace(/%|-/g, '');
@@ -158,6 +172,23 @@ const sendTx = async ({
   return web3.eth.sendSignedTransaction(rawTransaction as string);
 };
 
+const getEstimatedIndices = async (from: string, positionId: BN) => {
+  const positionsByPool = await flowMarginProtocolContract.methods
+    .getPositionsByPool(poolAddress)
+    .call();
+  const positionsByTrader = await flowMarginProtocolContract.methods
+    .getPositionsByPoolAndTrader(poolAddress, from)
+    .call();
+  const estimatedIndexPool = positionsByPool.findIndex(
+    (position: any) => position.id.toString() === positionId.toString(),
+  );
+  const estimatedIndexTrader = positionsByTrader.findIndex(
+    (position: any) => position.id.toString() === positionId.toString(),
+  );
+
+  return {estimatedIndexPool, estimatedIndexTrader};
+};
+
 const closeAllPositions = async (name: string): Promise<any> => {
   const from = accountOf(name);
 
@@ -172,10 +203,16 @@ const closeAllPositions = async (name: string): Promise<any> => {
     const positionId = await flowMarginProtocolContract.methods
       .getPositionIdByPoolAndTraderAndIndex(poolAddress, from.address, i)
       .call();
+    const {
+      estimatedIndexPool,
+      estimatedIndexTrader,
+    } = await getEstimatedIndices(from.address, new BN(positionId));
     await sendTx({
       contractMethod: flowMarginProtocolContract.methods.closePosition(
         positionId,
         0,
+        estimatedIndexPool,
+        estimatedIndexTrader,
       ),
       from,
       to: flowMarginProtocolAddress,
@@ -275,6 +312,17 @@ const parseTradingPair = (
   };
 };
 
+const expectPercentage = (received: string, expected: string) => {
+  const lastDigit = parseInt(expected[expected.length - 1], 10);
+
+  expect(received).to.satisfy(
+    (m: string) =>
+      m === expected ||
+      m === `${expected.slice(0, expected.length - 1)}${lastDigit + 1}` ||
+      m === `${expected.slice(0, expected.length - 1)}${lastDigit - 1}`,
+  );
+};
+
 const forceCloseForPool = async (
   from: Account,
   offset: number,
@@ -289,12 +337,18 @@ const forceCloseForPool = async (
   const totalOffset = parseInt(firstPositionId, 10) + offset;
 
   for (let i = 0; i < positionsCount; i += 1) {
+    const {
+      estimatedIndexPool,
+      estimatedIndexTrader,
+    } = await getEstimatedIndices(from.address, new BN(i + totalOffset));
     await sendTx({
       from,
-      contractMethod: flowMarginProtocolContract.methods.closePositionForLiquidatedPool(
+      contractMethod: flowMarginProtocolLiquidatedContract.methods.closePositionForLiquidatedPool(
         i + totalOffset,
+        estimatedIndexPool,
+        estimatedIndexTrader,
       ),
-      to: flowMarginProtocolAddress,
+      to: flowMarginProtocolLiquidatedAddress,
     });
   }
 
@@ -315,10 +369,16 @@ const forceCloseForTrader = async (
   const totalOffset = parseInt(firstPositionId, 10) + offset;
 
   for (let i = 0; i < positionsCount; i += 1) {
+    const {
+      estimatedIndexPool,
+      estimatedIndexTrader,
+    } = await getEstimatedIndices(from.address, new BN(i + totalOffset));
     await sendTx({
       from,
       contractMethod: flowMarginProtocolLiquidatedContract.methods.closePositionForLiquidatedTrader(
         i + totalOffset,
+        estimatedIndexPool,
+        estimatedIndexTrader,
       ),
       to: flowMarginProtocolLiquidatedAddress,
     });
@@ -494,6 +554,63 @@ Given(
   },
 );
 
+const parseThresholds = (thresholdString: string) => {
+  return thresholdString
+    .slice(1, thresholdString.length - 1)
+    .replace(/%| /g, '')
+    .split(',')
+    .map((threshold: string) =>
+      new BN(web3.utils.toWei(threshold)).div(new BN(100)).toString(),
+    );
+};
+
+Given(
+  'margin set risk threshold\\(margin_call, stop_out)',
+  async (table: TableDefinition) => {
+    const [, trader, enp, ell] = table.rows()[0];
+    const traderThresholds = parseThresholds(trader);
+    const enpThresholds = parseThresholds(enp);
+    const ellThresholds = parseThresholds(ell);
+
+    await sendTx({
+      contractMethod: flowMarginProtocolConfigContract.methods.setTraderRiskMarginCallThreshold(
+        traderThresholds[0],
+      ),
+      to: flowMarginProtocolConfigAddress,
+    });
+    await sendTx({
+      contractMethod: flowMarginProtocolConfigContract.methods.setTraderRiskLiquidateThreshold(
+        traderThresholds[1],
+      ),
+      to: flowMarginProtocolConfigAddress,
+    });
+    await sendTx({
+      contractMethod: flowMarginProtocolConfigContract.methods.setLiquidityPoolENPMarginThreshold(
+        enpThresholds[0],
+      ),
+      to: flowMarginProtocolConfigAddress,
+    });
+    await sendTx({
+      contractMethod: flowMarginProtocolConfigContract.methods.setLiquidityPoolENPLiquidateThreshold(
+        enpThresholds[1],
+      ),
+      to: flowMarginProtocolConfigAddress,
+    });
+    await sendTx({
+      contractMethod: flowMarginProtocolConfigContract.methods.setLiquidityPoolELLMarginThreshold(
+        ellThresholds[0],
+      ),
+      to: flowMarginProtocolConfigAddress,
+    });
+    await sendTx({
+      contractMethod: flowMarginProtocolConfigContract.methods.setLiquidityPoolELLLiquidateThreshold(
+        ellThresholds[1],
+      ),
+      to: flowMarginProtocolConfigAddress,
+    });
+  },
+);
+
 Given('margin set swap rate', async (table: TableDefinition) => {
   for (const [pair, long, short] of table.rows()) {
     const {baseAddress, quoteAddress} = parseTradingPair(pair);
@@ -522,27 +639,72 @@ Given('margin set accumulate', (table: TableDefinition) => {
   // not applicable in ETH
 });
 
-Given(/margin execute block (\d*)..(\d*)/, async (from: string, to: string) => {
-  await sendTx({
-    contractMethod: oracleContract.methods.setExpireIn(SWAP_UNIT * 100),
-    to: oracleAddress,
-  });
+Given(
+  /margin execute time (\d*)min..(\d*)min/,
+  async (from: string, to: string) => {
+    await sendTx({
+      contractMethod: oracleContract.methods.setExpireIn(SWAP_UNIT * 100),
+      to: oracleAddress,
+    });
 
-  const lastFromDigit = parseInt(from.charAt(from.length - 1), 10);
-  const lastToDigit = parseInt(to.charAt(to.length - 1), 10);
+    const lastFromDigit = parseInt(from.charAt(from.length - 1), 10);
+    const lastToDigit = parseInt(to.charAt(to.length - 1), 10);
 
-  const diff =
-    (parseInt(to.replace(/.$/, '0'), 10) -
-      parseInt(from.replace(/.$/, '0'), 10)) /
-    10;
-  const swapTimes =
-    diff - (lastFromDigit < 2 ? 0 : 1) + (lastToDigit > 1 ? 1 : 0);
+    const diff =
+      (parseInt(to.replace(/.$/, '0'), 10) -
+        parseInt(from.replace(/.$/, '0'), 10)) /
+      10;
+    const swapTimes =
+      diff - (lastFromDigit < 2 ? 0 : 1) + (lastToDigit > 1 ? 1 : 0);
 
-  await increaseTimeBy(swapTimes * SWAP_UNIT + 1);
-  await sendTx({
-    contractMethod: poolContract.methods.setMinLeverageAmount(100),
-    to: poolAddress,
-  });
+    await increaseTimeBy(swapTimes * SWAP_UNIT + 1);
+    await sendTx({
+      contractMethod: poolContract.methods.setMinLeverageAmount(100),
+      to: poolAddress,
+    });
+  },
+);
+
+Given('margin trader become safe', async (table: TableDefinition) => {
+  for (const [name, result] of table.rows()) {
+    const trader = accountOf(name);
+
+    try {
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.makeTraderSafe(
+          poolAddress,
+          trader.address,
+        ),
+        to: flowMarginProtocolSafetyAddress,
+      });
+      if (result !== 'Ok')
+        expect.fail(`Trader making safe should have reverted, but didnt!`);
+    } catch (error) {
+      if (result === 'Ok')
+        expect.fail(`Trader making safe should not have reverted: ${error}`);
+      else if (result === 'UnsafeTrader')
+        expect(error.message).to.contain('TS2');
+    }
+  }
+});
+
+Given('margin liquidity pool become safe', async (table: TableDefinition) => {
+  for (const [result] of table.rows()) {
+    try {
+      await sendTx({
+        contractMethod: flowMarginProtocolSafetyContract.methods.makeLiquidityPoolSafe(
+          poolAddress,
+        ),
+        to: flowMarginProtocolSafetyAddress,
+      });
+      if (result !== 'Ok')
+        expect.fail(`Pool making safe should have reverted, but didnt!`);
+    } catch (error) {
+      if (result === 'Ok')
+        expect.fail(`Pool making safe should not have reverted: ${error}`);
+      else if (result === 'UnsafePool') expect(error.message).to.contain('PS2');
+    }
+  }
 });
 
 Then(
@@ -657,38 +819,93 @@ Then('margin balances are', async (table: TableDefinition) => {
   }
 });
 
-Then('trader margin positions are', async (table: TableDefinition) => {
+Then('margin trader info are', async (table: TableDefinition) => {
   for (const [
     name,
     expectedEquityString,
-    expectedFreeMarginString,
     expectedMarginHeldString,
+    expectedMarginLevelString,
+    expectedFreeMarginString,
+    expectedUnrealizedPlString,
   ] of table.rows()) {
     const from = accountOf(name);
-
     const expectedEquity = new BN(parseAmount(expectedEquityString))
       .mul(new BN(10))
       .toString();
-    const expectedFreeMargin = new BN(parseAmount(expectedFreeMarginString))
+    const expectedMarginHeld = new BN(parseAmount(expectedMarginHeldString))
       .mul(new BN(10))
       .toString();
-    const expectedMarginHeld = new BN(parseAmount(expectedMarginHeldString))
+    const expectedMarginLevel = parsePercentageNumber(
+      expectedMarginLevelString,
+    );
+    const hasNoFreeMargin = expectedFreeMarginString.includes('-');
+    const parsedFreeMargin = new BN(parseAmount(expectedFreeMarginString))
+      .mul(new BN(10))
+      .toString();
+    const expectedFreeMargin = hasNoFreeMargin ? '0' : parsedFreeMargin;
+    const expectedUnrealizedPl = new BN(parseAmount(expectedUnrealizedPlString))
       .mul(new BN(10))
       .toString();
 
     const equity = await flowMarginProtocolContract.methods
       .getExactEquityOfTrader(poolAddress, from.address)
       .call();
-    const freeMargin = await flowMarginProtocolContract.methods
-      .getExactFreeMargin(poolAddress, from.address)
-      .call();
     const marginHeld = await flowMarginProtocolContract.methods
       .getMarginHeld(poolAddress, from.address)
       .call();
+    const marginLevel = (
+      await flowMarginProtocolSafetyContract.methods
+        .getMarginLevel(poolAddress, from.address)
+        .call()
+    )['0'];
+    const freeMargin = await flowMarginProtocolContract.methods
+      .getExactFreeMargin(poolAddress, from.address)
+      .call();
+
+    const traderPositions = await flowMarginProtocolContract.methods
+      .getPositionsByPoolAndTrader(poolAddress, from.address)
+      .call();
+    let traderUnrealized = new BN(0);
+    for (const position of traderPositions) {
+      traderUnrealized = traderUnrealized.add(
+        new BN(
+          (
+            await flowMarginProtocolContract.methods
+              .getUnrealizedPlOfPosition(position.id)
+              .call()
+          ).toString(),
+        ),
+      );
+    }
 
     assert.equal(equity, expectedEquity);
-    assert.equal(freeMargin, expectedFreeMargin);
     assert.equal(marginHeld, expectedMarginHeld);
+    if (expectedMarginLevel === 'MaxValue')
+      assert.equal(marginLevel, MAX_INT_STRING);
+    else expectPercentage(marginLevel, expectedMarginLevel);
+    assert.equal(freeMargin, expectedFreeMargin);
+    assert.equal(traderUnrealized.toString(), expectedUnrealizedPl);
+  }
+});
+
+Then('margin pool info are', async (table: TableDefinition) => {
+  for (const [
+    expectedEnp,
+    expectedEll,
+    expectedRequiredDeposit,
+  ] of table.rows()) {
+    const enpAndEll = await flowMarginProtocolSafetyContract.methods
+      .getEnpAndEll(poolAddress)
+      .call();
+    const enp = enpAndEll['0'].toString();
+    const ell = enpAndEll['1'].toString();
+
+    if (expectedEnp === 'MaxValue') assert.equal(enp, MAX_UINT_STRING);
+    else expectPercentage(enp, parsePercentageNumber(expectedEnp));
+    if (expectedEll === 'MaxValue') assert.equal(ell, MAX_UINT_STRING);
+    else expectPercentage(ell, parsePercentageNumber(expectedEll));
+
+    console.log('TODO: expectedRequiredDeposit', expectedRequiredDeposit);
   }
 });
 
@@ -698,10 +915,17 @@ Given('close positions', async (table: TableDefinition) => {
     const closePrice = parseAmount(price);
     const positionId = new BN(firstPositionId.toString()).add(new BN(id));
 
+    const {
+      estimatedIndexPool,
+      estimatedIndexTrader,
+    } = await getEstimatedIndices(from.address, positionId);
+
     await sendTx({
       contractMethod: flowMarginProtocolContract.methods.closePosition(
         positionId,
         closePrice,
+        estimatedIndexPool,
+        estimatedIndexTrader,
       ),
       from,
       to: flowMarginProtocolAddress,
@@ -769,21 +993,6 @@ Given('margin liquidity pool margin call', async (table: TableDefinition) => {
 Then('margin liquidity pool liquidate', async (table: TableDefinition) => {
   for (const [result] of table.rows()) {
     try {
-      const enpThreshold = await flowMarginProtocolConfigContract.methods
-        .liquidityPoolENPLiquidateThreshold()
-        .call();
-      const ellThreshold = await flowMarginProtocolConfigContract.methods
-        .liquidityPoolELLLiquidateThreshold()
-        .call();
-      const enpAndEll = await flowMarginProtocolSafetyContract.methods
-        .getEnpAndEll(poolAddress)
-        .call();
-      console.log({
-        enp: enpAndEll['0'].toString(),
-        ell: enpAndEll['1'].toString(),
-        enpThreshold: enpThreshold.toString(),
-        ellThreshold: ellThreshold.toString(),
-      });
       await sendTx({
         contractMethod: flowMarginProtocolSafetyContract.methods.liquidateLiquidityPool(
           poolAddress,
