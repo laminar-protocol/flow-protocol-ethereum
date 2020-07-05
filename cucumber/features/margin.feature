@@ -571,7 +571,7 @@ Feature: Margin Protocol
       | Alice | $7600  | $1520       | 0_500000000000000000 | $6080       | $2600         |
     Then margin pool info are
       | ENP                  | ELL                  | Required Deposit |
-      | 0_486842105263157894 | 0_486842105263157894 | $1600            |
+      | 0_486842105263157894 | 0_486842105263157894 | $200             |
     And margin liquidity pool margin call
       | Result |
       | Ok     |
@@ -742,7 +742,7 @@ Feature: Margin Protocol
       | Alice | $14600 | $1520       | 0_960526315789473684 | $13080      | $9600         |
     Then margin pool info are
       | ENP                  | ELL                  | Required Deposit |
-      | 0_026315789473684210 | 0_026315789473684210 | $4600            |
+      | 0_026315789473684210 | 0_026315789473684210 | $2640            |
     And margin liquidity pool liquidate
       | Result |
       | Ok     |

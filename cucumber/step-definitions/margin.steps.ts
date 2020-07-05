@@ -905,7 +905,18 @@ Then('margin pool info are', async (table: TableDefinition) => {
     if (expectedEll === 'MaxValue') assert.equal(ell, MAX_UINT_STRING);
     else expectPercentage(ell, parsePercentageNumber(expectedEll));
 
-    console.log('TODO: expectedRequiredDeposit', expectedRequiredDeposit);
+    const requiredDeposit = new BN(
+      (
+        await flowMarginProtocolSafetyContract.methods
+          .getEstimatedRequiredDepositForPool(poolAddress)
+          .call()
+      ).toString(),
+    ).div(new BN(10));
+
+    assert.equal(
+      requiredDeposit.toString(),
+      parseAmount(expectedRequiredDeposit).toString(),
+    );
   }
 });
 
