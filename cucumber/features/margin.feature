@@ -479,22 +479,22 @@ Feature: Margin Protocol
       | Alice | 2  | $2    |
     Then margin balances are
       | Name  | Free  | Margin                  |
-      | Alice | $5000 | 4471_500000000000000000 |
-    Then margin liquidity is 10528_500000000000000000
+      | Alice | $5000 | 4395_245000000000000000 |
+    Then margin liquidity is 10604_755000000000000000
     When open positions
       | Name  | Pair   | Leverage | Amount | Price |
       | Alice | EURUSD | Short 10 | $5000  | $2    |
     Then margin balances are
       | Name  | Free  | Margin                  |
-      | Alice | $5000 | 4471_500000000000000000 |
+      | Alice | $5000 | 4395_245000000000000000 |
     And margin execute time 32min..42min
     When close positions
       | Name  | ID | Price |
       | Alice | 3  | $4    |
     Then margin balances are
       | Name  | Free  | Margin                  |
-      | Alice | $5000 | 4495_000000000000000000 |
-    Then margin liquidity is 10505_000000000000000000
+      | Alice | $5000 | 4343_500000000000000000 |
+    Then margin liquidity is 10656_500000000000000000
 
   Scenario: margin risk thresholds
     Given accounts
