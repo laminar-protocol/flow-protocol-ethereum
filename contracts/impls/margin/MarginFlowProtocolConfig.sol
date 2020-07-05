@@ -12,6 +12,7 @@ import "./MarginFlowProtocol.sol";
 
 contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
     using SignedSafeMath for int256;
+    using Percentage for Percentage.SignedPercent;
 
     enum PositionType {LONG, SHORT}
 
@@ -186,9 +187,13 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
         MarginFlowProtocol.TradingPair calldata _pair,
         PositionType _type
     ) external view returns (Percentage.SignedPercent memory) {
-        int256 baseSwapRate = currentSwapRates[_pair.base][_pair.quote][_type];
-        int256 poolMarkup = _pool.getSwapRateMarkupForPair(_pair.base, _pair.quote);
+        Percentage.SignedPercent memory baseSwapRate = Percentage.SignedPercent(currentSwapRates[_pair.base][_pair.quote][_type]);
+        Percentage.SignedPercent memory poolMarkup = Percentage.SignedPercent(_pool.getSwapRateMarkupForPair(_pair.base, _pair.quote));
+        Percentage.SignedPercent memory baseSwapRateAbs = baseSwapRate.value >= 0
+            ? Percentage.SignedPercent(baseSwapRate.value)
+            : Percentage.SignedPercent(-baseSwapRate.value);
 
-        return Percentage.SignedPercent(baseSwapRate.add(poolMarkup));
+        // swap = swap - (abs(swap) * additional_swap_rate) = -1% - (1% * 0.5%) = -1.5%
+        return Percentage.signedSubPercent(baseSwapRate, baseSwapRateAbs.signedMulPercent(poolMarkup));
     }
 }

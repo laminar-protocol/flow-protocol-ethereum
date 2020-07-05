@@ -14,6 +14,7 @@ import {
   createTestToken,
   createMarginProtocol,
   createMoneyMarket,
+  fromEth,
   fromPercent,
   dollar,
   bn,
@@ -335,10 +336,14 @@ contract('MarginFlowProtocolConfig', (accounts) => {
         )
       ).value;
       expect(newStoredSwapRateLong).to.be.bignumber.equals(
-        newSwapRateLong.add(additionalPoolMarkup),
+        newSwapRateLong.add(
+          fromEth(newSwapRateLong.abs().mul(additionalPoolMarkup)),
+        ),
       );
       expect(newStoredSwapRateShort).to.be.bignumber.equals(
-        newSwapRateShort.add(additionalPoolMarkup),
+        newSwapRateShort.add(
+          fromEth(newSwapRateLong.abs().mul(additionalPoolMarkup)),
+        ),
       );
     });
   });
