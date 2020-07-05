@@ -69,6 +69,10 @@ library Percentage {
         return SignedPercent(a.value.sub(b.value));
     }
 
+    function signedMulPercent(SignedPercent memory a, SignedPercent memory b) internal pure returns (SignedPercent memory) {
+        return SignedPercent(a.value.mul(b.value).div(SIGNED_ONE));
+    }
+
     function oneHundredPercent() internal pure returns (Percent memory) {
         return Percent(ONE);
     }
