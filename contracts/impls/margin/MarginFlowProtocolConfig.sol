@@ -182,6 +182,14 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
         return tradingPairs;
     }
 
+    function getEnpAndEllMarginThresholds() external view returns (uint256, uint256) {
+        return (liquidityPoolENPMarginThreshold, liquidityPoolELLMarginThreshold);
+    }
+
+    function getEnpAndEllLiquidateThresholds() external view returns (uint256, uint256) {
+        return (liquidityPoolENPLiquidateThreshold, liquidityPoolELLLiquidateThreshold);
+    }
+
     function getCurrentTotalSwapRateForPoolAndPair(
         MarginLiquidityPoolInterface _pool,
         MarginFlowProtocol.TradingPair calldata _pair,

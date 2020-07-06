@@ -75,10 +75,9 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
      */
     function isPoolSafe(MarginLiquidityPoolInterface _pool) public returns (bool) {
         (Percentage.Percent memory enp, Percentage.Percent memory ell) = getEnpAndEll(_pool);
+        (uint256 enpThreshold, uint256 ellThreshold) = market.config.getEnpAndEllMarginThresholds();
 
-        bool isSafe = enp.value > market.config.liquidityPoolENPMarginThreshold() && ell.value > market.config.liquidityPoolELLMarginThreshold();
-
-        return isSafe;
+        return enp.value > enpThreshold && ell.value > ellThreshold;
     }
 
     /**
@@ -205,11 +204,9 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     function liquidateLiquidityPool(MarginLiquidityPoolInterface _pool) external nonReentrant poolIsVerified(_pool) {
         // close positions as much as possible, send fee back to caller
         (Percentage.Percent memory enp, Percentage.Percent memory ell) = getEnpAndEll(_pool);
+        (uint256 enpThreshold, uint256 ellThreshold) = market.config.getEnpAndEllLiquidateThresholds();
 
-        require(
-            enp.value <= market.config.liquidityPoolENPLiquidateThreshold() || ell.value <= market.config.liquidityPoolELLLiquidateThreshold(),
-            "PL1"
-        );
+        require(enp.value <= enpThreshold || ell.value <= ellThreshold, "PL1");
 
         market.protocolLiquidated.__stopPool(_pool);
 
@@ -306,6 +303,35 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         }
 
         return market.marginProtocol.getTotalPoolLiquidity(_pool).sub(unrealized);
+    }
+
+    // Returns required deposit amount to make pool safe. (not incl swap rates)
+    function getEstimatedRequiredDepositForPool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
+        MarginFlowProtocol.TradingPair[] memory pairs = market.config.getTradingPairs();
+        uint256 net = 0;
+        uint256 longestLeg = 0;
+        int256 unrealized = 0;
+
+        for (uint256 i = 0; i < pairs.length; i++) {
+            (uint256 netPair, uint256 longestLegPair, int256 unrealizedPair) = market.protocolAcc.getPairPoolSafetyInfo(_pool, pairs[i]);
+            net = net.add(netPair);
+            longestLeg = longestLeg.add(longestLegPair);
+            unrealized = unrealized.add(unrealizedPair);
+        }
+
+        (uint256 enpThreshold, uint256 ellThreshold) = market.config.getEnpAndEllMarginThresholds();
+
+        uint256 forEnp = net.mul(enpThreshold).div(1e18);
+        uint256 forEll = longestLeg.mul(ellThreshold).div(1e18);
+        uint256 requiredEquity = Math.max(forEnp, forEll);
+        int256 equity = getEquityOfPool(_pool);
+        int256 gap = int256(requiredEquity).sub(equity);
+
+        if (gap < 0) {
+            return 0;
+        }
+
+        return uint256(gap);
     }
 
     // Protocol functions
