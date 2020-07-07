@@ -1,6 +1,6 @@
 ## Functions:
 
-- [`initialize(contract MoneyMarketInterface _moneyMarket, address _protocolSafety)`](#MarginLiquidityPoolRegistry-initialize-contract-MoneyMarketInterface-address-)
+- [`initialize(struct MarginMarketLib.MarketData _market)`](#MarginLiquidityPoolRegistry-initialize-struct-MarginMarketLib-MarketData-)
 
 - [`registerPool(contract MarginLiquidityPoolInterface _pool)`](#MarginLiquidityPoolRegistry-registerPool-contract-MarginLiquidityPoolInterface-)
 
@@ -10,9 +10,11 @@
 
 - [`marginCallPool(contract MarginLiquidityPoolInterface _pool)`](#MarginLiquidityPoolRegistry-marginCallPool-contract-MarginLiquidityPoolInterface-)
 
+- [`liquidatePool(contract MarginLiquidityPoolInterface _pool)`](#MarginLiquidityPoolRegistry-liquidatePool-contract-MarginLiquidityPoolInterface-)
+
 - [`makePoolSafe(contract MarginLiquidityPoolInterface _pool)`](#MarginLiquidityPoolRegistry-makePoolSafe-contract-MarginLiquidityPoolInterface-)
 
-### [Function `initialize(contract MoneyMarketInterface _moneyMarket, address _protocolSafety)`](#MarginLiquidityPoolRegistry-initialize-contract-MoneyMarketInterface-address-)
+### [Function `initialize(struct MarginMarketLib.MarketData _market)`](#MarginLiquidityPoolRegistry-initialize-struct-MarginMarketLib-MarketData-)
 
 No description
 
@@ -40,9 +42,17 @@ Unverify a pool, only for the owner.
 
 - `_pool`: The MarginLiquidityPool.
 
-### [Function `marginCallPool(contract MarginLiquidityPoolInterface _pool)`](#MarginLiquidityPoolRegistry-marginCallPool-contract-MarginLiquidityPoolInterface-)
+### [Function `marginCallPool(contract MarginLiquidityPoolInterface _pool) → uint256`](#MarginLiquidityPoolRegistry-marginCallPool-contract-MarginLiquidityPoolInterface-)
 
-Margin call a pool, only used by the protocolSafety.
+Margin call a pool, only used by the address(market.protocolSafety).
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+### [Function `liquidatePool(contract MarginLiquidityPoolInterface _pool) → uint256`](#MarginLiquidityPoolRegistry-liquidatePool-contract-MarginLiquidityPoolInterface-)
+
+Margin call a pool, only used by the address(market.protocolSafety).
 
 #### Parameters:
 
@@ -50,7 +60,7 @@ Margin call a pool, only used by the protocolSafety.
 
 ### [Function `makePoolSafe(contract MarginLiquidityPoolInterface _pool)`](#MarginLiquidityPoolRegistry-makePoolSafe-contract-MarginLiquidityPoolInterface-)
 
-Make pool safe, only used by protocolSafety.
+Make pool safe, only used by address(market.protocolSafety).
 
 #### Parameters:
 

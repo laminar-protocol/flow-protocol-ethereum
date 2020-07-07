@@ -1,6 +1,6 @@
 ## Functions:
 
-- [`initialize(string _name, string _symbol, contract MoneyMarketInterface _moneyMarket, address _protocol)`](#SyntheticFlowToken-initialize-string-string-contract-MoneyMarketInterface-address-)
+- [`initialize(string _name, string _symbol, contract MoneyMarketInterface _moneyMarket, address _protocol, uint256 _extremeCollateralRatio, uint256 _liquidationCollateralRatio, uint256 _defaultCollateralRatio)`](#SyntheticFlowToken-initialize-string-string-contract-MoneyMarketInterface-address-uint256-uint256-uint256-)
 
 - [`setLiquidationCollateralRatio(uint256 percent)`](#SyntheticFlowToken-setLiquidationCollateralRatio-uint256-)
 
@@ -16,7 +16,7 @@
 
 - [`getPosition(address poolAddr)`](#SyntheticFlowToken-getPosition-address-)
 
-- [`addPosition(address poolAddr, uint256 additonalCollaterals, uint256 additionaMinted, uint256 liquidityPoolShares)`](#SyntheticFlowToken-addPosition-address-uint256-uint256-uint256-)
+- [`addPosition(address poolAddr, uint256 additonalCollaterals, uint256 additionalMinted, uint256 liquidityPoolShares)`](#SyntheticFlowToken-addPosition-address-uint256-uint256-uint256-)
 
 - [`removePosition(address poolAddr, uint256 collateralsToRemove, uint256 mintedToRemove)`](#SyntheticFlowToken-removePosition-address-uint256-uint256-)
 
@@ -28,7 +28,7 @@
 
 - [`withdraw(address sender, uint256 amount)`](#SyntheticFlowToken-withdraw-address-uint256-)
 
-### [Function `initialize(string _name, string _symbol, contract MoneyMarketInterface _moneyMarket, address _protocol)`](#SyntheticFlowToken-initialize-string-string-contract-MoneyMarketInterface-address-)
+### [Function `initialize(string _name, string _symbol, contract MoneyMarketInterface _moneyMarket, address _protocol, uint256 _extremeCollateralRatio, uint256 _liquidationCollateralRatio, uint256 _defaultCollateralRatio)`](#SyntheticFlowToken-initialize-string-string-contract-MoneyMarketInterface-address-uint256-uint256-uint256-)
 
 No description
 
@@ -60,7 +60,7 @@ No description
 
 No description
 
-### [Function `addPosition(address poolAddr, uint256 additonalCollaterals, uint256 additionaMinted, uint256 liquidityPoolShares)`](#SyntheticFlowToken-addPosition-address-uint256-uint256-uint256-)
+### [Function `addPosition(address poolAddr, uint256 additonalCollaterals, uint256 additionalMinted, uint256 liquidityPoolShares)`](#SyntheticFlowToken-addPosition-address-uint256-uint256-uint256-)
 
 No description
 

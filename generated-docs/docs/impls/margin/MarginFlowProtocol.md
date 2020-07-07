@@ -1,58 +1,46 @@
 ## Functions:
 
-- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolSafety _safetyProtocol, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate, uint256 _initialMinLeverage, uint256 _initialMaxLeverage, uint256 _initialMaxLeverageAmount, uint256 _rateUnit)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolSafety-contract-MarginLiquidityPoolRegistry-uint256-uint256-uint256-uint256-uint256-)
-
-- [`addTradingPair(address _base, address _quote)`](#MarginFlowProtocol-addTradingPair-address-address-)
-
-- [`setCurrentSwapRate(uint256 _newSwapRate)`](#MarginFlowProtocol-setCurrentSwapRate-uint256-)
-
-- [`setMinLeverage(uint256 _newMinLeverage)`](#MarginFlowProtocol-setMinLeverage-uint256-)
-
-- [`setMaxLeverage(uint256 _newMaxLeverage)`](#MarginFlowProtocol-setMaxLeverage-uint256-)
-
-- [`setMaxLeverageAmount(uint256 _newMaxLeverageAmount)`](#MarginFlowProtocol-setMaxLeverageAmount-uint256-)
+- [`initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolConfig _protocolConfig, contract MarginFlowProtocolSafety _protocolSafety, contract MarginFlowProtocolLiquidated _protocolLiquidated, contract MarginFlowProtocolAccPositions _protocolAcc, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolConfig-contract-MarginFlowProtocolSafety-contract-MarginFlowProtocolLiquidated-contract-MarginFlowProtocolAccPositions-contract-MarginLiquidityPoolRegistry-)
 
 - [`deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#MarginFlowProtocol-deposit-contract-MarginLiquidityPoolInterface-uint256-)
 
-- [`withdraw(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#MarginFlowProtocol-withdraw-contract-MarginLiquidityPoolInterface-uint256-)
+- [`withdraw(contract MarginLiquidityPoolInterface _pool, uint256 _iTokenAmount)`](#MarginFlowProtocol-withdraw-contract-MarginLiquidityPoolInterface-uint256-)
+
+- [`withdrawForPool(uint256 _iTokenAmount)`](#MarginFlowProtocol-withdrawForPool-uint256-)
 
 - [`openPosition(contract MarginLiquidityPoolInterface _pool, address _base, address _quote, int256 _leverage, uint256 _leveragedHeld, uint256 _price)`](#MarginFlowProtocol-openPosition-contract-MarginLiquidityPoolInterface-address-address-int256-uint256-uint256-)
 
-- [`closePosition(uint256 _positionId, uint256 _price)`](#MarginFlowProtocol-closePosition-uint256-uint256-)
+- [`closePosition(uint256 _positionId, uint256 _price, uint256 _estimatedPoolIndex, uint256 _estimatedTraderIndex)`](#MarginFlowProtocol-closePosition-uint256-uint256-uint256-uint256-)
 
-- [`getMarginHeld(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getMarginHeld-contract-MarginLiquidityPoolInterface-address-)
+- [`getExactFreeMargin(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getExactFreeMargin-contract-MarginLiquidityPoolInterface-address-)
 
-- [`getFreeMargin(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getFreeMargin-contract-MarginLiquidityPoolInterface-address-)
-
-- [`getEquityOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getEquityOfTrader-contract-MarginLiquidityPoolInterface-address-)
+- [`getExactEquityOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getExactEquityOfTrader-contract-MarginLiquidityPoolInterface-address-)
 
 - [`getUnrealizedPlOfPosition(uint256 _positionId)`](#MarginFlowProtocol-getUnrealizedPlOfPosition-uint256-)
 
-- [`getUsdValue(address _currencyToken, int256 _amount)`](#MarginFlowProtocol-getUsdValue-address-int256-)
-
-- [`getPrice(address _baseCurrencyId, address _quoteCurrencyId)`](#MarginFlowProtocol-getPrice-address-address-)
-
 - [`getAccumulatedSwapRateOfPosition(uint256 _positionId)`](#MarginFlowProtocol-getAccumulatedSwapRateOfPosition-uint256-)
+
+- [`getMarginHeld(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getMarginHeld-contract-MarginLiquidityPoolInterface-address-)
 
 - [`getPositionsByPoolLength(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocol-getPositionsByPoolLength-contract-MarginLiquidityPoolInterface-)
 
-- [`getPositionIdByPoolAndIndex(contract MarginLiquidityPoolInterface _pool, uint256 _index)`](#MarginFlowProtocol-getPositionIdByPoolAndIndex-contract-MarginLiquidityPoolInterface-uint256-)
+- [`getPositionById(uint256 _positionId)`](#MarginFlowProtocol-getPositionById-uint256-)
 
-- [`getLeveragedDebitsByPoolAndIndex(contract MarginLiquidityPoolInterface _pool, uint256 _index)`](#MarginFlowProtocol-getLeveragedDebitsByPoolAndIndex-contract-MarginLiquidityPoolInterface-uint256-)
+- [`getPositionsByPool(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocol-getPositionsByPool-contract-MarginLiquidityPoolInterface-)
+
+- [`getPositionsByPoolAndTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getPositionsByPoolAndTrader-contract-MarginLiquidityPoolInterface-address-)
 
 - [`getPositionsByPoolAndTraderLength(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocol-getPositionsByPoolAndTraderLength-contract-MarginLiquidityPoolInterface-address-)
 
 - [`getPositionIdByPoolAndTraderAndIndex(contract MarginLiquidityPoolInterface _pool, address _trader, uint256 _index)`](#MarginFlowProtocol-getPositionIdByPoolAndTraderAndIndex-contract-MarginLiquidityPoolInterface-address-uint256-)
 
-- [`getLeveragedDebitsByPoolAndTraderAndIndex(contract MarginLiquidityPoolInterface _pool, address _trader, uint256 _index)`](#MarginFlowProtocol-getLeveragedDebitsByPoolAndTraderAndIndex-contract-MarginLiquidityPoolInterface-address-uint256-)
+- [`getTotalPoolLiquidity(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocol-getTotalPoolLiquidity-contract-MarginLiquidityPoolInterface-)
 
-- [`setTraderIsMarginCalled(contract MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled)`](#MarginFlowProtocol-setTraderIsMarginCalled-contract-MarginLiquidityPoolInterface-address-bool-)
+- [`__setTraderIsMarginCalled(contract MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled)`](#MarginFlowProtocol-__setTraderIsMarginCalled-contract-MarginLiquidityPoolInterface-address-bool-)
 
-- [`setTraderHasPaidFees(contract MarginLiquidityPoolInterface _pool, address _trader, bool _hasPaidFees)`](#MarginFlowProtocol-setTraderHasPaidFees-contract-MarginLiquidityPoolInterface-address-bool-)
+- [`__removePosition(struct MarginFlowProtocol.Position _position, int256 _unrealizedPosition, struct Percentage.Percent _marketStopPrice, uint256 _estimatedPoolIndex, uint256 _estimatedTraderIndex)`](#MarginFlowProtocol-__removePosition-struct-MarginFlowProtocol-Position-int256-struct-Percentage-Percent-uint256-uint256-)
 
-- [`getAskSpread(contract MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken)`](#MarginFlowProtocol-getAskSpread-contract-MarginLiquidityPoolInterface-address-address-)
-
-- [`getBidSpread(contract MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken)`](#MarginFlowProtocol-getBidSpread-contract-MarginLiquidityPoolInterface-address-address-)
+- [`__transferUnrealized(contract MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized, int256 _storedTraderEquity)`](#MarginFlowProtocol-__transferUnrealized-contract-MarginLiquidityPoolInterface-address-int256-int256-)
 
 ## Events:
 
@@ -60,13 +48,13 @@
 
 - [`PositionClosed(uint256 positionId, address sender, address liquidityPool, address baseToken, address quoteToken, int256 realizedPl, uint256 price)`](#MarginFlowProtocol-PositionClosed-uint256-address-address-address-address-int256-uint256-)
 
-- [`Deposited(address sender, uint256 amount)`](#MarginFlowProtocol-Deposited-address-uint256-)
+- [`Deposited(contract MarginLiquidityPoolInterface pool, address sender, uint256 amount)`](#MarginFlowProtocol-Deposited-contract-MarginLiquidityPoolInterface-address-uint256-)
 
-- [`Withdrew(address sender, uint256 amount)`](#MarginFlowProtocol-Withdrew-address-uint256-)
+- [`Withdrew(contract MarginLiquidityPoolInterface pool, address sender, uint256 amount)`](#MarginFlowProtocol-Withdrew-contract-MarginLiquidityPoolInterface-address-uint256-)
 
-- [`NewTradingPair(address base, address quote)`](#MarginFlowProtocol-NewTradingPair-address-address-)
+- [`WithdrewStoppedPool(contract MarginLiquidityPoolInterface pool, address sender, uint256 amount)`](#MarginFlowProtocol-WithdrewStoppedPool-contract-MarginLiquidityPoolInterface-address-uint256-)
 
-### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolSafety _safetyProtocol, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry, uint256 _initialSwapRate, uint256 _initialMinLeverage, uint256 _initialMaxLeverage, uint256 _initialMaxLeverageAmount, uint256 _rateUnit)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolSafety-contract-MarginLiquidityPoolRegistry-uint256-uint256-uint256-uint256-uint256-)
+### [Function `initialize(contract PriceOracleInterface _oracle, contract MoneyMarketInterface _moneyMarket, contract MarginFlowProtocolConfig _protocolConfig, contract MarginFlowProtocolSafety _protocolSafety, contract MarginFlowProtocolLiquidated _protocolLiquidated, contract MarginFlowProtocolAccPositions _protocolAcc, contract MarginLiquidityPoolRegistry _liquidityPoolRegistry)`](#MarginFlowProtocol-initialize-contract-PriceOracleInterface-contract-MoneyMarketInterface-contract-MarginFlowProtocolConfig-contract-MarginFlowProtocolSafety-contract-MarginFlowProtocolLiquidated-contract-MarginFlowProtocolAccPositions-contract-MarginLiquidityPoolRegistry-)
 
 Initialize the MarginFlowProtocol.
 
@@ -76,51 +64,9 @@ Initialize the MarginFlowProtocol.
 
 - `_moneyMarket`: The money market.
 
+- `_protocolSafety`: The _protocolSafety.
+
 - `_liquidityPoolRegistry`: The liquidity pool registry.
-
-- `_initialSwapRate`: The initial swap rate as percentage.
-
-### [Function `addTradingPair(address _base, address _quote)`](#MarginFlowProtocol-addTradingPair-address-address-)
-
-Add new trading pair, only for the owner.
-
-#### Parameters:
-
-- `_base`: The base token.
-
-- `_quote`: The quote token.
-
-### [Function `setCurrentSwapRate(uint256 _newSwapRate)`](#MarginFlowProtocol-setCurrentSwapRate-uint256-)
-
-Set new swap rate, only for the owner.
-
-#### Parameters:
-
-- `_newSwapRate`: The new swap rate as percentage.
-
-### [Function `setMinLeverage(uint256 _newMinLeverage)`](#MarginFlowProtocol-setMinLeverage-uint256-)
-
-Set new minimum leverage, only for the owner.
-
-#### Parameters:
-
-- `_newMinLeverage`: The new minimum leverage.
-
-### [Function `setMaxLeverage(uint256 _newMaxLeverage)`](#MarginFlowProtocol-setMaxLeverage-uint256-)
-
-Set new maximum leverage, only for the owner.
-
-#### Parameters:
-
-- `_newMaxLeverage`: The new maximum leverage.
-
-### [Function `setMaxLeverageAmount(uint256 _newMaxLeverageAmount)`](#MarginFlowProtocol-setMaxLeverageAmount-uint256-)
-
-Set new maximum leverage amount, only for the owner.
-
-#### Parameters:
-
-- `_newMaxLeverageAmount`: The new maximum leverage amount.
 
 ### [Function `deposit(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#MarginFlowProtocol-deposit-contract-MarginLiquidityPoolInterface-uint256-)
 
@@ -132,15 +78,23 @@ Deposit amount to pool balance.
 
 - `_baseTokenAmount`: The base token amount to deposit.
 
-### [Function `withdraw(contract MarginLiquidityPoolInterface _pool, uint256 _baseTokenAmount)`](#MarginFlowProtocol-withdraw-contract-MarginLiquidityPoolInterface-uint256-)
+### [Function `withdraw(contract MarginLiquidityPoolInterface _pool, uint256 _iTokenAmount)`](#MarginFlowProtocol-withdraw-contract-MarginLiquidityPoolInterface-uint256-)
 
-Withdraw amount from pool balance.
+Withdraw amount from pool balance. Automatically withdraws trader deposits when withdrawing all funds.
 
 #### Parameters:
 
 - `_pool`: The MarginLiquidityPool.
 
-- `_baseTokenAmount`: The base token amount to withdraw.
+- `_iTokenAmount`: The iToken amount to withdraw.
+
+### [Function `withdrawForPool(uint256 _iTokenAmount)`](#MarginFlowProtocol-withdrawForPool-uint256-)
+
+Withdraw amount from pool balance for pool.
+
+#### Parameters:
+
+- `_iTokenAmount`: The iToken amount to withdraw.
 
 ### [Function `openPosition(contract MarginLiquidityPoolInterface _pool, address _base, address _quote, int256 _leverage, uint256 _leveragedHeld, uint256 _price)`](#MarginFlowProtocol-openPosition-contract-MarginLiquidityPoolInterface-address-address-int256-uint256-uint256-)
 
@@ -162,7 +116,7 @@ Set price to 0 if you want to use the current market price.
 
 - `_price`: The max/min price when opening the position.
 
-### [Function `closePosition(uint256 _positionId, uint256 _price)`](#MarginFlowProtocol-closePosition-uint256-uint256-)
+### [Function `closePosition(uint256 _positionId, uint256 _price, uint256 _estimatedPoolIndex, uint256 _estimatedTraderIndex)`](#MarginFlowProtocol-closePosition-uint256-uint256-uint256-uint256-)
 
 Close the given position with a min/max price. Set price to 0 if you want to use the current market price.
 
@@ -171,6 +125,58 @@ Close the given position with a min/max price. Set price to 0 if you want to use
 - `_positionId`: The id of the position to close.
 
 - `_price`: The max/min price when closing the position..
+
+### [Function `getExactFreeMargin(contract MarginLiquidityPoolInterface _pool, address _trader) → uint256`](#MarginFlowProtocol-getExactFreeMargin-contract-MarginLiquidityPoolInterface-address-)
+
+Get the exact free margin (only use as view function due to gas costs).
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader address.
+
+#### Return Values:
+
+- The free margin amount.
+
+### [Function `getExactEquityOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader) → int256`](#MarginFlowProtocol-getExactEquityOfTrader-contract-MarginLiquidityPoolInterface-address-)
+
+Get the exact equity of trader (only use as view function due to gas costs).
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader address.
+
+#### Return Values:
+
+- The equity of trader.
+
+### [Function `getUnrealizedPlOfPosition(uint256 _positionId) → int256`](#MarginFlowProtocol-getUnrealizedPlOfPosition-uint256-)
+
+Get the unrealized profit and loss of a position based on current market price.
+
+#### Parameters:
+
+- `_positionId`: The position id.
+
+#### Return Values:
+
+- The equity of trader.
+
+### [Function `getAccumulatedSwapRateOfPosition(uint256 _positionId) → int256`](#MarginFlowProtocol-getAccumulatedSwapRateOfPosition-uint256-)
+
+Get the current accumulated swap rate of a position.
+
+#### Parameters:
+
+- `_positionId`: The position id.
+
+#### Return Values:
+
+- The accumulated swap rate.
 
 ### [Function `getMarginHeld(contract MarginLiquidityPoolInterface _pool, address _trader) → uint256`](#MarginFlowProtocol-getMarginHeld-contract-MarginLiquidityPoolInterface-address-)
 
@@ -186,77 +192,105 @@ Sum of all margin held of a given trader.
 
 - The margin held sum.
 
-### [Function `getFreeMargin(contract MarginLiquidityPoolInterface _pool, address _trader) → uint256`](#MarginFlowProtocol-getFreeMargin-contract-MarginLiquidityPoolInterface-address-)
+### [Function `getPositionsByPoolLength(contract MarginLiquidityPoolInterface _pool) → uint256`](#MarginFlowProtocol-getPositionsByPoolLength-contract-MarginLiquidityPoolInterface-)
 
-Get the free margin: the free margin of the trader.
+Get the position count of a pool.
 
 #### Parameters:
 
 - `_pool`: The MarginLiquidityPool.
 
-- `_trader`: The trader address.
+#### Return Values:
+
+- The position count.
+
+### [Function `getPositionById(uint256 _positionId) → struct MarginFlowProtocol.Position`](#MarginFlowProtocol-getPositionById-uint256-)
+
+Get the position by id.
+
+#### Parameters:
+
+- `_positionId`: The position id..
 
 #### Return Values:
 
-- The free margin amount (int256).
+- The position.
 
-### [Function `getEquityOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader) → int256`](#MarginFlowProtocol-getEquityOfTrader-contract-MarginLiquidityPoolInterface-address-)
+### [Function `getPositionsByPool(contract MarginLiquidityPoolInterface _pool) → struct MarginFlowProtocol.Position[]`](#MarginFlowProtocol-getPositionsByPool-contract-MarginLiquidityPoolInterface-)
 
-No description
+Get all positions of a pool.
 
-### [Function `getUnrealizedPlOfPosition(uint256 _positionId) → int256`](#MarginFlowProtocol-getUnrealizedPlOfPosition-uint256-)
+#### Parameters:
 
-No description
+- `_pool`: The MarginLiquidityPool.
 
-### [Function `getUsdValue(address _currencyToken, int256 _amount) → int256`](#MarginFlowProtocol-getUsdValue-address-int256-)
+#### Return Values:
 
-No description
+- The positions.
 
-### [Function `getPrice(address _baseCurrencyId, address _quoteCurrencyId) → struct Percentage.Percent`](#MarginFlowProtocol-getPrice-address-address-)
+### [Function `getPositionsByPoolAndTrader(contract MarginLiquidityPoolInterface _pool, address _trader) → struct MarginFlowProtocol.Position[]`](#MarginFlowProtocol-getPositionsByPoolAndTrader-contract-MarginLiquidityPoolInterface-address-)
 
-No description
+Get the positions of a trader in a given pool.
 
-### [Function `getAccumulatedSwapRateOfPosition(uint256 _positionId) → uint256`](#MarginFlowProtocol-getAccumulatedSwapRateOfPosition-uint256-)
+#### Parameters:
 
-No description
+- `_pool`: The MarginLiquidityPool.
 
-### [Function `getPositionsByPoolLength(contract MarginLiquidityPoolInterface _pool) → uint256`](#MarginFlowProtocol-getPositionsByPoolLength-contract-MarginLiquidityPoolInterface-)
+- `_trader`: The trader.
 
-No description
+#### Return Values:
 
-### [Function `getPositionIdByPoolAndIndex(contract MarginLiquidityPoolInterface _pool, uint256 _index) → uint256`](#MarginFlowProtocol-getPositionIdByPoolAndIndex-contract-MarginLiquidityPoolInterface-uint256-)
-
-No description
-
-### [Function `getLeveragedDebitsByPoolAndIndex(contract MarginLiquidityPoolInterface _pool, uint256 _index) → int256`](#MarginFlowProtocol-getLeveragedDebitsByPoolAndIndex-contract-MarginLiquidityPoolInterface-uint256-)
-
-No description
+- The positions.
 
 ### [Function `getPositionsByPoolAndTraderLength(contract MarginLiquidityPoolInterface _pool, address _trader) → uint256`](#MarginFlowProtocol-getPositionsByPoolAndTraderLength-contract-MarginLiquidityPoolInterface-address-)
 
-No description
+Get the positions count of a trader in a given pool.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader.
+
+#### Return Values:
+
+- The positions count.
 
 ### [Function `getPositionIdByPoolAndTraderAndIndex(contract MarginLiquidityPoolInterface _pool, address _trader, uint256 _index) → uint256`](#MarginFlowProtocol-getPositionIdByPoolAndTraderAndIndex-contract-MarginLiquidityPoolInterface-address-uint256-)
 
+Get the position id of the n'th position of a trader in a given pool.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader.
+
+#### Return Values:
+
+- The position id.
+
+### [Function `getTotalPoolLiquidity(contract MarginLiquidityPoolInterface _pool) → int256`](#MarginFlowProtocol-getTotalPoolLiquidity-contract-MarginLiquidityPoolInterface-)
+
+Get the liquidity of a pool.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+#### Return Values:
+
+- The liquidity
+
+### [Function `__setTraderIsMarginCalled(contract MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled)`](#MarginFlowProtocol-__setTraderIsMarginCalled-contract-MarginLiquidityPoolInterface-address-bool-)
+
 No description
 
-### [Function `getLeveragedDebitsByPoolAndTraderAndIndex(contract MarginLiquidityPoolInterface _pool, address _trader, uint256 _index) → int256`](#MarginFlowProtocol-getLeveragedDebitsByPoolAndTraderAndIndex-contract-MarginLiquidityPoolInterface-address-uint256-)
+### [Function `__removePosition(struct MarginFlowProtocol.Position _position, int256 _unrealizedPosition, struct Percentage.Percent _marketStopPrice, uint256 _estimatedPoolIndex, uint256 _estimatedTraderIndex)`](#MarginFlowProtocol-__removePosition-struct-MarginFlowProtocol-Position-int256-struct-Percentage-Percent-uint256-uint256-)
 
 No description
 
-### [Function `setTraderIsMarginCalled(contract MarginLiquidityPoolInterface _pool, address _trader, bool _isMarginCalled)`](#MarginFlowProtocol-setTraderIsMarginCalled-contract-MarginLiquidityPoolInterface-address-bool-)
-
-No description
-
-### [Function `setTraderHasPaidFees(contract MarginLiquidityPoolInterface _pool, address _trader, bool _hasPaidFees)`](#MarginFlowProtocol-setTraderHasPaidFees-contract-MarginLiquidityPoolInterface-address-bool-)
-
-No description
-
-### [Function `getAskSpread(contract MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken) → uint256`](#MarginFlowProtocol-getAskSpread-contract-MarginLiquidityPoolInterface-address-address-)
-
-No description
-
-### [Function `getBidSpread(contract MarginLiquidityPoolInterface _pool, address _baseToken, address _quoteToken) → uint256`](#MarginFlowProtocol-getBidSpread-contract-MarginLiquidityPoolInterface-address-address-)
+### [Function `__transferUnrealized(contract MarginLiquidityPoolInterface _pool, address _owner, int256 _unrealized, int256 _storedTraderEquity)`](#MarginFlowProtocol-__transferUnrealized-contract-MarginLiquidityPoolInterface-address-int256-int256-)
 
 No description
 
@@ -302,7 +336,7 @@ Event for deposits.
 
 - `price`: The max/min price for closing, 0 means accept all.
 
-### Event `Deposited(address sender, uint256 amount)` {#MarginFlowProtocol-Deposited-address-uint256-}
+### Event `Deposited(contract MarginLiquidityPoolInterface pool, address sender, uint256 amount)` {#MarginFlowProtocol-Deposited-contract-MarginLiquidityPoolInterface-address-uint256-}
 
 Event for deposits.
 
@@ -312,9 +346,9 @@ Event for deposits.
 
 - `amount`: The amount
 
-### Event `Withdrew(address sender, uint256 amount)` {#MarginFlowProtocol-Withdrew-address-uint256-}
+### Event `Withdrew(contract MarginLiquidityPoolInterface pool, address sender, uint256 amount)` {#MarginFlowProtocol-Withdrew-contract-MarginLiquidityPoolInterface-address-uint256-}
 
-Event for withdrawals..
+Event for withdrawals.
 
 #### Parameters:
 
@@ -322,12 +356,12 @@ Event for withdrawals..
 
 - `amount`: The amount
 
-### Event `NewTradingPair(address base, address quote)` {#MarginFlowProtocol-NewTradingPair-address-address-}
+### Event `WithdrewStoppedPool(contract MarginLiquidityPoolInterface pool, address sender, uint256 amount)` {#MarginFlowProtocol-WithdrewStoppedPool-contract-MarginLiquidityPoolInterface-address-uint256-}
 
-Event for new trading pair being added.
+Event for withdrawals of stopped pools.
 
 #### Parameters:
 
-- `base`: The base token
+- `sender`: The sender
 
-- `quote`: The quote token
+- `amount`: The amount

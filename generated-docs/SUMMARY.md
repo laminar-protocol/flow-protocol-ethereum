@@ -5,13 +5,19 @@
     * [LiquidityPool](docs/impls/LiquidityPool.md)
     * margin
       * [MarginFlowProtocol](docs/impls/margin/MarginFlowProtocol.md)
+      * [MarginFlowProtocolAccPositions](docs/impls/margin/MarginFlowProtocolAccPositions.md)
+      * [MarginFlowProtocolConfig](docs/impls/margin/MarginFlowProtocolConfig.md)
+      * [MarginFlowProtocolLiquidated](docs/impls/margin/MarginFlowProtocolLiquidated.md)
       * [MarginFlowProtocolSafety](docs/impls/margin/MarginFlowProtocolSafety.md)
       * [MarginLiquidityPool](docs/impls/margin/MarginLiquidityPool.md)
       * [MarginLiquidityPoolRegistry](docs/impls/margin/MarginLiquidityPoolRegistry.md)
+      * [MarginMarketLib](docs/impls/margin/MarginMarketLib.md)
     * [MintableToken](docs/impls/MintableToken.md)
     * [MoneyMarket](docs/impls/MoneyMarket.md)
-    * [PriceOracleConfig](docs/impls/PriceOracleConfig.md)
-    * [SimplePriceOracle](docs/impls/SimplePriceOracle.md)
+    * oracles
+      * [ChainLinkOracle](docs/impls/oracles/ChainLinkOracle.md)
+      * [PriceOracleConfig](docs/impls/oracles/PriceOracleConfig.md)
+      * [SimplePriceOracle](docs/impls/oracles/SimplePriceOracle.md)
     * synthetic
       * [SyntheticFlowProtocol](docs/impls/synthetic/SyntheticFlowProtocol.md)
       * [SyntheticFlowToken](docs/impls/synthetic/SyntheticFlowToken.md)
@@ -27,12 +33,7 @@
     * [Arrays](docs/libs/Arrays.md)
     * [Percentage](docs/libs/Percentage.md)
     * upgrades
-      * [ERC20DetailedUpgradable](docs/libs/upgrades/ERC20DetailedUpgradable.md)
       * [Proxy](docs/libs/upgrades/Proxy.md)
-      * [UpgradeAccessControl](docs/libs/upgrades/UpgradeAccessControl.md)
-      * [UpgradeContext](docs/libs/upgrades/UpgradeContext.md)
-      * [UpgradeOwnable](docs/libs/upgrades/UpgradeOwnable.md)
-      * [UpgradeReentrancyGuard](docs/libs/upgrades/UpgradeReentrancyGuard.md)
   * [Migrations](docs/Migrations.md)
   * mocks
     * [ArraysImpl](docs/mocks/ArraysImpl.md)

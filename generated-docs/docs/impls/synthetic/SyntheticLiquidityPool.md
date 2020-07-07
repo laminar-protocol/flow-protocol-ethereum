@@ -16,9 +16,9 @@
 
 - [`disableToken(address _token)`](#SyntheticLiquidityPool-disableToken-address-)
 
-- [`addCollateral(contract SyntheticFlowProtocol _protocol, contract SyntheticFlowToken _token, uint256 _baseTokenAmount)`](#SyntheticLiquidityPool-addCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-uint256-)
+- [`addCollateral(contract SyntheticFlowToken _token, uint256 _baseTokenAmount)`](#SyntheticLiquidityPool-addCollateral-contract-SyntheticFlowToken-uint256-)
 
-- [`withdrawCollateral(contract SyntheticFlowProtocol _protocol, contract SyntheticFlowToken _token)`](#SyntheticLiquidityPool-withdrawCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-)
+- [`withdrawCollateral(contract SyntheticFlowToken _token)`](#SyntheticLiquidityPool-withdrawCollateral-contract-SyntheticFlowToken-)
 
 ### [Function `initialize(contract MoneyMarketInterface _moneyMarket, address _protocol)`](#SyntheticLiquidityPool-initialize-contract-MoneyMarketInterface-address-)
 
@@ -52,10 +52,10 @@ No description
 
 No description
 
-### [Function `addCollateral(contract SyntheticFlowProtocol _protocol, contract SyntheticFlowToken _token, uint256 _baseTokenAmount)`](#SyntheticLiquidityPool-addCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-uint256-)
+### [Function `addCollateral(contract SyntheticFlowToken _token, uint256 _baseTokenAmount)`](#SyntheticLiquidityPool-addCollateral-contract-SyntheticFlowToken-uint256-)
 
 No description
 
-### [Function `withdrawCollateral(contract SyntheticFlowProtocol _protocol, contract SyntheticFlowToken _token)`](#SyntheticLiquidityPool-withdrawCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-)
+### [Function `withdrawCollateral(contract SyntheticFlowToken _token)`](#SyntheticLiquidityPool-withdrawCollateral-contract-SyntheticFlowToken-)
 
 No description
