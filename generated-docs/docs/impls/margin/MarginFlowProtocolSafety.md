@@ -1,20 +1,12 @@
 ## Functions:
 
-- [`initialize(contract MarginFlowProtocol _marginProtocol, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#MarginFlowProtocolSafety-initialize-contract-MarginFlowProtocol-uint256-uint256-uint256-uint256-uint256-uint256-)
-
-- [`setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold)`](#MarginFlowProtocolSafety-setTraderRiskMarginCallThreshold-uint256-)
-
-- [`setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold)`](#MarginFlowProtocolSafety-setTraderRiskLiquidateThreshold-uint256-)
-
-- [`setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolENPMarginThreshold-uint256-)
-
-- [`setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolELLMarginThreshold-uint256-)
-
-- [`setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolENPLiquidateThreshold-uint256-)
-
-- [`setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolELLLiquidateThreshold-uint256-)
+- [`initialize(struct MarginMarketLib.MarketData _market, address _laminarTreasury)`](#MarginFlowProtocolSafety-initialize-struct-MarginMarketLib-MarketData-address-)
 
 - [`isPoolSafe(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-isPoolSafe-contract-MarginLiquidityPoolInterface-)
+
+- [`payTraderDeposits(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-payTraderDeposits-contract-MarginLiquidityPoolInterface-)
+
+- [`withdrawTraderDeposits(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-withdrawTraderDeposits-contract-MarginLiquidityPoolInterface-)
 
 - [`marginCallTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-marginCallTrader-contract-MarginLiquidityPoolInterface-address-)
 
@@ -34,9 +26,13 @@
 
 - [`getEnpAndEll(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-getEnpAndEll-contract-MarginLiquidityPoolInterface-)
 
-- [`getLeveragedDebitsOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-getLeveragedDebitsOfTrader-contract-MarginLiquidityPoolInterface-address-)
-
 - [`getEquityOfPool(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-getEquityOfPool-contract-MarginLiquidityPoolInterface-)
+
+- [`getEstimatedRequiredDepositForPool(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-getEstimatedRequiredDepositForPool-contract-MarginLiquidityPoolInterface-)
+
+- [`__markTraderDepositsAsPaid(contract MarginLiquidityPoolInterface _pool, address _trader, uint256 _paidMarginITokens, uint256 _paidLiquidationITokens)`](#MarginFlowProtocolSafety-__markTraderDepositsAsPaid-contract-MarginLiquidityPoolInterface-address-uint256-uint256-)
+
+- [`__withdrawTraderDeposits(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-__withdrawTraderDeposits-contract-MarginLiquidityPoolInterface-address-)
 
 ## Events:
 
@@ -52,71 +48,15 @@
 
 - [`LiquidityPoolLiquidated(address liquidityPool)`](#MarginFlowProtocolSafety-LiquidityPoolLiquidated-address-)
 
-### [Function `initialize(contract MarginFlowProtocol _marginProtocol, uint256 _initialTraderRiskMarginCallThreshold, uint256 _initialTraderRiskLiquidateThreshold, uint256 _initialLiquidityPoolENPMarginThreshold, uint256 _initialLiquidityPoolELLMarginThreshold, uint256 _initialLiquidityPoolENPLiquidateThreshold, uint256 _initialLiquidityPoolELLLiquidateThreshold)`](#MarginFlowProtocolSafety-initialize-contract-MarginFlowProtocol-uint256-uint256-uint256-uint256-uint256-uint256-)
+### [Function `initialize(struct MarginMarketLib.MarketData _market, address _laminarTreasury)`](#MarginFlowProtocolSafety-initialize-struct-MarginMarketLib-MarketData-address-)
 
 Initialize the MarginFlowProtocolSafety.
 
 #### Parameters:
 
-- `_initialTraderRiskMarginCallThreshold`: The initial trader risk margin call threshold as percentage.
+- `_market`: The market data.
 
-- `_initialTraderRiskLiquidateThreshold`: The initial trader risk liquidate threshold as percentage.
-
-- `_initialLiquidityPoolENPMarginThreshold`: The initial pool ENP margin threshold.
-
-- `_initialLiquidityPoolELLMarginThreshold`: The initial pool ELL margin threshold.
-
-- `_initialLiquidityPoolENPLiquidateThreshold`: The initial pool ENP liquidate threshold.
-
-- `_initialLiquidityPoolELLLiquidateThreshold`: The initial pool ELL liquidate threshold.
-
-### [Function `setTraderRiskMarginCallThreshold(uint256 _newTraderRiskMarginCallThreshold)`](#MarginFlowProtocolSafety-setTraderRiskMarginCallThreshold-uint256-)
-
-Set new trader risk threshold for trader margin calls, only set by owner.
-
-#### Parameters:
-
-- `_newTraderRiskMarginCallThreshold`: The new trader risk threshold as percentage.
-
-### [Function `setTraderRiskLiquidateThreshold(uint256 _newTraderRiskLiquidateThreshold)`](#MarginFlowProtocolSafety-setTraderRiskLiquidateThreshold-uint256-)
-
-Set new trader risk threshold for trader liquidation, only set by owner.
-
-#### Parameters:
-
-- `_newTraderRiskLiquidateThreshold`: The new trader risk threshold as percentage.
-
-### [Function `setLiquidityPoolENPMarginThreshold(uint256 _newLiquidityPoolENPMarginThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolENPMarginThreshold-uint256-)
-
-Set new trader risk threshold, only for the owner.
-
-#### Parameters:
-
-- `_newLiquidityPoolENPMarginThreshold`: The new trader risk threshold.
-
-### [Function `setLiquidityPoolELLMarginThreshold(uint256 _newLiquidityPoolELLMarginThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolELLMarginThreshold-uint256-)
-
-Set new trader risk threshold, only for the owner.
-
-#### Parameters:
-
-- `_newLiquidityPoolELLMarginThreshold`: The new trader risk threshold.
-
-### [Function `setLiquidityPoolENPLiquidateThreshold(uint256 _newLiquidityPoolENPLiquidateThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolENPLiquidateThreshold-uint256-)
-
-Set new trader risk threshold, only for the owner.
-
-#### Parameters:
-
-- `_newLiquidityPoolENPLiquidateThreshold`: The new trader risk threshold.
-
-### [Function `setLiquidityPoolELLLiquidateThreshold(uint256 _newLiquidityPoolELLLiquidateThreshold)`](#MarginFlowProtocolSafety-setLiquidityPoolELLLiquidateThreshold-uint256-)
-
-Set new trader risk threshold, only for the owner.
-
-#### Parameters:
-
-- `_newLiquidityPoolELLLiquidateThreshold`: The new trader risk threshold.
+- `_laminarTreasury`: The laminarTreasury.
 
 ### [Function `isPoolSafe(contract MarginLiquidityPoolInterface _pool) → bool`](#MarginFlowProtocolSafety-isPoolSafe-contract-MarginLiquidityPoolInterface-)
 
@@ -129,6 +69,22 @@ Ensure a pool is safe, based on equity delta, opened positions or plus a new one
 #### Return Values:
 
 - true if ensured safe or false if not.
+
+### [Function `payTraderDeposits(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-payTraderDeposits-contract-MarginLiquidityPoolInterface-)
+
+Pay the trader deposits
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+### [Function `withdrawTraderDeposits(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-withdrawTraderDeposits-contract-MarginLiquidityPoolInterface-)
+
+Withdraw the trader deposits, only possible when no positions are open.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
 
 ### [Function `marginCallTrader(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-marginCallTrader-contract-MarginLiquidityPoolInterface-address-)
 
@@ -152,7 +108,9 @@ Enable full trading functionality for trader, undoing a previous `marginCallTrad
 
 ### [Function `marginCallLiquidityPool(contract MarginLiquidityPoolInterface _pool)`](#MarginFlowProtocolSafety-marginCallLiquidityPool-contract-MarginLiquidityPoolInterface-)
 
-Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders send `LIQUIDITY_POOL_MARGIN_CALL_FEE` to caller..
+Margin call a given MarginLiquidityPool, reducing its allowed trading functionality for all traders
+
+send `LIQUIDITY_POOL_MARGIN_CALL_FEE` to caller..
 
 #### Parameters:
 
@@ -186,21 +144,79 @@ Liquidate pool due to funds running too low, distribute funds to all users and s
 
 ### [Function `isTraderSafe(contract MarginLiquidityPoolInterface _pool, address _trader) → bool`](#MarginFlowProtocolSafety-isTraderSafe-contract-MarginLiquidityPoolInterface-address-)
 
-No description
+Ensure a trader is safe, based on equity delta, opened positions or plus a new one to open.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader.
+
+#### Return Values:
+
+- True if ensured safe or false if not.
 
 ### [Function `getMarginLevel(contract MarginLiquidityPoolInterface _pool, address _trader) → struct Percentage.SignedPercent`](#MarginFlowProtocolSafety-getMarginLevel-contract-MarginLiquidityPoolInterface-address-)
 
-No description
+Get the margin level of a trader based on equity and net positions.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+- `_trader`: The trader.
+
+#### Return Values:
+
+- The current margin level.
 
 ### [Function `getEnpAndEll(contract MarginLiquidityPoolInterface _pool) → struct Percentage.Percent, struct Percentage.Percent`](#MarginFlowProtocolSafety-getEnpAndEll-contract-MarginLiquidityPoolInterface-)
 
-No description
+ENP and ELL. If `new_position` is `None`, return the ENP & ELL based on current positions,
 
-### [Function `getLeveragedDebitsOfTrader(contract MarginLiquidityPoolInterface _pool, address _trader) → uint256`](#MarginFlowProtocolSafety-getLeveragedDebitsOfTrader-contract-MarginLiquidityPoolInterface-address-)
+else based on current positions plus this new one. If `equity_delta` is `None`, return
 
-No description
+the ENP & ELL based on current equity of pool, else based on current equity of pool plus
+
+the `equity_delta`.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+#### Return Values:
+
+- The current ENP and ELL as percentages.
 
 ### [Function `getEquityOfPool(contract MarginLiquidityPoolInterface _pool) → int256`](#MarginFlowProtocolSafety-getEquityOfPool-contract-MarginLiquidityPoolInterface-)
+
+Get the estimated equity of a pool.
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+#### Return Values:
+
+- The pool's equity.
+
+### [Function `getEstimatedRequiredDepositForPool(contract MarginLiquidityPoolInterface _pool) → uint256`](#MarginFlowProtocolSafety-getEstimatedRequiredDepositForPool-contract-MarginLiquidityPoolInterface-)
+
+Get the required deposit amount to make pool safe for pool owners (not incl swap rates).
+
+#### Parameters:
+
+- `_pool`: The MarginLiquidityPool.
+
+#### Return Values:
+
+- The required deposit.
+
+### [Function `__markTraderDepositsAsPaid(contract MarginLiquidityPoolInterface _pool, address _trader, uint256 _paidMarginITokens, uint256 _paidLiquidationITokens)`](#MarginFlowProtocolSafety-__markTraderDepositsAsPaid-contract-MarginLiquidityPoolInterface-address-uint256-uint256-)
+
+No description
+
+### [Function `__withdrawTraderDeposits(contract MarginLiquidityPoolInterface _pool, address _trader)`](#MarginFlowProtocolSafety-__withdrawTraderDeposits-contract-MarginLiquidityPoolInterface-address-)
 
 No description
 

@@ -4,7 +4,7 @@
 
 - [`setNewStorageUint(uint256 _newStorageUint)`](#MarginFlowProtocolNewVersion-setNewStorageUint-uint256-)
 
-- [`getNewValuePlusMaxSpread()`](#MarginFlowProtocolNewVersion-getNewValuePlusMaxSpread--)
+- [`getNewValuePlusNextPositionId()`](#MarginFlowProtocolNewVersion-getNewValuePlusNextPositionId--)
 
 ### [Function `addNewStorageBytes32(bytes32 _newBytes32)`](#MarginFlowProtocolNewVersion-addNewStorageBytes32-bytes32-)
 
@@ -14,6 +14,6 @@ No description
 
 No description
 
-### [Function `getNewValuePlusMaxSpread() → uint256`](#MarginFlowProtocolNewVersion-getNewValuePlusMaxSpread--)
+### [Function `getNewValuePlusNextPositionId() → uint256`](#MarginFlowProtocolNewVersion-getNewValuePlusNextPositionId--)
 
 No description

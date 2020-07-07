@@ -11,8 +11,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
-import "@nomiclabs/buidler/console.sol";
-
 import "../../libs/Percentage.sol";
 
 import "../../interfaces/PriceOracleInterface.sol";
@@ -235,9 +233,12 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         emit LiquidityPoolLiquidated(address(_pool));
     }
 
-    // Ensure a trader is safe, based on equity delta, opened positions or plus a new one to open.
-    //
-    // Return true if ensured safe or false if not.
+    /**
+     * @dev Ensure a trader is safe, based on equity delta, opened positions or plus a new one to open.
+     * @param _pool The MarginLiquidityPool.
+     * @param _trader The trader.
+     * @return True if ensured safe or false if not.
+     */
     function isTraderSafe(MarginLiquidityPoolInterface _pool, address _trader) public returns (bool) {
         Percentage.SignedPercent memory marginLevel = getMarginLevel(_pool, _trader);
 
@@ -246,7 +247,12 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         return isSafe;
     }
 
-    // Margin level of a given user.
+    /**
+     * @dev Get the margin level of a trader based on equity and net positions.
+     * @param _pool The MarginLiquidityPool.
+     * @param _trader The trader.
+     * @return The current margin level.
+     */
     function getMarginLevel(MarginLiquidityPoolInterface _pool, address _trader) public returns (Percentage.SignedPercent memory) {
         int256 equity = market.getEstimatedEquityOfTrader(_pool, _trader, market.marginProtocol.balances(_pool, _trader));
         uint256 leveragedDebitsITokens = market.getLeveragedDebitsOfTraderInUsd(_pool, _trader);
@@ -265,6 +271,15 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
     //
     // ENP - Equity to Net Position ratio of a liquidity pool.
     // ELL - Equity to Longest Leg ratio of a liquidity pool.
+
+    /**
+     * @dev ENP and ELL. If `new_position` is `None`, return the ENP & ELL based on current positions,
+     * else based on current positions plus this new one. If `equity_delta` is `None`, return
+     * the ENP & ELL based on current equity of pool, else based on current equity of pool plus
+     * the `equity_delta`.
+     * @param _pool The MarginLiquidityPool.
+     * @return The current ENP and ELL as percentages.
+     */
     function getEnpAndEll(MarginLiquidityPoolInterface _pool) public returns (Percentage.Percent memory, Percentage.Percent memory) {
         MarginFlowProtocol.TradingPair[] memory pairs = market.config.getTradingPairs();
 
@@ -292,7 +307,11 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         return (enp, ell);
     }
 
-    // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate (left out swap rates))
+    /**
+     * @dev Get the estimated equity of a pool.
+     * @param _pool The MarginLiquidityPool.
+     * @return The pool's equity.
+     */
     function getEquityOfPool(MarginLiquidityPoolInterface _pool) public returns (int256) {
         MarginFlowProtocol.TradingPair[] memory pairs = market.config.getTradingPairs();
         int256 unrealized = 0;
@@ -302,10 +321,15 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
             unrealized = unrealized.add(unrealizedPair);
         }
 
+        // equityOfPool = liquidity - (allUnrealizedPl + allAccumulatedSwapRate (left out swap rates))
         return market.marginProtocol.getTotalPoolLiquidity(_pool).sub(unrealized);
     }
 
-    // Returns required deposit amount to make pool safe. (not incl swap rates)
+    /**
+     * @dev Get the required deposit amount to make pool safe for pool owners (not incl swap rates).
+     * @param _pool The MarginLiquidityPool.
+     * @return The required deposit.
+     */
     function getEstimatedRequiredDepositForPool(MarginLiquidityPoolInterface _pool) public returns (uint256) {
         MarginFlowProtocol.TradingPair[] memory pairs = market.config.getTradingPairs();
         uint256 net = 0;

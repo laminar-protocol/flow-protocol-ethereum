@@ -2,7 +2,9 @@
 
 - [`depositLiquidity(uint256 _realized)`](#MarginLiquidityPoolInterface-depositLiquidity-uint256-)
 
-- [`withdrawLiquidity(uint256 _realized)`](#MarginLiquidityPoolInterface-withdrawLiquidity-uint256-)
+- [`increaseAllowanceForProtocol(uint256 _realized)`](#MarginLiquidityPoolInterface-increaseAllowanceForProtocol-uint256-)
+
+- [`increaseAllowanceForProtocolSafety(uint256 _realized)`](#MarginLiquidityPoolInterface-increaseAllowanceForProtocolSafety-uint256-)
 
 - [`withdrawLiquidityOwner(uint256 _realized)`](#MarginLiquidityPoolInterface-withdrawLiquidityOwner-uint256-)
 
@@ -16,11 +18,27 @@
 
 - [`setSpreadForPair(address baseToken, address quoteToken, uint256 spread)`](#MarginLiquidityPoolInterface-setSpreadForPair-address-address-uint256-)
 
-- [`enableToken(address baseToken, address quoteToken, uint256 spread)`](#MarginLiquidityPoolInterface-enableToken-address-address-uint256-)
+- [`enableToken(address baseToken, address quoteToken, uint256 spread, int256 _newSwapRateMarkup)`](#MarginLiquidityPoolInterface-enableToken-address-address-uint256-int256-)
 
 - [`disableToken(address baseToken, address quoteToken)`](#MarginLiquidityPoolInterface-disableToken-address-address-)
 
 - [`allowedTokens(address baseToken, address quoteToken)`](#MarginLiquidityPoolInterface-allowedTokens-address-address-)
+
+- [`minLeverage()`](#MarginLiquidityPoolInterface-minLeverage--)
+
+- [`maxLeverage()`](#MarginLiquidityPoolInterface-maxLeverage--)
+
+- [`minLeverageAmount()`](#MarginLiquidityPoolInterface-minLeverageAmount--)
+
+- [`getSwapRateMarkupForPair(address baseToken, address quoteToken)`](#MarginLiquidityPoolInterface-getSwapRateMarkupForPair-address-address-)
+
+- [`setMinLeverage(uint256 _minLeverage)`](#MarginLiquidityPoolInterface-setMinLeverage-uint256-)
+
+- [`setMaxLeverage(uint256 _maxLeverage)`](#MarginLiquidityPoolInterface-setMaxLeverage-uint256-)
+
+- [`setMinLeverageAmount(uint256 _newMinLeverageAmount)`](#MarginLiquidityPoolInterface-setMinLeverageAmount-uint256-)
+
+- [`setCurrentSwapRateMarkupForPair(address base, address quote, int256 newSwapRateMarkup)`](#MarginLiquidityPoolInterface-setCurrentSwapRateMarkupForPair-address-address-int256-)
 
 ## Events:
 
@@ -30,7 +48,11 @@
 
 No description
 
-### [Function `withdrawLiquidity(uint256 _realized) → uint256`](#MarginLiquidityPoolInterface-withdrawLiquidity-uint256-)
+### [Function `increaseAllowanceForProtocol(uint256 _realized)`](#MarginLiquidityPoolInterface-increaseAllowanceForProtocol-uint256-)
+
+No description
+
+### [Function `increaseAllowanceForProtocolSafety(uint256 _realized)`](#MarginLiquidityPoolInterface-increaseAllowanceForProtocolSafety-uint256-)
 
 No description
 
@@ -58,7 +80,7 @@ No description
 
 No description
 
-### [Function `enableToken(address baseToken, address quoteToken, uint256 spread)`](#MarginLiquidityPoolInterface-enableToken-address-address-uint256-)
+### [Function `enableToken(address baseToken, address quoteToken, uint256 spread, int256 _newSwapRateMarkup)`](#MarginLiquidityPoolInterface-enableToken-address-address-uint256-int256-)
 
 No description
 
@@ -67,6 +89,38 @@ No description
 No description
 
 ### [Function `allowedTokens(address baseToken, address quoteToken) → bool`](#MarginLiquidityPoolInterface-allowedTokens-address-address-)
+
+No description
+
+### [Function `minLeverage() → uint256`](#MarginLiquidityPoolInterface-minLeverage--)
+
+No description
+
+### [Function `maxLeverage() → uint256`](#MarginLiquidityPoolInterface-maxLeverage--)
+
+No description
+
+### [Function `minLeverageAmount() → uint256`](#MarginLiquidityPoolInterface-minLeverageAmount--)
+
+No description
+
+### [Function `getSwapRateMarkupForPair(address baseToken, address quoteToken) → int256`](#MarginLiquidityPoolInterface-getSwapRateMarkupForPair-address-address-)
+
+No description
+
+### [Function `setMinLeverage(uint256 _minLeverage)`](#MarginLiquidityPoolInterface-setMinLeverage-uint256-)
+
+No description
+
+### [Function `setMaxLeverage(uint256 _maxLeverage)`](#MarginLiquidityPoolInterface-setMaxLeverage-uint256-)
+
+No description
+
+### [Function `setMinLeverageAmount(uint256 _newMinLeverageAmount)`](#MarginLiquidityPoolInterface-setMinLeverageAmount-uint256-)
+
+No description
+
+### [Function `setCurrentSwapRateMarkupForPair(address base, address quote, int256 newSwapRateMarkup)`](#MarginLiquidityPoolInterface-setCurrentSwapRateMarkupForPair-address-address-int256-)
 
 No description
 

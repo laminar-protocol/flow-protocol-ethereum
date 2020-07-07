@@ -1,8 +1,8 @@
 ## Functions:
 
-- [`addCollateral(contract SyntheticFlowProtocol protocol, contract SyntheticFlowToken token, uint256 baseTokenAmount)`](#SyntheticLiquidityPoolInterface-addCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-uint256-)
+- [`addCollateral(contract SyntheticFlowToken token, uint256 baseTokenAmount)`](#SyntheticLiquidityPoolInterface-addCollateral-contract-SyntheticFlowToken-uint256-)
 
-- [`withdrawCollateral(contract SyntheticFlowProtocol protocol, contract SyntheticFlowToken token)`](#SyntheticLiquidityPoolInterface-withdrawCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-)
+- [`withdrawCollateral(contract SyntheticFlowToken token)`](#SyntheticLiquidityPoolInterface-withdrawCollateral-contract-SyntheticFlowToken-)
 
 - [`getBidSpread(address fToken)`](#SyntheticLiquidityPoolInterface-getBidSpread-address-)
 
@@ -30,11 +30,11 @@
 
 - [`AdditionalCollateralRatioUpdated()`](#SyntheticLiquidityPoolInterface-AdditionalCollateralRatioUpdated--)
 
-### [Function `addCollateral(contract SyntheticFlowProtocol protocol, contract SyntheticFlowToken token, uint256 baseTokenAmount)`](#SyntheticLiquidityPoolInterface-addCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-uint256-)
+### [Function `addCollateral(contract SyntheticFlowToken token, uint256 baseTokenAmount)`](#SyntheticLiquidityPoolInterface-addCollateral-contract-SyntheticFlowToken-uint256-)
 
 No description
 
-### [Function `withdrawCollateral(contract SyntheticFlowProtocol protocol, contract SyntheticFlowToken token)`](#SyntheticLiquidityPoolInterface-withdrawCollateral-contract-SyntheticFlowProtocol-contract-SyntheticFlowToken-)
+### [Function `withdrawCollateral(contract SyntheticFlowToken token)`](#SyntheticLiquidityPoolInterface-withdrawCollateral-contract-SyntheticFlowToken-)
 
 No description
 

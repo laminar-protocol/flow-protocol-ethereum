@@ -10,8 +10,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
-import "@nomiclabs/buidler/console.sol";
-
 import "../interfaces/CErc20Interface.sol";
 import "../interfaces/MoneyMarketInterface.sol";
 import "../libs/Percentage.sol";

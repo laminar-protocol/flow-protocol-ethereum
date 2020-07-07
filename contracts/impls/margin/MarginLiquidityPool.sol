@@ -31,12 +31,6 @@ contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool
         _;
     }
 
-    modifier onlyProtocolSafety() {
-        (, , , , MarginFlowProtocolSafety safety, , , , ) = MarginFlowProtocol(protocol).market();
-        require(msg.sender == address(safety), "Ownable: caller is not the protocol safety");
-        _;
-    }
-
     function initialize(
         MoneyMarketInterface _moneyMarket,
         address _protocol,
@@ -72,12 +66,19 @@ contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool
         moneyMarket.iToken().safeIncreaseAllowance(protocol, _iTokenAmount);
     }
 
-    function increaseAllowanceForProtocolSafety(uint256 _iTokenAmount) external override onlyProtocolSafety {
+    function increaseAllowanceForProtocolSafety(uint256 _iTokenAmount) external override {
         (, , , , MarginFlowProtocolSafety safety, , , , ) = MarginFlowProtocol(protocol).market();
         address safetyProtocol = address(safety);
+        require(msg.sender == safetyProtocol, "Ownable: caller is not the protocol safety");
+
         moneyMarket.iToken().safeIncreaseAllowance(safetyProtocol, _iTokenAmount);
     }
 
+    /**
+     * @dev Withdraw liquidity for owner.
+     * @param _iTokenAmount The MarginLiquidityPool.
+     * @return The amount withdrawn in base tokens.
+     */
     function withdrawLiquidityOwner(uint256 _iTokenAmount) external override onlyOwner returns (uint256) {
         (, , , , MarginFlowProtocolSafety safety, , , , ) = MarginFlowProtocol(protocol).market();
         int256 protocolBalance = MarginFlowProtocol(protocol).balances(this, address(this));
@@ -91,18 +92,37 @@ contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool
         return baseTokenAmount;
     }
 
+    /**
+     * @dev Get amounts of iTokens in pool.
+     * @return The iTokens amount.
+     */
     function getLiquidity() external override view returns (uint256) {
         return moneyMarket.iToken().balanceOf(address(this));
     }
 
+    /**
+     * @dev Get the current bid spread for trading pair.
+     * @return The bid spread.
+     */
     function getBidSpread(address _baseToken, address _quoteToken) external override view returns (uint256) {
         return _getSpread(_baseToken, _quoteToken);
     }
 
+    /**
+     * @dev Get the current ask spread for trading pair.
+     * @return The ask spread.
+     */
     function getAskSpread(address _baseToken, address _quoteToken) external override view returns (uint256) {
         return _getSpread(_baseToken, _quoteToken);
     }
 
+    /**
+     * @dev Enable the trading pair.
+     * @param _baseToken The base token.
+     * @param _quoteToken The quote token.
+     * @param _spread The initial spread.
+     * @param _newSwapRateMarkup The initial swap rate markup.
+     */
     function enableToken(
         address _baseToken,
         address _quoteToken,
@@ -116,6 +136,11 @@ contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool
         swapRatesMarkups[_baseToken][_quoteToken] = _newSwapRateMarkup;
     }
 
+    /**
+     * @dev Disable the trading pair.
+     * @param _baseToken The base token.
+     * @param _quoteToken The quote token.
+     */
     function disableToken(address _baseToken, address _quoteToken) external override onlyOwner {
         allowedTokens[_baseToken][_quoteToken] = false;
         spreadsPerTokenPair[_baseToken][_quoteToken] = 0;
@@ -162,6 +187,12 @@ contract MarginLiquidityPool is Initializable, OwnableUpgradeSafe, LiquidityPool
         swapRatesMarkups[_base][_quote] = _newSwapRateMarkup;
     }
 
+    /**
+     * @dev Get the swap rate markup for trading pair.
+     * @param _baseToken The base token.
+     * @param _quoteToken The quote token.
+     * @return The swap rate markup.
+     */
     function getSwapRateMarkupForPair(address _baseToken, address _quoteToken) external override view returns (int256) {
         return swapRatesMarkups[_baseToken][_quoteToken];
     }

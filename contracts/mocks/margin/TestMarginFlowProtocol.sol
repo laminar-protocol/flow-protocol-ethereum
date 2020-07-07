@@ -73,14 +73,12 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
         uint256 traderIndex = 0;
 
         for (uint256 i = 0; i < positionsByPool[_pool].length; i++) {
-            // TODO pass correct index to minimise gas
             if (positionsByPool[_pool][i].id == _positionId) {
                 poolIndex = i;
                 break;
             }
         }
         for (uint256 i = 0; i < positionsByPoolAndTrader[_pool][msg.sender].length; i++) {
-            // TODO pass correct index to minimise gas
             if (positionsByPoolAndTrader[_pool][msg.sender][i].id == _positionId) {
                 traderIndex = i;
                 break;

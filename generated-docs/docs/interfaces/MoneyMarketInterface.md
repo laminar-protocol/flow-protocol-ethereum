@@ -26,6 +26,14 @@
 
 - [`convertAmountToBase(uint256 rate, uint256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
 
+- [`convertAmountFromBase(int256 _baseTokenAmount)`](#MoneyMarketInterface-convertAmountFromBase-int256-)
+
+- [`convertAmountFromBase(int256 rate, int256 baseTokenAmount)`](#MoneyMarketInterface-convertAmountFromBase-int256-int256-)
+
+- [`convertAmountToBase(int256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-int256-)
+
+- [`convertAmountToBase(int256 rate, int256 iTokenAmount)`](#MoneyMarketInterface-convertAmountToBase-int256-int256-)
+
 - [`totalHoldings()`](#MoneyMarketInterface-totalHoldings--)
 
 ## Events:
@@ -83,6 +91,22 @@ No description
 No description
 
 ### [Function `convertAmountToBase(uint256 rate, uint256 iTokenAmount) → uint256`](#MoneyMarketInterface-convertAmountToBase-uint256-uint256-)
+
+No description
+
+### [Function `convertAmountFromBase(int256 _baseTokenAmount) → int256`](#MoneyMarketInterface-convertAmountFromBase-int256-)
+
+No description
+
+### [Function `convertAmountFromBase(int256 rate, int256 baseTokenAmount) → int256`](#MoneyMarketInterface-convertAmountFromBase-int256-int256-)
+
+No description
+
+### [Function `convertAmountToBase(int256 iTokenAmount) → int256`](#MoneyMarketInterface-convertAmountToBase-int256-)
+
+No description
+
+### [Function `convertAmountToBase(int256 rate, int256 iTokenAmount) → int256`](#MoneyMarketInterface-convertAmountToBase-int256-int256-)
 
 No description
 

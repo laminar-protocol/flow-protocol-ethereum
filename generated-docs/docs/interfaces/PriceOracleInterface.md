@@ -4,7 +4,7 @@
 
 - [`getPrice(address addr)`](#PriceOracleInterface-getPrice-address-)
 
-- [`readPrice(address key)`](#PriceOracleInterface-readPrice-address-)
+- [`readPrice(address addr)`](#PriceOracleInterface-readPrice-address-)
 
 ## Events:
 
@@ -20,7 +20,7 @@ No description
 
 No description
 
-### [Function `readPrice(address key) → uint256`](#PriceOracleInterface-readPrice-address-)
+### [Function `readPrice(address addr) → uint256`](#PriceOracleInterface-readPrice-address-)
 
 No description
 

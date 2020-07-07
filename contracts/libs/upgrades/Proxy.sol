@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.6.10;
 
-import "@nomiclabs/buidler/console.sol";
-
 contract Proxy {
     bytes32 private constant IMPLEMENTATION_POSITION = keccak256("implementation.address");
     bytes32 private constant PROXY_OWNER_POSITION = keccak256("proxy.owner");

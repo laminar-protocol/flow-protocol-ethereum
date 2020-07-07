@@ -11,8 +11,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
-import "@nomiclabs/buidler/console.sol";
-
 import "../../libs/Percentage.sol";
 
 import "../../interfaces/PriceOracleInterface.sol";
@@ -64,6 +62,8 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
     /**
      * @dev Force close position for trader for liquidated pool.
      * @param _positionId The id of the position to close.
+     * @param _estimatedPoolIndex The index inside the pool positions array.
+     * @param _estimatedTraderIndex The index inside the trader positions array.
      */
     function closePositionForLiquidatedPool(
         uint256 _positionId,
@@ -101,6 +101,8 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
     /**
      * @dev Force close position for trader for liquidated trader.
      * @param _positionId The id of the position to close.
+     * @param _estimatedPoolIndex The index inside the pool positions array.
+     * @param _estimatedTraderIndex The index inside the trader positions array.
      */
     function closePositionForLiquidatedTrader(
         uint256 _positionId,
@@ -132,6 +134,11 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         return totalUnrealized;
     }
 
+    /**
+     * @dev Restore a trader in a pool after being liquidated.
+     * @param _pool The margin liquidity pool.
+     * @param _trader The trader.
+     */
     function restoreTraderInPool(MarginLiquidityPoolInterface _pool, address _trader) external nonReentrant {
         require(stoppedTradersInPool[_pool][_trader], "TL4");
         require(market.marginProtocol.getPositionsByPoolAndTraderLength(_pool, msg.sender) == 0, "W2");
@@ -148,6 +155,10 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         }
     }
 
+    /**
+     * @dev Restore a pool after being liquidated.
+     * @param _pool The margin liquidity pool.
+     */
     function restoreLiquidatedPool(MarginLiquidityPoolInterface _pool) external nonReentrant {
         require(market.marginProtocol.getPositionsByPoolLength(_pool) == 0, "W2");
         stoppedPools[_pool] = false;

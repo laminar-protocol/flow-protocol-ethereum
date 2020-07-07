@@ -13,10 +13,6 @@ import "../../interfaces/MarginLiquidityPoolInterface.sol";
 
 import "./MarginMarketLib.sol";
 
-// TODOs:
-// - discovery liquidity pool
-// - find best spread liquidity pool
-
 contract MarginLiquidityPoolRegistry is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
