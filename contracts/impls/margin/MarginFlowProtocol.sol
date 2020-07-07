@@ -191,13 +191,11 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
      */
     function withdraw(MarginLiquidityPoolInterface _pool, uint256 _iTokenAmount) external nonReentrant {
         require(market.liquidityPoolRegistry.isVerifiedPool(_pool), "LR1");
+        uint256 baseTokenAmount = market.moneyMarket.redeemTo(msg.sender, _iTokenAmount);
 
         if (market.protocolLiquidated.stoppedPools(_pool) || market.protocolLiquidated.stoppedTradersInPool(_pool, msg.sender)) {
             require(positionsByPoolAndTrader[_pool][msg.sender].length == 0, "W2");
         }
-
-        uint256 baseTokenAmount = market.moneyMarket.redeemTo(msg.sender, _iTokenAmount);
-        balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
 
         require(
             market.getEstimatedFreeMargin(
@@ -209,6 +207,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
             "W1"
         );
         require(baseTokenAmount > 0, "0");
+        balances[_pool][msg.sender] = balances[_pool][msg.sender].sub(int256(_iTokenAmount));
 
         if (positionsByPoolAndTrader[_pool][msg.sender].length == 0 && balances[_pool][msg.sender] == 0) {
             // withdraw trader deposits if no more money left otherwise
