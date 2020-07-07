@@ -84,10 +84,18 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
         currentSwapRates[_base][_quote][PositionType.SHORT] = _newSwapRateShort;
     }
 
+    /**
+     * @dev Set new max spread.
+     * @param _maxSpread The new max spread.
+     */
     function setMaxSpread(uint256 _maxSpread) external onlyOwner {
         maxSpread = _maxSpread;
     }
 
+    /**
+     * @dev Set new max trading pair count.
+     * @param _maxTradingPairCount The new max trading pair count.
+     */
     function setMaxTradingPairCount(uint256 _maxTradingPairCount) external onlyOwner {
         maxTradingPairCount = _maxTradingPairCount;
     }
@@ -178,18 +186,37 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
 
     /// View functions
 
+    /**
+     * @dev Get all tradings pairs for the protocol.
+     * @return The trading pairs.
+     */
     function getTradingPairs() external view returns (MarginFlowProtocol.TradingPair[] memory) {
         return tradingPairs;
     }
 
+    /**
+     * @dev Get the ENP and ELL margin thresholds.
+     * @return The ENP and ELL margin thresholds.
+     */
     function getEnpAndEllMarginThresholds() external view returns (uint256, uint256) {
         return (liquidityPoolENPMarginThreshold, liquidityPoolELLMarginThreshold);
     }
 
+    /**
+     * @dev Get the ENP and ELL liquidation thresholds.
+     * @return The ENP and ELL liquidation thresholds.
+     */
     function getEnpAndEllLiquidateThresholds() external view returns (uint256, uint256) {
         return (liquidityPoolENPLiquidateThreshold, liquidityPoolELLLiquidateThreshold);
     }
 
+    /**
+     * @dev Get the total swap rate from base swap rate and pool markup.
+     * @param _pool The margin liquidity pool.
+     * @param _pair The trading pair.
+     * @param _type The position type (Long or Short).
+     * @return The the total swap rate.
+     */
     function getCurrentTotalSwapRateForPoolAndPair(
         MarginLiquidityPoolInterface _pool,
         MarginFlowProtocol.TradingPair calldata _pair,
@@ -201,7 +228,7 @@ contract MarginFlowProtocolConfig is Initializable, OwnableUpgradeSafe {
             ? Percentage.SignedPercent(baseSwapRate.value)
             : Percentage.SignedPercent(-baseSwapRate.value);
 
-        // swap = swap - (abs(swap) * additional_swap_rate) = -1% - (1% * 0.5%) = -1.5%
+        // swap = swap - (abs(swap) * additional_swap_rate)
         return Percentage.signedSubPercent(baseSwapRate, baseSwapRateAbs.signedMulPercent(poolMarkup));
     }
 }

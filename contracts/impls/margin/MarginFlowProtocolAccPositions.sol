@@ -11,8 +11,6 @@ import "@openzeppelin/contracts-ethereum-package/contracts/math/Math.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
 
-import "@nomiclabs/buidler/console.sol";
-
 import "../../libs/Percentage.sol";
 
 import "../../interfaces/PriceOracleInterface.sol";
@@ -59,6 +57,11 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
         market = _market;
     }
 
+    /**
+     * @dev Receive current pair safety values for pool.
+     * @param _pool The MarginLiquidityPool.
+     * @param _pair The trading pair.
+     */
     function getPairPoolSafetyInfo(MarginLiquidityPoolInterface _pool, MarginFlowProtocol.TradingPair calldata _pair)
         external
         returns (
@@ -80,6 +83,12 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
             );
     }
 
+    /**
+     * @dev Receive current unrealized for trader for trading pair.
+     * @param _pool The MarginLiquidityPool.
+     * @param _trader The trader.
+     * @param _pair The trading pair.
+     */
     function getPairTraderUnrealized(
         MarginLiquidityPoolInterface _pool,
         address _trader,
@@ -98,6 +107,12 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
             );
     }
 
+    /**
+     * @dev Receive current net for trader for trading pair.
+     * @param _pool The MarginLiquidityPool.
+     * @param _trader The trader.
+     * @param _pair The trading pair.
+     */
     function getPairTraderNet(
         MarginLiquidityPoolInterface _pool,
         address _trader,
@@ -110,6 +125,8 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
                 traderShortPositionAccPerPair[_pool][_trader][_pair.base][_pair.quote][CurrencyType.QUOTE]
             );
     }
+
+    // Protocol functions
 
     function __updateAccumulatedPositions(MarginFlowProtocol.Position memory _position, bool _isAddition) external {
         require(msg.sender == address(market.marginProtocol), "P1");
@@ -145,6 +162,8 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
             );
         }
     }
+
+    // Internal functions
 
     function _addToAccPositions(
         mapping(MarginLiquidityPoolInterface => mapping(address => mapping(address => mapping(CurrencyType => uint256)))) storage _poolPositions,
