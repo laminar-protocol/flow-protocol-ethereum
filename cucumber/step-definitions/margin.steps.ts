@@ -201,7 +201,7 @@ const closeAllPositions = async (name: string): Promise<any> => {
 
   for (let i = 0; i < openPositions; i += 1) {
     const positionId = await flowMarginProtocolContract.methods
-      .getPositionIdByPoolAndTraderAndIndex(poolAddress, from.address, i)
+      .getPositionIdByPoolAndTraderAndIndex(poolAddress, from.address, 0)
       .call();
     const {
       estimatedIndexPool,

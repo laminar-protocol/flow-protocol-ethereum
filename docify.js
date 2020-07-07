@@ -1,6 +1,6 @@
 const fs = require('fs'); // eslint-disable-line
 const path = require('path'); // eslint-disable-line
-const { spawnSync } = require('child_process'); // eslint-disable-line
+const {spawnSync} = require('child_process'); // eslint-disable-line
 
 const NODE_DIR = 'node_modules';
 const INPUT_DIR = 'contracts';
@@ -12,13 +12,13 @@ const EXCLUDE_FILE = 'generated-docs/exclude.txt';
 
 function lines(pathName) {
   return fs
-    .readFileSync(pathName, { encoding: 'utf8' })
+    .readFileSync(pathName, {encoding: 'utf8'})
     .split('\r')
     .join('')
     .split('\n');
 }
 
-const excludeList = lines(EXCLUDE_FILE).map(line => `${INPUT_DIR}/${line}`);
+const excludeList = lines(EXCLUDE_FILE).map((line) => `${INPUT_DIR}/${line}`);
 const relativePath = path.relative(path.dirname(SUMMARY_FILE), OUTPUT_DIR);
 
 function scan(pathName, indentation) {
@@ -49,7 +49,7 @@ function fix(pathName) {
     fs.writeFileSync(
       pathName,
       `${lines(pathName)
-        .filter(line => line.trim().length > 0)
+        .filter((line) => line.trim().length > 0)
         .join('\n\n')}\n`,
     );
   }
@@ -71,9 +71,8 @@ const args = [
   `--output=${OUTPUT_DIR}`,
   `--templates=${CONFIG_DIR}`,
   `--solc-settings=${JSON.stringify({
-    optimizer: { enabled: true, runs: 200 },
+    optimizer: {enabled: true, runs: 200},
   })}`,
-  '--contract-pages',
 ];
 
 const result = spawnSync('node', args, {
