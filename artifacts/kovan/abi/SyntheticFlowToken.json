@@ -501,30 +501,6 @@
     "inputs": [
       {
         "internalType": "string",
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "symbol",
-        "type": "string"
-      },
-      {
-        "internalType": "uint8",
-        "name": "decimals",
-        "type": "uint8"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x1624f6c6"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
         "name": "_name",
         "type": "string"
       },

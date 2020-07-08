@@ -67,21 +67,6 @@
   },
   {
     "inputs": [],
-    "name": "isOwner",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x8f32d59b"
-  },
-  {
-    "inputs": [],
     "name": "liquidityPoolELLLiquidateThreshold",
     "outputs": [
       {
@@ -154,6 +139,21 @@
     "type": "function",
     "constant": true,
     "signature": "0x796e8f90"
+  },
+  {
+    "inputs": [],
+    "name": "maxTradingPairCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0xfabc3326"
   },
   {
     "inputs": [],
@@ -317,6 +317,11 @@
       },
       {
         "internalType": "uint256",
+        "name": "_maxTradingPairCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
         "name": "_initialTraderRiskMarginCallThreshold",
         "type": "uint256"
       },
@@ -350,21 +355,7 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0xb6610ace"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xc4d66de8"
+    "signature": "0x6d55160c"
   },
   {
     "inputs": [
@@ -408,6 +399,20 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0xbef648db"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_maxTradingPairCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMaxTradingPairCount",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xdca450de"
   },
   {
     "inputs": [
@@ -553,6 +558,46 @@
     "type": "function",
     "constant": true,
     "signature": "0xcd2ce4ae"
+  },
+  {
+    "inputs": [],
+    "name": "getEnpAndEllMarginThresholds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x084e6acf"
+  },
+  {
+    "inputs": [],
+    "name": "getEnpAndEllLiquidateThresholds",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x584fb8ab"
   },
   {
     "inputs": [

@@ -79,5 +79,26 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x41976e09"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "addr",
+        "type": "address"
+      }
+    ],
+    "name": "readPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function",
+    "constant": true,
+    "signature": "0x033d497a"
   }
 ]

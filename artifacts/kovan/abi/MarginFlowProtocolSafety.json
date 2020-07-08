@@ -189,14 +189,6 @@
     "signature": "0x0d3cc84c"
   },
   {
-    "inputs": [],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x8129fc1c"
-  },
-  {
     "inputs": [
       {
         "components": [
@@ -231,6 +223,11 @@
             "type": "address"
           },
           {
+            "internalType": "contract MarginFlowProtocolAccPositions",
+            "name": "protocolAcc",
+            "type": "address"
+          },
+          {
             "internalType": "contract MarginLiquidityPoolRegistry",
             "name": "liquidityPoolRegistry",
             "type": "address"
@@ -255,7 +252,7 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0xa596ddef"
+    "signature": "0x078da5b0"
   },
   {
     "inputs": [
@@ -506,32 +503,6 @@
         "internalType": "contract MarginLiquidityPoolInterface",
         "name": "_pool",
         "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_trader",
-        "type": "address"
-      }
-    ],
-    "name": "getLeveragedDebitsOfTrader",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x76fd7cec"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "contract MarginLiquidityPoolInterface",
-        "name": "_pool",
-        "type": "address"
       }
     ],
     "name": "getEquityOfPool",
@@ -545,6 +516,26 @@
     "stateMutability": "nonpayable",
     "type": "function",
     "signature": "0x4dd283b2"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "contract MarginLiquidityPoolInterface",
+        "name": "_pool",
+        "type": "address"
+      }
+    ],
+    "name": "getEstimatedRequiredDepositForPool",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function",
+    "signature": "0xe76511a7"
   },
   {
     "inputs": [
