@@ -431,9 +431,6 @@ contract('MarginFlowProtocol', (accounts) => {
       fromEth(expectedLeveragedDebits),
     );
 
-    expect(bn(position.leveragedDebitsInUsd.toString())).to.be.bignumber.equal(
-      fromEth(expectedLeveragedDebitsInUsd),
-    );
     expect(bn(position.marginHeld.toString())).to.be.bignumber.equal(
       fromEth(expectedMarginHeld),
     );
@@ -451,7 +448,6 @@ contract('MarginFlowProtocol', (accounts) => {
       baseToken,
       quoteToken,
       leverage: expectedLeverage,
-      leveragedDebitsInUsd: position.leveragedDebitsInUsd,
       price: bn(position.leverage.toString()).isNeg() ? bidPrice : askPrice,
     });
 

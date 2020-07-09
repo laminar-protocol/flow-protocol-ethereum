@@ -43,8 +43,6 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         int256 leverage;
         int256 leveragedHeld;
         int256 leveragedDebits;
-        // USD value of leveraged debits on open position.
-        int256 leveragedDebitsInUsd;
         uint256 marginHeld;
         Percentage.SignedPercent swapRate;
         uint256 timeWhenOpened;
@@ -490,7 +488,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         require(leveragedDebitsInUsd >= _pool.minLeverageAmount(), "OP6");
         require(_getEstimatedFreeMargin(_pool, msg.sender) >= marginHeld, "OP1");
 
-        Position memory position = _createPosition(_pool, _pair, _leverage, _leveragedHeld, leveragedDebits, leveragedDebitsInUsd, marginHeld);
+        Position memory position = _createPosition(_pool, _pair, _leverage, _leveragedHeld, leveragedDebits, marginHeld);
         market.protocolAcc.__updateAccumulatedPositions(position, true);
 
         positionsById[position.id] = position;
@@ -516,7 +514,6 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         int256 _leverage,
         uint256 _leveragedHeld,
         uint256 _leveragedDebits,
-        uint256 _leveragedDebitsInUsd,
         uint256 _marginHeld
     ) private view returns (Position memory) {
         int256 heldSignum = _leverage > 0 ? int256(1) : int256(-1);
@@ -530,7 +527,6 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
                 _leverage,
                 int256(_leveragedHeld).mul(heldSignum),
                 int256(_leveragedDebits).mul(heldSignum.mul(-1)),
-                int256(_leveragedDebitsInUsd).mul(heldSignum.mul(-1)),
                 _marginHeld,
                 market.config.getCurrentTotalSwapRateForPoolAndPair(
                     _pool,
