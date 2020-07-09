@@ -41,21 +41,6 @@
     "signature": "0x9201010a"
   },
   {
-    "inputs": [],
-    "name": "isOwner",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function",
-    "constant": true,
-    "signature": "0x8f32d59b"
-  },
-  {
     "inputs": [
       {
         "internalType": "contract MarginLiquidityPoolInterface",
@@ -177,28 +162,6 @@
     "signature": "0xf2fde38b"
   },
   {
-    "inputs": [],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0x8129fc1c"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "sender",
-        "type": "address"
-      }
-    ],
-    "name": "initialize",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function",
-    "signature": "0xc4d66de8"
-  },
-  {
     "inputs": [
       {
         "components": [
@@ -233,6 +196,11 @@
             "type": "address"
           },
           {
+            "internalType": "contract MarginFlowProtocolAccPositions",
+            "name": "protocolAcc",
+            "type": "address"
+          },
+          {
             "internalType": "contract MarginLiquidityPoolRegistry",
             "name": "liquidityPoolRegistry",
             "type": "address"
@@ -252,7 +220,7 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function",
-    "signature": "0xf2da6d6c"
+    "signature": "0x08e0355c"
   },
   {
     "inputs": [
