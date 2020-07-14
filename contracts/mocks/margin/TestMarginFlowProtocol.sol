@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.6.10;
-pragma experimental ABIEncoderV2;
+pragma experimental ABIEncoderV2; // not experimental anymore
 
 import "../../impls/margin/MarginFlowProtocol.sol";
 import "../../impls/margin/MarginMarketLib.sol";
@@ -24,7 +24,6 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
             _leverage,
             _leveragedHeld,
             _leveragedDebits,
-            0,
             0,
             Percentage.SignedPercent(0),
             0
@@ -67,7 +66,7 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
 
     function removePositionFromPoolList(MarginLiquidityPoolInterface _pool, uint256 _positionId) public {
         TradingPair memory pair = TradingPair(address(address(0)), address(address(0)));
-        Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, 0, Percentage.SignedPercent(0), 0);
+        Position memory position = Position(_positionId, msg.sender, _pool, pair, 0, 0, 0, 0, Percentage.SignedPercent(0), 0);
 
         uint256 poolIndex = 0;
         uint256 traderIndex = 0;
@@ -133,7 +132,6 @@ contract TestMarginFlowProtocol is MarginFlowProtocol {
             TradingPair(base, quote),
             0,
             _leveragedHeld,
-            0,
             0,
             0,
             Percentage.SignedPercent(_swapRate),

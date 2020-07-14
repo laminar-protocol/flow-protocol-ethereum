@@ -43,8 +43,6 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         int256 leverage;
         int256 leveragedHeld;
         int256 leveragedDebits;
-        // USD value of leveraged debits on open position.
-        int256 leveragedDebitsInUsd;
         uint256 marginHeld;
         Percentage.SignedPercent swapRate;
         uint256 timeWhenOpened;
@@ -220,7 +218,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Withdraw amount from pool balance for pool.
+     * @dev Withdraw amount from pool balance for pool. Moves iTokens back to the pool.
      * @param _iTokenAmount The iToken amount to withdraw.
      */
     function withdrawForPool(uint256 _iTokenAmount) external nonReentrant {
@@ -236,7 +234,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Open a new position with a min/max price. Trader must pay fees for first position.
+     * @dev Open a new position with a min/max price. Trader must pay deposits for first position.
      * Set price to 0 if you want to use the current market price.
      * @param _pool The MarginLiquidityPool.
      * @param _base The base token.
@@ -306,7 +304,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Get the exact free margin (only use as view function due to gas costs).
+     * @dev Get the exact free margin, incl. swap rates (only use as view function due to gas costs).
      * @param _pool The MarginLiquidityPool.
      * @param _trader The trader address.
      * @return The free margin amount.
@@ -426,7 +424,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Get the liquidity of a pool.
+     * @dev Get the total liquidity of a pool. It is the combined value of the internal protocol balance and the pool's iToken balance.
      * @param _pool The MarginLiquidityPool.
      * @return The liquidity
      */
@@ -437,7 +435,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         return poolLiquidity.add(poolProtocolBalance);
     }
 
-    /// Only for protocolSafety
+    // Only for protocol safety functions
 
     function __setTraderIsMarginCalled(
         MarginLiquidityPoolInterface _pool,
@@ -448,7 +446,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         traderIsMarginCalled[_pool][_trader] = _isMarginCalled;
     }
 
-    /// Only for protocolLiquidated
+    // Only for protocol liquidated functions
 
     function __removePosition(
         Position calldata _position,
@@ -471,7 +469,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         _transferUnrealized(_pool, _owner, _unrealized, _storedTraderEquity);
     }
 
-    /// Internal functions
+    // Internal functions
 
     function _insertPosition(
         MarginLiquidityPoolInterface _pool,
@@ -490,7 +488,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         require(leveragedDebitsInUsd >= _pool.minLeverageAmount(), "OP6");
         require(_getEstimatedFreeMargin(_pool, msg.sender) >= marginHeld, "OP1");
 
-        Position memory position = _createPosition(_pool, _pair, _leverage, _leveragedHeld, leveragedDebits, leveragedDebitsInUsd, marginHeld);
+        Position memory position = _createPosition(_pool, _pair, _leverage, _leveragedHeld, leveragedDebits, marginHeld);
         market.protocolAcc.__updateAccumulatedPositions(position, true);
 
         positionsById[position.id] = position;
@@ -516,7 +514,6 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         int256 _leverage,
         uint256 _leveragedHeld,
         uint256 _leveragedDebits,
-        uint256 _leveragedDebitsInUsd,
         uint256 _marginHeld
     ) private view returns (Position memory) {
         int256 heldSignum = _leverage > 0 ? int256(1) : int256(-1);
@@ -530,7 +527,6 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
                 _leverage,
                 int256(_leveragedHeld).mul(heldSignum),
                 int256(_leveragedDebits).mul(heldSignum.mul(-1)),
-                int256(_leveragedDebitsInUsd).mul(heldSignum.mul(-1)),
                 _marginHeld,
                 market.config.getCurrentTotalSwapRateForPoolAndPair(
                     _pool,
@@ -653,9 +649,9 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
 
             // approve might fail if MAX_UINT is already approved
             try _pool.increaseAllowanceForProtocol(transferITokenAmount)  {
-                this; // surpress empty code warning
+                this; // suppress empty code warning
             } catch (bytes memory) {
-                this; // surpress empty code warning
+                this; // suppress empty code warning
             }
             market.moneyMarket.iToken().safeTransferFrom(address(_pool), address(this), transferITokenAmount);
             balances[_pool][address(_pool)] = 0;

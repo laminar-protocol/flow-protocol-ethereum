@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.6.10;
-pragma experimental ABIEncoderV2;
+pragma experimental ABIEncoderV2; // not experimental anymore
 
 import "@openzeppelin/contracts-ethereum-package/contracts/Initializable.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
@@ -358,7 +358,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         return uint256(gap);
     }
 
-    // Protocol functions
+    // Only for protocol functions
 
     function __markTraderDepositsAsPaid(
         MarginLiquidityPoolInterface _pool,
@@ -370,6 +370,7 @@ contract MarginFlowProtocolSafety is Initializable, ReentrancyGuardUpgradeSafe {
         _markTraderDepositsAsPaid(_pool, _trader, _paidMarginITokens, _paidLiquidationITokens);
     }
 
+    // extra function required to pass along proper msg.sender as trader variable
     function __withdrawTraderDeposits(MarginLiquidityPoolInterface _pool, address _trader) public nonReentrant {
         require(msg.sender == address(market.marginProtocol), "P1");
         _withdrawTraderDeposits(_pool, _trader);

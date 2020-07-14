@@ -126,7 +126,7 @@ contract MarginFlowProtocolAccPositions is Initializable, ReentrancyGuardUpgrade
             );
     }
 
-    // Protocol functions
+    // Only for protocol functions
 
     function __updateAccumulatedPositions(MarginFlowProtocol.Position memory _position, bool _isAddition) external {
         require(msg.sender == address(market.marginProtocol), "P1");
