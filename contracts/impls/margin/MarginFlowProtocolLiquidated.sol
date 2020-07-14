@@ -173,7 +173,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         }
     }
 
-    /// Safety protocol functions
+    // Only for protocol safety functions
 
     function __stopPool(MarginLiquidityPoolInterface _pool) external nonReentrant {
         require(msg.sender == address(market.protocolSafety), "SP1");
@@ -273,7 +273,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
         return market.marginProtocol.balances(_pool, _trader).add(unrealized);
     }
 
-    /// Internal functions
+    // Internal functions
 
     function _closePositionForStoppedPool(
         MarginFlowProtocol.Position memory _position,
@@ -309,6 +309,7 @@ contract MarginFlowProtocolLiquidated is Initializable, ReentrancyGuardUpgradeSa
     ) private returns (int256) {
         int256 totalUnrealized = 0;
 
+        // avoids stack too deep
         {
             totalUnrealized = totalUnrealized.add(
                 market.getUnrealizedPlForStoppedPoolOrTrader(_usdPairPrice, _closePrice, _position.leveragedDebits, _position.leveragedHeld)

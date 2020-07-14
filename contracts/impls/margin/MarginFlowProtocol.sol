@@ -218,7 +218,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Withdraw amount from pool balance for pool.
+     * @dev Withdraw amount from pool balance for pool. Moves iTokens back to the pool.
      * @param _iTokenAmount The iToken amount to withdraw.
      */
     function withdrawForPool(uint256 _iTokenAmount) external nonReentrant {
@@ -234,7 +234,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Open a new position with a min/max price. Trader must pay fees for first position.
+     * @dev Open a new position with a min/max price. Trader must pay deposits for first position.
      * Set price to 0 if you want to use the current market price.
      * @param _pool The MarginLiquidityPool.
      * @param _base The base token.
@@ -304,7 +304,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Get the exact free margin (only use as view function due to gas costs).
+     * @dev Get the exact free margin, incl. swap rates (only use as view function due to gas costs).
      * @param _pool The MarginLiquidityPool.
      * @param _trader The trader address.
      * @return The free margin amount.
@@ -424,7 +424,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * @dev Get the liquidity of a pool.
+     * @dev Get the total liquidity of a pool. It is the combined value of the internal protocol balance and the pool's iToken balance.
      * @param _pool The MarginLiquidityPool.
      * @return The liquidity
      */
@@ -435,7 +435,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         return poolLiquidity.add(poolProtocolBalance);
     }
 
-    /// Only for protocolSafety
+    // Only for protocol safety functions
 
     function __setTraderIsMarginCalled(
         MarginLiquidityPoolInterface _pool,
@@ -446,7 +446,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         traderIsMarginCalled[_pool][_trader] = _isMarginCalled;
     }
 
-    /// Only for protocolLiquidated
+    // Only for protocol liquidated functions
 
     function __removePosition(
         Position calldata _position,
@@ -469,7 +469,7 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
         _transferUnrealized(_pool, _owner, _unrealized, _storedTraderEquity);
     }
 
-    /// Internal functions
+    // Internal functions
 
     function _insertPosition(
         MarginLiquidityPoolInterface _pool,
@@ -649,9 +649,9 @@ contract MarginFlowProtocol is Initializable, ReentrancyGuardUpgradeSafe {
 
             // approve might fail if MAX_UINT is already approved
             try _pool.increaseAllowanceForProtocol(transferITokenAmount)  {
-                this; // surpress empty code warning
+                this; // suppress empty code warning
             } catch (bytes memory) {
-                this; // surpress empty code warning
+                this; // suppress empty code warning
             }
             market.moneyMarket.iToken().safeTransferFrom(address(_pool), address(this), transferITokenAmount);
             balances[_pool][address(_pool)] = 0;
