@@ -4,9 +4,25 @@ require('ts-node').register({
   files: true
 });
 
-const HDWalletProvider = require('truffle-hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+const Subprovider = require('@trufflesuite/web3-provider-engine/subproviders/subprovider');
 
 require('dotenv').config();
+
+class ChainIdProvider extends Subprovider {
+  constructor(chainId){
+    super();
+    this.chainId = chainId;
+  }
+
+  handleRequest(payload, next, end) {
+    if (payload.method === 'eth_sendTransaction') {
+      // append chain_id
+      payload.params[0]['chainId'] = this.chainId;
+    }
+    next();
+  }
+}
 
 module.exports = {
   networks: {
@@ -38,8 +54,12 @@ module.exports = {
       networkCheckTimeout: 1000000000,
     },
     development: {
-      host: 'localhost',
-      port: 8545,
+      provider: () => {
+        const mnemonic = "barrel photo axis offer lunch mountain advice empty kidney poem shop object";
+        const frontierProvider = new HDWalletProvider(mnemonic, "http://localhost:8545");
+        frontierProvider.engine.addProvider(new ChainIdProvider(42), 0);
+        return frontierProvider;
+      },
       network_id: '*', // Match any network id,
       gas: 9500000
     }
