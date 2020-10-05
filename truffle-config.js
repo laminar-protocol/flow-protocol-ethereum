@@ -12,15 +12,23 @@ require('dotenv').config();
 class ChainIdProvider extends Subprovider {
   constructor(chainId){
     super();
-    this.chainId = chainId;
+    this.chainId = '0x'+ Number(chainId).toString(16);
   }
 
   handleRequest(payload, next, end) {
+    delete payload['skipCache'];
     if (payload.method === 'eth_sendTransaction') {
       // append chain_id
       payload.params[0]['chainId'] = this.chainId;
     }
     next();
+  }
+}
+
+class FrontierProvider extends HDWalletProvider {
+  constructor(chainId, ...args) {
+    super(...args);
+    this.engine.addProvider(new ChainIdProvider(chainId), 0);
   }
 }
 
@@ -54,12 +62,7 @@ module.exports = {
       networkCheckTimeout: 1000000000,
     },
     development: {
-      provider: () => {
-        const mnemonic = "barrel photo axis offer lunch mountain advice empty kidney poem shop object";
-        const frontierProvider = new HDWalletProvider(mnemonic, "http://localhost:8545");
-        frontierProvider.engine.addProvider(new ChainIdProvider(42), 0);
-        return frontierProvider;
-      },
+      provider: () => new FrontierProvider(42, "barrel photo axis offer lunch mountain advice empty kidney poem shop object", "http://localhost:8545"),
       network_id: '*', // Match any network id,
       gas: 9500000
     }
